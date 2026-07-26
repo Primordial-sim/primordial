@@ -1,649 +1,641 @@
-2026-07-13 20:27:22,123 [INFO] 🚨 Brote: Poxvirus_000001 en Agente 42 (vir: 0.97, trans: 0.17, let: 0.48, inc: 2.3d, asym: 0.28)
-2026-07-13 20:27:22,127 [INFO] 🤒 [CONTAGIO]   Agente 42 contrajo Poxvirus_000001
-2026-07-13 20:27:22,129 [INFO] 🤝 Agente 15 y 50: desconocido → conocido (trust: 10.6, attraction: 5.0, commitment: 0.0)
-2026-07-13 20:27:22,130 [INFO] 🤝 Agente 16 y 23: desconocido → conocido (trust: 7.2, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:22,136 [INFO] 🤝 Agente 4 y 46: desconocido → conocido (trust: 9.4, attraction: 4.4, commitment: 0.0)
-2026-07-13 20:27:22,136 [INFO] 🤝 Agente 6 y 40: desconocido → conocido (trust: 8.7, attraction: 4.1, commitment: 0.0)
-2026-07-13 20:27:22,137 [INFO] 🤝 Agente 19 y 22: desconocido → conocido (trust: 6.4, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:22,144 [INFO] 🤝 Agente 3 y 30: desconocido → conocido (trust: 7.4, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:22,145 [INFO] 🤝 Agente 14 y 48: desconocido → conocido (trust: 7.4, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:22,151 [INFO] 🤝 Agente 1 y 23: desconocido → conocido (trust: 7.9, attraction: 3.7, commitment: 0.0)
-2026-07-13 20:27:22,151 [INFO] 🤝 Agente 8 y 49: desconocido → conocido (trust: 6.3, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:22,159 [INFO] 🤝 Agente 5 y 41: desconocido → conocido (trust: 6.7, attraction: 3.1, commitment: 0.0)
-2026-07-13 20:27:22,159 [INFO] 🤝 Agente 7 y 27: desconocido → conocido (trust: 9.5, attraction: 4.5, commitment: 0.0)
-2026-07-13 20:27:22,167 [INFO] 🤝 Agente 16 y 46: desconocido → conocido (trust: 11.4, attraction: 5.5, commitment: 0.0)
-2026-07-13 20:27:22,172 [INFO] 🤝 Agente 3 y 33: desconocido → conocido (trust: 7.4, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:22,172 [INFO] 🤝 Agente 3 y 50: desconocido → conocido (trust: 8.4, attraction: 4.0, commitment: 0.0)
-2026-07-13 20:27:22,173 [INFO] 🤝 Agente 4 y 32: desconocido → conocido (trust: 8.5, attraction: 4.0, commitment: 0.0)
-2026-07-13 20:27:22,173 [INFO] 🤝 Agente 9 y 25: desconocido → conocido (trust: 5.3, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:22,179 [INFO] 🤝 Agente 1 y 46: desconocido → conocido (trust: 7.1, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:22,180 [INFO] 🤝 Agente 14 y 49: desconocido → conocido (trust: 9.3, attraction: 4.4, commitment: 0.0)
-2026-07-13 20:27:22,181 [INFO] 🤝 Agente 28 y 32: desconocido → conocido (trust: 9.6, attraction: 4.6, commitment: 0.0)
-2026-07-13 20:27:22,187 [INFO] 🤝 Agente 11 y 27: desconocido → conocido (trust: 8.8, attraction: 4.2, commitment: 0.0)
-2026-07-13 20:27:22,187 [INFO] 🤝 Agente 19 y 40: desconocido → conocido (trust: 10.3, attraction: 4.9, commitment: 0.0)
-2026-07-13 20:27:22,188 [INFO] 🤝 Agente 31 y 38: desconocido → conocido (trust: 11.7, attraction: 5.6, commitment: 0.0)
-2026-07-13 20:27:22,194 [INFO] 🤝 Agente 14 y 24: desconocido → conocido (trust: 8.8, attraction: 4.2, commitment: 0.0)
-2026-07-13 20:27:22,195 [INFO] 🤝 Agente 27 y 33: desconocido → conocido (trust: 7.3, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:22,201 [INFO] 🤝 Agente 5 y 29: desconocido → conocido (trust: 7.8, attraction: 3.7, commitment: 0.0)
-2026-07-13 20:27:22,201 [INFO] 🤝 Agente 7 y 15: desconocido → conocido (trust: 10.3, attraction: 4.9, commitment: 0.0)
-2026-07-13 20:27:22,201 [INFO] 🤝 Agente 10 y 22: desconocido → conocido (trust: 10.2, attraction: 4.9, commitment: 0.0)
-2026-07-13 20:27:22,202 [INFO] 🤝 Agente 10 y 41: desconocido → conocido (trust: 9.6, attraction: 4.6, commitment: 0.0)
-2026-07-13 20:27:22,202 [INFO] 🤝 Agente 14 y 41: desconocido → conocido (trust: 8.8, attraction: 4.2, commitment: 0.0)
-2026-07-13 20:27:22,202 [INFO] 🤝 Agente 16 y 25: desconocido → conocido (trust: 7.9, attraction: 3.7, commitment: 0.0)
-2026-07-13 20:27:22,202 [INFO] 🤝 Agente 18 y 33: desconocido → conocido (trust: 11.2, attraction: 5.4, commitment: 0.0)
-2026-07-13 20:27:22,203 [INFO] 🤝 Agente 38 y 39: desconocido → conocido (trust: 10.3, attraction: 4.9, commitment: 0.0)
-2026-07-13 20:27:22,209 [INFO] 🤝 Agente 3 y 6: desconocido → conocido (trust: 7.9, attraction: 3.7, commitment: 0.0)
-2026-07-13 20:27:22,214 [INFO] 🤒 [CONTAGIO]   Agente 42 contrajo Environmental_000002
-2026-07-13 20:27:22,216 [INFO] 🤝 Agente 1 y 13: desconocido → conocido (trust: 8.2, attraction: 3.9, commitment: 0.0)
-2026-07-13 20:27:22,217 [INFO] 🤝 Agente 8 y 40: desconocido → conocido (trust: 7.1, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:22,217 [INFO] 🤝 Agente 9 y 50: desconocido → conocido (trust: 4.6, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:22,224 [INFO] 🤝 Agente 5 y 33: desconocido → conocido (trust: 7.6, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:22,226 [INFO] 🤝 Agente 27 y 36: desconocido → conocido (trust: 7.7, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:22,226 [INFO] 🤝 Agente 41 y 49: desconocido → conocido (trust: 6.1, attraction: 2.8, commitment: 0.0)
-2026-07-13 20:27:22,232 [INFO] 🤝 Agente 13 y 27: desconocido → conocido (trust: 7.0, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:22,233 [INFO] 🤝 Agente 23 y 38: desconocido → conocido (trust: 9.3, attraction: 4.4, commitment: 0.0)
-2026-07-13 20:27:22,234 [INFO] 🤝 Agente 32 y 35: desconocido → conocido (trust: 10.3, attraction: 4.9, commitment: 0.0)
-2026-07-13 20:27:22,239 [INFO] 🤝 Agente 1 y 16: desconocido → conocido (trust: 6.7, attraction: 3.1, commitment: 0.0)
-2026-07-13 20:27:22,240 [INFO] 🤝 Agente 11 y 18: desconocido → conocido (trust: 10.2, attraction: 4.9, commitment: 0.0)
-2026-07-13 20:27:22,247 [INFO] 🤝 Agente 4 y 35: desconocido → conocido (trust: 9.7, attraction: 4.6, commitment: 0.0)
-2026-07-13 20:27:22,249 [INFO] 🤝 Agente 44 y 45: desconocido → conocido (trust: 9.9, attraction: 4.7, commitment: 0.0)
-2026-07-13 20:27:22,262 [INFO] 🤝 Agente 30 y 43: desconocido → conocido (trust: 7.1, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:22,268 [INFO] 🤝 Agente 3 y 27: desconocido → conocido (trust: 12.0, attraction: 5.7, commitment: 0.0)
-2026-07-13 20:27:22,269 [INFO] 🤝 Agente 25 y 46: desconocido → conocido (trust: 8.2, attraction: 3.9, commitment: 0.0)
-2026-07-13 20:27:22,277 [INFO] 🤝 Agente 26 y 48: desconocido → conocido (trust: 11.4, attraction: 5.5, commitment: 0.0)
-2026-07-13 20:27:22,277 [INFO] 🤝 Agente 39 y 43: desconocido → conocido (trust: 9.8, attraction: 4.6, commitment: 0.0)
-2026-07-13 20:27:22,283 [INFO] 🤝 Agente 9 y 11: desconocido → conocido (trust: 10.2, attraction: 4.9, commitment: 0.0)
-2026-07-13 20:27:22,284 [INFO] 🤝 Agente 13 y 18: desconocido → conocido (trust: 11.3, attraction: 5.4, commitment: 0.0)
-2026-07-13 20:27:22,284 [INFO] 🤝 Agente 21 y 22: desconocido → conocido (trust: 10.8, attraction: 5.2, commitment: 0.0)
-2026-07-13 20:27:22,285 [INFO] 🤝 Agente 33 y 34: desconocido → conocido (trust: 11.3, attraction: 5.4, commitment: 0.0)
-2026-07-13 20:27:22,290 [INFO] 🤝 Agente 4 y 25: desconocido → conocido (trust: 9.1, attraction: 4.3, commitment: 0.0)
-2026-07-13 20:27:22,291 [INFO] 🤝 Agente 4 y 30: desconocido → conocido (trust: 4.4, attraction: 2.0, commitment: 0.0)
-2026-07-13 20:27:22,291 [INFO] 🤝 Agente 6 y 13: desconocido → conocido (trust: 6.3, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:22,292 [INFO] 🤝 Agente 18 y 34: desconocido → conocido (trust: 11.8, attraction: 5.7, commitment: 0.0)
-2026-07-13 20:27:22,292 [INFO] 🤝 Agente 23 y 28: desconocido → conocido (trust: 6.1, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:22,293 [INFO] 🤝 Agente 35 y 46: desconocido → conocido (trust: 10.1, attraction: 4.8, commitment: 0.0)
-2026-07-13 20:27:22,298 [INFO] 🤝 Agente 1 y 35: desconocido → conocido (trust: 5.5, attraction: 2.6, commitment: 0.0)
-2026-07-13 20:27:22,299 [INFO] 🤝 Agente 4 y 16: desconocido → conocido (trust: 9.9, attraction: 4.7, commitment: 0.0)
-2026-07-13 20:27:22,299 [INFO] 🤝 Agente 5 y 30: desconocido → conocido (trust: 7.9, attraction: 3.7, commitment: 0.0)
-2026-07-13 20:27:22,299 [INFO] 🤝 Agente 5 y 43: desconocido → conocido (trust: 10.3, attraction: 4.9, commitment: 0.0)
-2026-07-13 20:27:22,306 [INFO] 🤝 Agente 3 y 36: desconocido → conocido (trust: 7.2, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:22,306 [INFO] 🤝 Agente 9 y 30: desconocido → conocido (trust: 11.0, attraction: 5.3, commitment: 0.0)
-2026-07-13 20:27:22,314 [INFO] 🤝 Agente 20 y 25: desconocido → conocido (trust: 7.1, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:22,314 [INFO] 🤝 Agente 23 y 31: desconocido → conocido (trust: 9.4, attraction: 4.5, commitment: 0.0)
-2026-07-13 20:27:22,314 [INFO] 🤝 Agente 25 y 38: desconocido → conocido (trust: 6.4, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:22,320 [INFO] === INFORME EVOLUTIVO (Día 30.0) ===
-2026-07-13 20:27:22,322 [INFO] 🤝 Agente 11 y 23: desconocido → conocido (trust: 6.0, attraction: 2.8, commitment: 0.0)
-2026-07-13 20:27:22,329 [INFO] 🤝 Agente 2 y 15: desconocido → conocido (trust: 9.8, attraction: 4.7, commitment: 0.0)
-2026-07-13 20:27:22,330 [INFO] 🤝 Agente 10 y 24: desconocido → conocido (trust: 9.4, attraction: 4.5, commitment: 0.0)
-2026-07-13 20:27:22,330 [INFO] 🤝 Agente 11 y 30: desconocido → conocido (trust: 10.3, attraction: 4.9, commitment: 0.0)
-2026-07-13 20:27:22,337 [INFO] 🤝 Agente 5 y 23: desconocido → conocido (trust: 8.7, attraction: 4.1, commitment: 0.0)
-2026-07-13 20:27:22,338 [INFO] 🤝 Agente 11 y 13: desconocido → conocido (trust: 10.6, attraction: 5.1, commitment: 0.0)
-2026-07-13 20:27:22,339 [INFO] 🤝 Agente 30 y 34: desconocido → conocido (trust: 10.1, attraction: 4.8, commitment: 0.0)
-2026-07-13 20:27:22,346 [INFO] 🤝 Agente 13 y 30: desconocido → conocido (trust: 11.3, attraction: 5.4, commitment: 0.0)
-2026-07-13 20:27:22,346 [INFO] 🤝 Agente 22 y 24: desconocido → conocido (trust: 7.1, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:22,353 [INFO] 🤝 Agente 10 y 40: desconocido → conocido (trust: 7.6, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:22,355 [INFO] 🚨 Brote: Influenza_000003 en Agente 37 (vir: 0.71, trans: 0.34, let: 0.09, inc: 3.4d, asym: 0.20)
-2026-07-13 20:27:22,359 [INFO] 🤒 [CONTAGIO]   Agente 37 contrajo Influenza_000003
-2026-07-13 20:27:22,361 [INFO] 🤝 Agente 4 y 18: desconocido → conocido (trust: 6.4, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:22,361 [INFO] 🤝 Agente 5 y 14: desconocido → conocido (trust: 6.3, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:22,361 [INFO] 🤝 Agente 6 y 19: desconocido → conocido (trust: 10.8, attraction: 5.2, commitment: 0.0)
-2026-07-13 20:27:22,362 [INFO] 🤝 Agente 18 y 25: desconocido → conocido (trust: 8.9, attraction: 4.2, commitment: 0.0)
-2026-07-13 20:27:22,369 [INFO] 🤝 Agente 4 y 43: desconocido → conocido (trust: 8.2, attraction: 3.9, commitment: 0.0)
-2026-07-13 20:27:22,370 [INFO] 🤝 Agente 25 y 32: desconocido → conocido (trust: 7.0, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:22,371 [INFO] 🤝 Agente 30 y 33: desconocido → conocido (trust: 11.3, attraction: 5.4, commitment: 0.0)
-2026-07-13 20:27:22,376 [INFO] 🤝 Agente 1 y 34: desconocido → conocido (trust: 9.4, attraction: 4.5, commitment: 0.0)
-2026-07-13 20:27:22,378 [INFO] 🤝 Agente 24 y 49: desconocido → conocido (trust: 5.8, attraction: 2.7, commitment: 0.0)
-2026-07-13 20:27:22,384 [INFO] 🤝 Agente 4 y 44: desconocido → conocido (trust: 7.4, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:22,384 [INFO] 🤝 Agente 11 y 43: desconocido → conocido (trust: 5.9, attraction: 2.7, commitment: 0.0)
-2026-07-13 20:27:22,392 [INFO] 🤝 Agente 25 y 43: desconocido → conocido (trust: 7.6, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:22,398 [INFO] 🤝 Agente 14 y 39: desconocido → conocido (trust: 6.5, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:22,399 [INFO] 🤝 Agente 26 y 49: desconocido → conocido (trust: 8.8, attraction: 4.2, commitment: 0.0)
-2026-07-13 20:27:22,405 [INFO] 🤝 Agente 6 y 30: desconocido → conocido (trust: 7.4, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:22,406 [INFO] 🤝 Agente 16 y 44: desconocido → conocido (trust: 8.8, attraction: 4.2, commitment: 0.0)
-2026-07-13 20:27:22,407 [INFO] 🤝 Agente 20 y 44: desconocido → conocido (trust: 10.6, attraction: 5.0, commitment: 0.0)
-2026-07-13 20:27:22,408 [INFO] 🤝 Agente 38 y 46: desconocido → conocido (trust: 6.1, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:22,413 [INFO] 🤝 Agente 2 y 36: desconocido → conocido (trust: 6.3, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:22,414 [INFO] 🤝 Agente 15 y 47: desconocido → conocido (trust: 6.0, attraction: 2.8, commitment: 0.0)
-2026-07-13 20:27:22,414 [INFO] 🤝 Agente 18 y 43: desconocido → conocido (trust: 8.0, attraction: 3.8, commitment: 0.0)
-2026-07-13 20:27:22,415 [INFO] 🤝 Agente 21 y 41: desconocido → conocido (trust: 6.7, attraction: 3.1, commitment: 0.0)
-2026-07-13 20:27:22,422 [INFO] 🤝 Agente 25 y 29: desconocido → conocido (trust: 6.2, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:22,422 [INFO] 🤝 Agente 28 y 31: desconocido → conocido (trust: 5.4, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:22,423 [INFO] 🤝 Agente 29 y 33: desconocido → conocido (trust: 11.0, attraction: 5.2, commitment: 0.0)
-2026-07-13 20:27:22,429 [INFO] 🤝 Agente 13 y 47: desconocido → conocido (trust: 7.4, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:22,430 [INFO] 🤝 Agente 19 y 27: desconocido → conocido (trust: 6.4, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:22,430 [INFO] 🤝 Agente 25 y 33: desconocido → conocido (trust: 7.6, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:22,435 [INFO] 🤒 [CONTAGIO]   Agente 42 contrajo Environmental_000004
-2026-07-13 20:27:22,437 [INFO] 🤝 Agente 3 y 47: desconocido → conocido (trust: 7.9, attraction: 3.7, commitment: 0.0)
-2026-07-13 20:27:22,444 [INFO] 🤝 Agente 2 y 50: desconocido → conocido (trust: 11.3, attraction: 5.4, commitment: 0.0)
-2026-07-13 20:27:22,444 [INFO] 🤝 Agente 9 y 13: desconocido → conocido (trust: 10.0, attraction: 4.8, commitment: 0.0)
-2026-07-13 20:27:22,445 [INFO] 🤝 Agente 28 y 44: desconocido → conocido (trust: 11.8, attraction: 5.6, commitment: 0.0)
-2026-07-13 20:27:22,446 [INFO] 🤝 Agente 28 y 45: desconocido → conocido (trust: 10.2, attraction: 4.9, commitment: 0.0)
-2026-07-13 20:27:22,452 [INFO] 🤝 Agente 1 y 25: desconocido → conocido (trust: 11.1, attraction: 5.3, commitment: 0.0)
-2026-07-13 20:27:22,453 [INFO] 🤝 Agente 21 y 40: desconocido → conocido (trust: 10.2, attraction: 4.9, commitment: 0.0)
-2026-07-13 20:27:22,453 [INFO] 🤝 Agente 23 y 25: desconocido → conocido (trust: 9.0, attraction: 4.3, commitment: 0.0)
-2026-07-13 20:27:22,453 [INFO] 🤝 Agente 23 y 33: desconocido → conocido (trust: 7.3, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:22,461 [INFO] 🤝 Agente 29 y 30: desconocido → conocido (trust: 12.2, attraction: 5.8, commitment: 0.0)
-2026-07-13 20:27:22,480 [INFO] 🤝 Agente 4 y 23: desconocido → conocido (trust: 9.7, attraction: 4.6, commitment: 0.0)
-2026-07-13 20:27:22,484 [INFO] 🤝 Agente 30 y 40: desconocido → conocido (trust: 7.2, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:22,490 [INFO] 🤝 Agente 1 y 4: desconocido → conocido (trust: 7.7, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:22,491 [INFO] 🤝 Agente 13 y 43: desconocido → conocido (trust: 7.7, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:22,492 [INFO] 🤝 Agente 18 y 27: desconocido → conocido (trust: 6.5, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:22,493 [INFO] 🤝 Agente 45 y 46: desconocido → conocido (trust: 8.8, attraction: 4.2, commitment: 0.0)
-2026-07-13 20:27:22,499 [INFO] 🤝 Agente 1 y 29: desconocido → conocido (trust: 6.7, attraction: 3.1, commitment: 0.0)
-2026-07-13 20:27:22,500 [INFO] 🤝 Agente 1 y 45: desconocido → conocido (trust: 10.4, attraction: 5.0, commitment: 0.0)
-2026-07-13 20:27:22,501 [INFO] 🤝 Agente 5 y 40: desconocido → conocido (trust: 5.6, attraction: 2.6, commitment: 0.0)
-2026-07-13 20:27:22,502 [INFO] 🤝 Agente 16 y 45: desconocido → conocido (trust: 8.0, attraction: 3.8, commitment: 0.0)
-2026-07-13 20:27:22,502 [INFO] 🤝 Agente 18 y 46: desconocido → conocido (trust: 4.7, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:22,503 [INFO] 🤝 Agente 23 y 34: desconocido → conocido (trust: 7.6, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:22,503 [INFO] 🤝 Agente 29 y 34: desconocido → conocido (trust: 9.7, attraction: 4.6, commitment: 0.0)
-2026-07-13 20:27:22,510 [INFO] 🤝 Agente 24 y 40: desconocido → conocido (trust: 5.3, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:22,518 [INFO] 🤝 Agente 37 y 40: desconocido → conocido (trust: 6.1, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:22,524 [INFO] 🤝 Agente 16 y 35: desconocido → conocido (trust: 11.1, attraction: 5.3, commitment: 0.0)
-2026-07-13 20:27:22,526 [INFO] 🤝 Agente 32 y 46: desconocido → conocido (trust: 11.3, attraction: 5.4, commitment: 0.0)
-2026-07-13 20:27:22,533 [INFO] 🤝 Agente 19 y 21: desconocido → conocido (trust: 8.1, attraction: 3.8, commitment: 0.0)
-2026-07-13 20:27:22,533 [INFO] 🤝 Agente 25 y 30: desconocido → conocido (trust: 6.5, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:22,541 [INFO] 🤝 Agente 44 y 46: desconocido → conocido (trust: 9.9, attraction: 4.7, commitment: 0.0)
-2026-07-13 20:27:22,547 [INFO] 🤝 Agente 13 y 38: desconocido → conocido (trust: 4.5, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:22,547 [INFO] 🤝 Agente 13 y 40: desconocido → conocido (trust: 6.0, attraction: 2.8, commitment: 0.0)
-2026-07-13 20:27:22,555 [INFO] 🤝 Agente 20 y 28: desconocido → conocido (trust: 9.9, attraction: 4.7, commitment: 0.0)
-2026-07-13 20:27:22,561 [INFO] === INFORME EVOLUTIVO (Día 60.0) ===
-2026-07-13 20:27:22,564 [INFO] 🤝 Agente 7 y 47: desconocido → conocido (trust: 6.2, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:22,585 [INFO] 🤝 Agente 4 y 31: desconocido → conocido (trust: 9.7, attraction: 4.6, commitment: 0.0)
-2026-07-13 20:27:22,585 [INFO] 🤝 Agente 5 y 9: desconocido → conocido (trust: 6.6, attraction: 3.1, commitment: 0.0)
-2026-07-13 20:27:22,587 [INFO] 🤝 Agente 27 y 47: desconocido → conocido (trust: 7.4, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:22,588 [INFO] 🤝 Agente 43 y 49: desconocido → conocido (trust: 6.2, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:22,594 [INFO] 🤝 Agente 15 y 27: desconocido → conocido (trust: 7.6, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:22,616 [INFO] 🤝 Agente 28 y 46: desconocido → conocido (trust: 10.5, attraction: 5.0, commitment: 0.0)
-2026-07-13 20:27:22,622 [INFO] 🤝 Agente 11 y 33: desconocido → conocido (trust: 11.0, attraction: 5.2, commitment: 0.0)
-2026-07-13 20:27:22,637 [INFO] 🤝 Agente 5 y 34: desconocido → conocido (trust: 7.0, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:22,638 [INFO] 🤝 Agente 22 y 37: desconocido → conocido (trust: 8.4, attraction: 3.9, commitment: 0.0)
-2026-07-13 20:27:22,658 [INFO] 🤝 Agente 6 y 33: desconocido → conocido (trust: 6.4, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:22,667 [INFO] 🤝 Agente 32 y 44: desconocido → conocido (trust: 9.2, attraction: 4.4, commitment: 0.0)
-2026-07-13 20:27:22,673 [INFO] 🤝 Agente 9 y 33: desconocido → conocido (trust: 10.2, attraction: 4.9, commitment: 0.0)
-2026-07-13 20:27:22,680 [INFO] 🤝 Agente 1 y 31: desconocido → conocido (trust: 5.5, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:22,689 [INFO] 🤝 Agente 20 y 46: desconocido → conocido (trust: 7.9, attraction: 3.7, commitment: 0.0)
-2026-07-13 20:27:22,695 [INFO] 🤝 Agente 3 y 13: desconocido → conocido (trust: 7.0, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:22,697 [INFO] 🤝 Agente 23 y 45: desconocido → conocido (trust: 7.2, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:22,718 [INFO] 🤝 Agente 2 y 27: desconocido → conocido (trust: 7.3, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:22,719 [INFO] 🤝 Agente 9 y 27: desconocido → conocido (trust: 8.2, attraction: 3.9, commitment: 0.0)
-2026-07-13 20:27:22,720 [INFO] 🤝 Agente 11 y 34: desconocido → conocido (trust: 10.8, attraction: 5.2, commitment: 0.0)
-2026-07-13 20:27:22,734 [INFO] 🤝 Agente 6 y 11: desconocido → conocido (trust: 6.8, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:22,742 [INFO] 🤝 Agente 17 y 25: desconocido → conocido (trust: 5.1, attraction: 2.3, commitment: 0.0)
-2026-07-13 20:27:22,756 [INFO] 🤝 Agente 1 y 18: desconocido → conocido (trust: 9.4, attraction: 4.5, commitment: 0.0)
-2026-07-13 20:27:22,758 [INFO] 🤝 Agente 32 y 45: desconocido → conocido (trust: 7.6, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:22,771 [INFO] 🤝 Agente 6 y 27: desconocido → conocido (trust: 7.4, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:22,778 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
-2026-07-13 20:27:22,781 [INFO] 🤝 Agente 31 y 46: desconocido → conocido (trust: 6.9, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:22,786 [INFO] === INFORME EVOLUTIVO (Día 90.0) ===
-2026-07-13 20:27:22,796 [INFO] 🤝 Agente 1 y 43: desconocido → conocido (trust: 6.8, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:22,797 [INFO] 🤝 Agente 5 y 8: desconocido → conocido (trust: 10.3, attraction: 4.9, commitment: 0.0)
-2026-07-13 20:27:22,798 [INFO] 🤝 Agente 23 y 30: desconocido → conocido (trust: 6.7, attraction: 3.1, commitment: 0.0)
-2026-07-13 20:27:22,804 [INFO] 🤝 Agente 4 y 38: desconocido → conocido (trust: 9.1, attraction: 4.3, commitment: 0.0)
-2026-07-13 20:27:22,805 [INFO] 🤝 Agente 6 y 47: desconocido → conocido (trust: 11.3, attraction: 5.4, commitment: 0.0)
-2026-07-13 20:27:22,812 [INFO] 🤝 Agente 7 y 33: desconocido → conocido (trust: 4.5, attraction: 2.0, commitment: 0.0)
-2026-07-13 20:27:22,813 [INFO] 🤝 Agente 18 y 28: desconocido → conocido (trust: 5.2, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:22,814 [INFO] 🤝 Agente 19 y 47: desconocido → conocido (trust: 11.5, attraction: 5.5, commitment: 0.0)
-2026-07-13 20:27:22,820 [INFO] 🤝 Agente 4 y 34: desconocido → conocido (trust: 5.9, attraction: 2.8, commitment: 0.0)
-2026-07-13 20:27:22,828 [INFO] 🤝 Agente 16 y 32: desconocido → conocido (trust: 11.1, attraction: 5.3, commitment: 0.0)
-2026-07-13 20:27:22,829 [INFO] 🤝 Agente 23 y 43: desconocido → conocido (trust: 10.9, attraction: 5.2, commitment: 0.0)
-2026-07-13 20:27:22,836 [INFO] 🤝 Agente 10 y 21: desconocido → conocido (trust: 9.1, attraction: 4.3, commitment: 0.0)
-2026-07-13 20:27:22,838 [INFO] 🤝 Agente 27 y 34: desconocido → conocido (trust: 7.2, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:22,844 [INFO] 🤝 Agente 13 y 34: desconocido → conocido (trust: 11.2, attraction: 5.4, commitment: 0.0)
-2026-07-13 20:27:22,851 [INFO] 🤝 Agente 5 y 13: desconocido → conocido (trust: 7.9, attraction: 3.7, commitment: 0.0)
-2026-07-13 20:27:22,860 [INFO] 🤝 Agente 11 y 47: desconocido → conocido (trust: 7.7, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:22,861 [INFO] 🤝 Agente 13 y 19: desconocido → conocido (trust: 7.0, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:22,861 [INFO] 🤝 Agente 16 y 20: desconocido → conocido (trust: 6.8, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:22,861 [INFO] 🤝 Agente 18 y 23: desconocido → conocido (trust: 8.3, attraction: 3.9, commitment: 0.0)
-2026-07-13 20:27:22,868 [INFO] 🤝 Agente 10 y 14: desconocido → conocido (trust: 5.9, attraction: 2.8, commitment: 0.0)
-2026-07-13 20:27:22,869 [INFO] 🤝 Agente 23 y 39: desconocido → conocido (trust: 8.9, attraction: 4.2, commitment: 0.0)
-2026-07-13 20:27:22,878 [INFO] 🤝 Agente 38 y 45: desconocido → conocido (trust: 4.9, attraction: 2.2, commitment: 0.0)
-2026-07-13 20:27:22,885 [INFO] 🤝 Agente 23 y 29: desconocido → conocido (trust: 6.4, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:22,900 [INFO] 🤝 Agente 3 y 11: desconocido → conocido (trust: 8.8, attraction: 4.2, commitment: 0.0)
-2026-07-13 20:27:22,915 [INFO] 🤝 Agente 7 y 50: desconocido → conocido (trust: 11.3, attraction: 5.4, commitment: 0.0)
-2026-07-13 20:27:22,931 [INFO] 🤝 Agente 9 y 43: desconocido → conocido (trust: 5.7, attraction: 2.6, commitment: 0.0)
-2026-07-13 20:27:22,931 [INFO] 🤝 Agente 9 y 47: desconocido → conocido (trust: 9.8, attraction: 4.7, commitment: 0.0)
-2026-07-13 20:27:22,939 [INFO] 🤝 Agente 4 y 45: desconocido → conocido (trust: 8.1, attraction: 3.8, commitment: 0.0)
-2026-07-13 20:27:22,948 [INFO] 🤝 Agente 18 y 30: desconocido → conocido (trust: 10.1, attraction: 4.8, commitment: 0.0)
-2026-07-13 20:27:22,955 [INFO] 🤝 Agente 3 y 18: desconocido → conocido (trust: 6.5, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:22,956 [INFO] 🤝 Agente 7 y 19: desconocido → conocido (trust: 5.3, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:22,971 [INFO] 🤝 Agente 3 y 7: desconocido → conocido (trust: 9.6, attraction: 4.6, commitment: 0.0)
-2026-07-13 20:27:22,979 [INFO] 🤝 Agente 5 y 38: desconocido → conocido (trust: 7.3, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:22,980 [INFO] 🤝 Agente 11 y 25: desconocido → conocido (trust: 7.1, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:22,980 [INFO] 🤝 Agente 12 y 25: desconocido → conocido (trust: 7.8, attraction: 3.7, commitment: 0.0)
-2026-07-13 20:27:22,981 [INFO] 🤝 Agente 25 y 39: desconocido → conocido (trust: 5.4, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:22,987 [INFO] 🤝 Agente 4 y 13: desconocido → conocido (trust: 5.4, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:22,989 [INFO] 🤝 Agente 15 y 36: desconocido → conocido (trust: 4.7, attraction: 2.2, commitment: 0.0)
-2026-07-13 20:27:22,998 [INFO] 🤝 Agente 43 y 45: desconocido → conocido (trust: 5.7, attraction: 2.6, commitment: 0.0)
-2026-07-13 20:27:23,004 [INFO] 🤝 Agente 5 y 18: desconocido → conocido (trust: 7.7, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:23,005 [INFO] 🤝 Agente 9 y 23: desconocido → conocido (trust: 5.2, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:23,012 [INFO] 🤝 Agente 5 y 24: desconocido → conocido (trust: 5.6, attraction: 2.6, commitment: 0.0)
-2026-07-13 20:27:23,019 [INFO] 🤝 Agente 1 y 27: desconocido → conocido (trust: 5.2, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:23,022 [INFO] 🤝 Agente 25 y 45: desconocido → conocido (trust: 10.5, attraction: 5.0, commitment: 0.0)
-2026-07-13 20:27:23,027 [INFO] === INFORME EVOLUTIVO (Día 120.0) ===
-2026-07-13 20:27:23,038 [INFO] 🤝 Agente 18 y 45: desconocido → conocido (trust: 7.4, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:23,047 [INFO] 🤝 Agente 27 y 29: desconocido → conocido (trust: 7.1, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:23,048 [INFO] 🤝 Agente 29 y 43: desconocido → conocido (trust: 7.0, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:23,048 [INFO] 🤝 Agente 43 y 46: desconocido → conocido (trust: 5.2, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:23,054 [INFO] 🤝 Agente 6 y 9: desconocido → conocido (trust: 8.7, attraction: 4.1, commitment: 0.0)
-2026-07-13 20:27:23,055 [INFO] 🤝 Agente 15 y 19: desconocido → conocido (trust: 5.2, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:23,064 [INFO] 🤝 Agente 33 y 43: desconocido → conocido (trust: 7.4, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:23,080 [INFO] 🤝 Agente 39 y 49: desconocido → conocido (trust: 8.6, attraction: 4.1, commitment: 0.0)
-2026-07-13 20:27:23,086 [INFO] 🤝 Agente 4 y 5: desconocido → conocido (trust: 6.0, attraction: 2.8, commitment: 0.0)
-2026-07-13 20:27:23,102 [INFO] 🤝 Agente 2 y 7: desconocido → conocido (trust: 10.1, attraction: 4.8, commitment: 0.0)
-2026-07-13 20:27:23,104 [INFO] 🤝 Agente 19 y 33: desconocido → conocido (trust: 7.0, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:23,111 [INFO] 🤝 Agente 1 y 44: desconocido → conocido (trust: 7.8, attraction: 3.7, commitment: 0.0)
-2026-07-13 20:27:23,111 [INFO] 🤝 Agente 3 y 15: desconocido → conocido (trust: 7.9, attraction: 3.7, commitment: 0.0)
-2026-07-13 20:27:23,113 [INFO] 🤝 Agente 25 y 31: desconocido → conocido (trust: 6.8, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:23,121 [INFO] 🤝 Agente 19 y 30: desconocido → conocido (trust: 8.2, attraction: 3.9, commitment: 0.0)
-2026-07-13 20:27:23,143 [INFO] 🤝 Agente 9 y 18: desconocido → conocido (trust: 8.9, attraction: 4.2, commitment: 0.0)
-2026-07-13 20:27:23,160 [INFO] 🤝 Agente 21 y 37: desconocido → conocido (trust: 8.0, attraction: 3.8, commitment: 0.0)
-2026-07-13 20:27:23,182 [INFO] 🤝 Agente 12 y 17: desconocido → conocido (trust: 5.2, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:23,184 [INFO] 🤝 Agente 40 y 47: desconocido → conocido (trust: 9.3, attraction: 4.4, commitment: 0.0)
-2026-07-13 20:27:23,190 [INFO] 🤝 Agente 14 y 26: desconocido → conocido (trust: 6.4, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:23,191 [INFO] 🤝 Agente 16 y 43: desconocido → conocido (trust: 5.6, attraction: 2.6, commitment: 0.0)
-2026-07-13 20:27:23,198 [INFO] 🤝 Agente 9 y 19: desconocido → conocido (trust: 9.2, attraction: 4.4, commitment: 0.0)
-2026-07-13 20:27:23,207 [INFO] 🤝 Agente 13 y 33: desconocido → conocido (trust: 12.2, attraction: 5.8, commitment: 0.0)
-2026-07-13 20:27:23,208 [INFO] 🤝 Agente 20 y 35: desconocido → conocido (trust: 5.5, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:23,215 [INFO] 🤝 Agente 6 y 50: desconocido → conocido (trust: 5.8, attraction: 2.7, commitment: 0.0)
-2026-07-13 20:27:23,224 [INFO] 🤝 Agente 24 y 41: desconocido → conocido (trust: 11.3, attraction: 5.4, commitment: 0.0)
-2026-07-13 20:27:23,248 [INFO] 🤝 Agente 25 y 34: desconocido → conocido (trust: 8.7, attraction: 4.1, commitment: 0.0)
-2026-07-13 20:27:23,249 [INFO] 🤝 Agente 29 y 40: desconocido → conocido (trust: 7.5, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:23,264 [INFO] 🤝 Agente 38 y 49: desconocido → conocido (trust: 6.8, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:23,269 [INFO] === INFORME EVOLUTIVO (Día 150.0) ===
-2026-07-13 20:27:23,281 [INFO] 🤝 Agente 31 y 32: desconocido → conocido (trust: 6.4, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:23,297 [INFO] 🤝 Agente 31 y 35: desconocido → conocido (trust: 8.4, attraction: 4.0, commitment: 0.0)
-2026-07-13 20:27:23,304 [INFO] 🤝 Agente 2 y 3: desconocido → conocido (trust: 7.3, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:23,305 [INFO] 🤝 Agente 13 y 45: desconocido → conocido (trust: 6.1, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:23,312 [INFO] 🤝 Agente 1 y 33: desconocido → conocido (trust: 8.2, attraction: 3.9, commitment: 0.0)
-2026-07-13 20:27:23,330 [INFO] 🤝 Agente 31 y 34: desconocido → conocido (trust: 4.6, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:23,352 [INFO] 🤝 Agente 11 y 29: desconocido → conocido (trust: 10.1, attraction: 4.8, commitment: 0.0)
-2026-07-13 20:27:23,354 [INFO] 🤝 Agente 23 y 49: desconocido → conocido (trust: 5.0, attraction: 2.3, commitment: 0.0)
-2026-07-13 20:27:23,383 [INFO] 🤝 Agente 9 y 21: desconocido → conocido (trust: 5.4, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:23,385 [INFO] 🤝 Agente 28 y 35: desconocido → conocido (trust: 8.0, attraction: 3.8, commitment: 0.0)
-2026-07-13 20:27:23,393 [INFO] 🤝 Agente 20 y 45: desconocido → conocido (trust: 9.1, attraction: 4.3, commitment: 0.0)
-2026-07-13 20:27:23,394 [INFO] 🤝 Agente 35 y 38: desconocido → conocido (trust: 7.6, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:23,410 [INFO] 🤝 Agente 23 y 35: desconocido → conocido (trust: 7.0, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:23,417 [INFO] 🤝 Agente 5 y 11: desconocido → conocido (trust: 6.0, attraction: 2.8, commitment: 0.0)
-2026-07-13 20:27:23,419 [INFO] 🤝 Agente 29 y 47: desconocido → conocido (trust: 8.8, attraction: 4.2, commitment: 0.0)
-2026-07-13 20:27:23,467 [INFO] 🤝 Agente 30 y 47: desconocido → conocido (trust: 8.5, attraction: 4.0, commitment: 0.0)
-2026-07-13 20:27:23,474 [INFO] 🤝 Agente 18 y 29: desconocido → conocido (trust: 9.7, attraction: 4.6, commitment: 0.0)
-2026-07-13 20:27:23,474 [INFO] 🤝 Agente 19 y 29: desconocido → conocido (trust: 8.5, attraction: 4.0, commitment: 0.0)
-2026-07-13 20:27:23,475 [INFO] 🤝 Agente 21 y 24: desconocido → conocido (trust: 6.2, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:23,482 [INFO] 🤝 Agente 8 y 42: desconocido → conocido (trust: 7.3, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:23,491 [INFO] 🤝 Agente 13 y 29: desconocido → conocido (trust: 11.0, attraction: 5.2, commitment: 0.0)
-2026-07-13 20:27:23,491 [INFO] 🤝 Agente 17 y 50: desconocido → conocido (trust: 6.3, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:23,498 [INFO] 🤝 Agente 1 y 11: desconocido → conocido (trust: 8.0, attraction: 3.8, commitment: 0.0)
-2026-07-13 20:27:23,506 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
-2026-07-13 20:27:23,507 [INFO] 🤝 Agente 1 y 9: desconocido → conocido (trust: 6.0, attraction: 2.8, commitment: 0.0)
-2026-07-13 20:27:23,509 [INFO] 🤝 Agente 18 y 47: desconocido → conocido (trust: 6.2, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:23,509 [INFO] 🤝 Agente 25 y 28: desconocido → conocido (trust: 8.7, attraction: 4.1, commitment: 0.0)
-2026-07-13 20:27:23,510 [INFO] 🤝 Agente 38 y 43: desconocido → conocido (trust: 9.1, attraction: 4.3, commitment: 0.0)
-2026-07-13 20:27:23,515 [INFO] === INFORME EVOLUTIVO (Día 180.0) ===
-2026-07-13 20:27:23,520 [INFO] 🤝 Agente 39 y 41: desconocido → conocido (trust: 4.9, attraction: 2.3, commitment: 0.0)
-2026-07-13 20:27:23,556 [INFO] 🤝 Agente 1 y 5: desconocido → conocido (trust: 5.4, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:23,557 [INFO] 🤝 Agente 3 y 19: desconocido → conocido (trust: 6.9, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:23,558 [INFO] 🤝 Agente 18 y 19: desconocido → conocido (trust: 5.8, attraction: 2.7, commitment: 0.0)
-2026-07-13 20:27:23,566 [INFO] 🤝 Agente 21 y 47: desconocido → conocido (trust: 7.2, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:23,589 [INFO] 🤝 Agente 3 y 29: desconocido → conocido (trust: 7.3, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:23,614 [INFO] 🤝 Agente 1 y 20: desconocido → conocido (trust: 7.3, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:23,616 [INFO] 🤝 Agente 23 y 32: desconocido → conocido (trust: 5.8, attraction: 2.7, commitment: 0.0)
-2026-07-13 20:27:23,624 [INFO] 🤝 Agente 19 y 34: desconocido → conocido (trust: 5.9, attraction: 2.7, commitment: 0.0)
-2026-07-13 20:27:23,639 [INFO] 🤝 Agente 4 y 20: desconocido → conocido (trust: 5.6, attraction: 2.6, commitment: 0.0)
-2026-07-13 20:27:23,641 [INFO] 🤝 Agente 26 y 38: desconocido → conocido (trust: 5.1, attraction: 2.3, commitment: 0.0)
-2026-07-13 20:27:23,649 [INFO] 🤝 Agente 35 y 44: desconocido → conocido (trust: 7.5, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:23,657 [INFO] 🤝 Agente 33 y 47: desconocido → conocido (trust: 7.5, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:23,664 [INFO] 🤝 Agente 9 y 34: desconocido → conocido (trust: 9.1, attraction: 4.3, commitment: 0.0)
-2026-07-13 20:27:23,671 [INFO] 🤝 Agente 1 y 32: desconocido → conocido (trust: 5.9, attraction: 2.7, commitment: 0.0)
-2026-07-13 20:27:23,697 [INFO] 🤝 Agente 13 y 25: desconocido → conocido (trust: 7.7, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:23,729 [INFO] 🤝 Agente 3 y 34: desconocido → conocido (trust: 7.1, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:23,731 [INFO] 🤝 Agente 34 y 46: desconocido → conocido (trust: 4.4, attraction: 2.0, commitment: 0.0)
-2026-07-13 20:27:23,737 [INFO] 🤝 Agente 1 y 3: desconocido → conocido (trust: 5.0, attraction: 2.3, commitment: 0.0)
-2026-07-13 20:27:23,737 [INFO] 🤝 Agente 3 y 9: desconocido → conocido (trust: 8.5, attraction: 4.0, commitment: 0.0)
-2026-07-13 20:27:23,762 [INFO] === INFORME EVOLUTIVO (Día 210.0) ===
-2026-07-13 20:27:23,766 [INFO] 🤝 Agente 35 y 45: desconocido → conocido (trust: 6.7, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:23,782 [INFO] 🤝 Agente 31 y 44: desconocido → conocido (trust: 4.7, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:23,812 [INFO] 🤝 Agente 1 y 36: desconocido → conocido (trust: 4.7, attraction: 2.2, commitment: 0.0)
-2026-07-13 20:27:23,812 [INFO] 🤝 Agente 4 y 28: desconocido → conocido (trust: 8.1, attraction: 3.8, commitment: 0.0)
-2026-07-13 20:27:23,815 [INFO] 🤝 Agente 34 y 40: desconocido → conocido (trust: 4.7, attraction: 2.2, commitment: 0.0)
-2026-07-13 20:27:23,855 [INFO] 🤝 Agente 34 y 43: desconocido → conocido (trust: 7.4, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:23,868 [INFO] 🤝 Agente 5 y 39: desconocido → conocido (trust: 8.8, attraction: 4.2, commitment: 0.0)
-2026-07-13 20:27:23,878 [INFO] 🤝 Agente 6 y 21: desconocido → conocido (trust: 6.8, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:23,888 [INFO] 🤝 Agente 27 y 50: desconocido → conocido (trust: 8.4, attraction: 3.9, commitment: 0.0)
-2026-07-13 20:27:23,896 [INFO] 🤝 Agente 18 y 40: desconocido → conocido (trust: 4.8, attraction: 2.2, commitment: 0.0)
-2026-07-13 20:27:23,897 [INFO] 🤝 Agente 31 y 39: desconocido → conocido (trust: 9.5, attraction: 4.5, commitment: 0.0)
-2026-07-13 20:27:23,946 [INFO] 🤝 Agente 31 y 43: desconocido → conocido (trust: 8.8, attraction: 4.2, commitment: 0.0)
-2026-07-13 20:27:23,968 [INFO] 🤝 Agente 6 y 15: desconocido → conocido (trust: 6.9, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:23,993 [INFO] 🤝 Agente 11 y 45: desconocido → conocido (trust: 6.0, attraction: 2.8, commitment: 0.0)
-2026-07-13 20:27:24,009 [INFO] === INFORME EVOLUTIVO (Día 240.0) ===
-2026-07-13 20:27:24,021 [INFO] 🤝 Agente 26 y 31: desconocido → conocido (trust: 4.4, attraction: 2.0, commitment: 0.0)
-2026-07-13 20:27:24,022 [INFO] 🤝 Agente 38 y 48: desconocido → conocido (trust: 4.8, attraction: 2.2, commitment: 0.0)
-2026-07-13 20:27:24,030 [INFO] 🤝 Agente 32 y 43: desconocido → conocido (trust: 4.2, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:24,047 [INFO] 🤝 Agente 33 y 40: desconocido → conocido (trust: 5.9, attraction: 2.8, commitment: 0.0)
-2026-07-13 20:27:24,048 [INFO] 🤝 Agente 47 y 50: desconocido → conocido (trust: 5.1, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:24,062 [INFO] 🤝 Agente 9 y 40: desconocido → conocido (trust: 7.7, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:24,103 [INFO] 🤝 Agente 16 y 31: desconocido → conocido (trust: 7.8, attraction: 3.7, commitment: 0.0)
-2026-07-13 20:27:24,137 [INFO] 🤝 Agente 35 y 43: desconocido → conocido (trust: 5.6, attraction: 2.6, commitment: 0.0)
-2026-07-13 20:27:24,160 [INFO] 🤝 Agente 5 y 47: desconocido → conocido (trust: 4.9, attraction: 2.2, commitment: 0.0)
-2026-07-13 20:27:24,178 [INFO] 🤝 Agente 34 y 47: desconocido → conocido (trust: 6.4, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:24,193 [INFO] 🤝 Agente 7 y 9: desconocido → conocido (trust: 5.8, attraction: 2.7, commitment: 0.0)
-2026-07-13 20:27:24,233 [INFO] 🤝 Agente 1 y 30: desconocido → conocido (trust: 7.0, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:24,248 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
-2026-07-13 20:27:24,257 [INFO] === INFORME EVOLUTIVO (Día 270.0) ===
-2026-07-13 20:27:24,277 [INFO] 🤝 Agente 21 y 29: desconocido → conocido (trust: 5.3, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:24,293 [INFO] 🤝 Agente 7 y 29: desconocido → conocido (trust: 4.6, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:24,294 [INFO] 🤝 Agente 22 y 47: desconocido → conocido (trust: 5.5, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:24,336 [INFO] 🤝 Agente 23 y 46: desconocido → conocido (trust: 6.8, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:24,360 [INFO] 🤝 Agente 31 y 45: desconocido → conocido (trust: 5.4, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:24,376 [INFO] 🤝 Agente 14 y 38: desconocido → conocido (trust: 4.4, attraction: 2.0, commitment: 0.0)
-2026-07-13 20:27:24,402 [INFO] 🤝 Agente 7 y 34: desconocido → conocido (trust: 4.2, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:24,427 [INFO] 🤝 Agente 5 y 42: desconocido → conocido (trust: 5.0, attraction: 2.3, commitment: 0.0)
-2026-07-13 20:27:24,438 [INFO] 🤝 Agente 41 y 43: desconocido → conocido (trust: 4.7, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:24,460 [INFO] 🤝 Agente 6 y 29: desconocido → conocido (trust: 7.6, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:24,470 [INFO] 🤝 Agente 20 y 32: desconocido → conocido (trust: 7.4, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:24,480 [INFO] 🤝 Agente 36 y 50: desconocido → conocido (trust: 6.5, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:24,510 [INFO] === INFORME EVOLUTIVO (Día 300.0) ===
-2026-07-13 20:27:24,537 [INFO] 🤝 Agente 7 y 13: desconocido → conocido (trust: 4.1, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:24,538 [INFO] 🤝 Agente 9 y 29: desconocido → conocido (trust: 11.2, attraction: 5.4, commitment: 0.0)
-2026-07-13 20:27:24,595 [INFO] 🤝 Agente 10 y 37: desconocido → conocido (trust: 6.2, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:24,605 [INFO] 🤝 Agente 27 y 30: desconocido → conocido (trust: 7.2, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:24,620 [INFO] 🤝 Agente 14 y 43: desconocido → conocido (trust: 5.0, attraction: 2.3, commitment: 0.0)
-2026-07-13 20:27:24,687 [INFO] 🤝 Agente 25 y 44: desconocido → conocido (trust: 8.2, attraction: 3.9, commitment: 0.0)
-2026-07-13 20:27:24,712 [INFO] 🤝 Agente 18 y 44: desconocido → conocido (trust: 4.8, attraction: 2.2, commitment: 0.0)
-2026-07-13 20:27:24,721 [INFO] 🤝 Agente 22 y 40: desconocido → conocido (trust: 8.6, attraction: 4.1, commitment: 0.0)
-2026-07-13 20:27:24,722 [INFO] 🤝 Agente 39 y 48: desconocido → conocido (trust: 6.0, attraction: 2.8, commitment: 0.0)
-2026-07-13 20:27:24,737 [INFO] 🤝 Agente 11 y 50: desconocido → conocido (trust: 4.7, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:24,756 [INFO] 🤝 Agente 31 y 33: desconocido → conocido (trust: 4.2, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:24,761 [INFO] === INFORME EVOLUTIVO (Día 330.0) ===
-2026-07-13 20:27:24,797 [INFO] 🤝 Agente 16 y 28: desconocido → conocido (trust: 9.4, attraction: 4.5, commitment: 0.0)
-2026-07-13 20:27:24,862 [INFO] 🤝 Agente 13 y 23: desconocido → conocido (trust: 7.6, attraction: 3.6, commitment: 0.0)
-2026-07-13 20:27:24,871 [INFO] 🤝 Agente 16 y 38: desconocido → conocido (trust: 7.0, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:24,878 [INFO] 🤝 Agente 5 y 49: desconocido → conocido (trust: 6.5, attraction: 3.0, commitment: 0.0)
-2026-07-13 20:27:24,940 [INFO] 🤝 Agente 48 y 49: desconocido → conocido (trust: 9.4, attraction: 4.5, commitment: 0.0)
-2026-07-13 20:27:24,957 [INFO] 🤝 Agente 40 y 41: desconocido → conocido (trust: 6.1, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:24,963 [INFO] 🤝 Agente 6 y 18: desconocido → conocido (trust: 5.1, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:25,003 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
-2026-07-13 20:27:25,004 [INFO] 🤝 Agente 4 y 39: desconocido → conocido (trust: 7.3, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:25,012 [INFO] === INFORME EVOLUTIVO (Día 360.0) ===
-2026-07-13 20:27:25,015 [INFO] 🤝 Agente 9 y 15: desconocido → conocido (trust: 4.8, attraction: 2.2, commitment: 0.0)
-2026-07-13 20:27:25,057 [INFO] 🤝 Agente 6 y 34: desconocido → conocido (trust: 5.4, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:25,061 [INFO] 🚨 Brote: Coronavirus_000005 en Agente 14 (vir: 0.54, trans: 0.17, let: 0.14, inc: 4.2d, asym: 0.35)
-2026-07-13 20:27:25,064 [INFO] 🤒 [CONTAGIO]   Agente 14 contrajo Coronavirus_000005
-2026-07-13 20:27:25,142 [INFO] 🤝 Agente 11 y 36: desconocido → conocido (trust: 5.7, attraction: 2.6, commitment: 0.0)
-2026-07-13 20:27:25,184 [INFO] 🤝 Agente 11 y 19: desconocido → conocido (trust: 7.0, attraction: 3.3, commitment: 0.0)
-2026-07-13 20:27:25,265 [INFO] === INFORME EVOLUTIVO (Día 390.0) ===
-2026-07-13 20:27:25,268 [INFO] 🤝 Agente 3 y 40: desconocido → conocido (trust: 4.7, attraction: 2.2, commitment: 0.0)
-2026-07-13 20:27:25,294 [INFO] 🤝 Agente 1 y 28: desconocido → conocido (trust: 8.2, attraction: 3.9, commitment: 0.0)
-2026-07-13 20:27:25,296 [INFO] 🤝 Agente 30 y 45: desconocido → conocido (trust: 4.9, attraction: 2.3, commitment: 0.0)
-2026-07-13 20:27:25,320 [INFO] 🤝 Agente 6 y 7: desconocido → conocido (trust: 6.8, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:25,321 [INFO] 🤝 Agente 10 y 19: desconocido → conocido (trust: 5.4, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:25,405 [INFO] 🤝 Agente 26 y 39: desconocido → conocido (trust: 5.9, attraction: 2.7, commitment: 0.0)
-2026-07-13 20:27:25,521 [INFO] === INFORME EVOLUTIVO (Día 420.0) ===
-2026-07-13 20:27:25,591 [INFO] 🤝 Agente 31 y 49: desconocido → conocido (trust: 6.1, attraction: 2.8, commitment: 0.0)
-2026-07-13 20:27:25,771 [INFO] 🤝 Agente 16 y 39: desconocido → conocido (trust: 5.0, attraction: 2.3, commitment: 0.0)
-2026-07-13 20:27:25,781 [INFO] 🤝 Agente 34 y 39: desconocido → conocido (trust: 4.6, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:25,786 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
-2026-07-13 20:27:25,789 [INFO] 🤝 Agente 22 y 41: desconocido → conocido (trust: 7.4, attraction: 3.5, commitment: 0.0)
-2026-07-13 20:27:25,796 [INFO] === INFORME EVOLUTIVO (Día 450.0) ===
-2026-07-13 20:27:25,858 [INFO] 🤝 Agente 5 y 10: desconocido → conocido (trust: 4.9, attraction: 2.3, commitment: 0.0)
-2026-07-13 20:27:26,013 [INFO] 🤝 Agente 31 y 48: desconocido → conocido (trust: 4.2, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:26,054 [INFO] === INFORME EVOLUTIVO (Día 480.0) ===
-2026-07-13 20:27:26,082 [INFO] 🤝 Agente 7 y 30: desconocido → conocido (trust: 4.5, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:26,127 [INFO] 🤝 Agente 18 y 39: desconocido → conocido (trust: 5.3, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:26,163 [INFO] 🤝 Agente 28 y 38: desconocido → conocido (trust: 4.7, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:26,232 [INFO] 🤝 Agente 7 y 36: desconocido → conocido (trust: 6.8, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:26,252 [INFO] 🤝 Agente 37 y 42: desconocido → conocido (trust: 5.4, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:26,261 [INFO] 🤝 Agente 33 y 45: desconocido → conocido (trust: 6.1, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:26,270 [INFO] 🤝 Agente 34 y 45: desconocido → conocido (trust: 7.3, attraction: 3.4, commitment: 0.0)
-2026-07-13 20:27:26,319 [INFO] === INFORME EVOLUTIVO (Día 510.0) ===
-2026-07-13 20:27:26,332 [INFO] 🤝 Agente 29 y 39: desconocido → conocido (trust: 4.5, attraction: 2.0, commitment: 0.0)
-2026-07-13 20:27:26,403 [INFO] 🚨 Brote: Bacteriofago_X_000006 en Agente 47 (vir: 0.94, trans: 0.07, let: 0.40, inc: 3.8d, asym: 0.25)
-2026-07-13 20:27:26,407 [INFO] 🤒 [CONTAGIO]   Agente 47 contrajo Bacteriofago_X_000006
-2026-07-13 20:27:26,417 [INFO] 🤝 Agente 2 y 6: desconocido → conocido (trust: 4.7, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:26,452 [INFO] 🤒 [CONTAGIO]   Agente 19 contrajo Bacteriofago_X_000006
-2026-07-13 20:27:26,498 [INFO] 🤝 Agente 19 y 37: desconocido → conocido (trust: 4.8, attraction: 2.2, commitment: 0.0)
-2026-07-13 20:27:26,559 [INFO] 🤝 Agente 25 y 35: desconocido → conocido (trust: 6.9, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:26,573 [INFO] 🤒 [CONTAGIO]   Agente 19 contrajo Environmental_000007
-2026-07-13 20:27:26,574 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
-2026-07-13 20:27:26,584 [INFO] === INFORME EVOLUTIVO (Día 540.0) ===
-2026-07-13 20:27:26,630 [INFO] 🤝 Agente 5 y 25: desconocido → conocido (trust: 6.0, attraction: 2.8, commitment: 0.0)
-2026-07-13 20:27:26,657 [INFO] 🤝 Agente 13 y 39: desconocido → conocido (trust: 5.0, attraction: 2.3, commitment: 0.0)
-2026-07-13 20:27:26,840 [INFO] === INFORME EVOLUTIVO (Día 570.0) ===
-2026-07-13 20:27:26,872 [INFO] 🤝 Agente 34 y 44: desconocido → conocido (trust: 4.7, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:26,898 [INFO] 🤝 Agente 18 y 31: desconocido → conocido (trust: 5.2, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:26,949 [INFO] 🤝 Agente 13 y 31: desconocido → conocido (trust: 4.5, attraction: 2.0, commitment: 0.0)
-2026-07-13 20:27:27,100 [INFO] === INFORME EVOLUTIVO (Día 600.0) ===
-2026-07-13 20:27:27,249 [INFO] 🤝 Agente 35 y 39: desconocido → conocido (trust: 5.4, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:27,273 [INFO] ⚰️ [MUERTE]     Agente 9 falleció. Causa: Fallo sistémico por senectud (Causas naturales)
-2026-07-13 20:27:27,347 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
-2026-07-13 20:27:27,355 [INFO] === INFORME EVOLUTIVO (Día 630.0) ===
-2026-07-13 20:27:27,538 [INFO] 🤝 Agente 8 y 18: desconocido → conocido (trust: 6.2, attraction: 2.9, commitment: 0.0)
-2026-07-13 20:27:27,601 [INFO] === INFORME EVOLUTIVO (Día 660.0) ===
-2026-07-13 20:27:27,613 [INFO] 🤝 Agente 18 y 38: desconocido → conocido (trust: 5.1, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:27,771 [INFO] 🚨 Brote: Coronavirus_000008 en Agente 17 (vir: 1.31, trans: 0.48, let: 0.37, inc: 2.6d, asym: 0.11)
-2026-07-13 20:27:27,774 [INFO] 🤒 [CONTAGIO]   Agente 17 contrajo Coronavirus_000008
-2026-07-13 20:27:27,849 [INFO] === INFORME EVOLUTIVO (Día 690.0) ===
-2026-07-13 20:27:27,910 [INFO] 🤝 Agente 33 y 38: desconocido → conocido (trust: 4.2, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:27,952 [INFO] 🚨 Brote: Poxvirus_000009 en Agente 49 (vir: 0.59, trans: 0.37, let: 0.42, inc: 5.6d, asym: 0.38)
-2026-07-13 20:27:27,956 [INFO] 🤒 [CONTAGIO]   Agente 49 contrajo Poxvirus_000009
-2026-07-13 20:27:27,977 [INFO] 🤝 Agente 29 y 45: desconocido → conocido (trust: 4.6, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:28,090 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
-2026-07-13 20:27:28,099 [INFO] === INFORME EVOLUTIVO (Día 720.0) ===
-2026-07-13 20:27:28,105 [INFO] 🚨 Brote: Coronavirus_000010 en Agente 3 (vir: 0.51, trans: 0.07, let: 0.12, inc: 3.9d, asym: 0.20)
-2026-07-13 20:27:28,109 [INFO] 🤒 [CONTAGIO]   Agente 3 contrajo Coronavirus_000010
-2026-07-13 20:27:28,195 [INFO] 🤝 Agente 19 y 50: desconocido → conocido (trust: 4.2, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:28,222 [INFO] 🚨 Brote: Poxvirus_000011 en Agente 13 (vir: 0.70, trans: 0.19, let: 0.33, inc: 6.4d, asym: 0.36)
-2026-07-13 20:27:28,226 [INFO] 🤒 [CONTAGIO]   Agente 13 contrajo Poxvirus_000011
-2026-07-13 20:27:28,292 [INFO] 🤒 [CONTAGIO]   Agente 29 contrajo Poxvirus_000011
-2026-07-13 20:27:28,354 [INFO] === INFORME EVOLUTIVO (Día 750.0) ===
-2026-07-13 20:27:28,363 [INFO] 🤒 [CONTAGIO]   Agente 33 contrajo Poxvirus_000011
-2026-07-13 20:27:28,473 [INFO] 🤝 Agente 1 y 38: desconocido → conocido (trust: 5.1, attraction: 2.3, commitment: 0.0)
-2026-07-13 20:27:28,603 [INFO] === INFORME EVOLUTIVO (Día 780.0) ===
-2026-07-13 20:27:28,672 [INFO] 🤝 Agente 32 y 38: desconocido → conocido (trust: 5.7, attraction: 2.6, commitment: 0.0)
-2026-07-13 20:27:28,839 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
-2026-07-13 20:27:28,847 [INFO] === INFORME EVOLUTIVO (Día 810.0) ===
-2026-07-13 20:27:29,095 [INFO] === INFORME EVOLUTIVO (Día 840.0) ===
-2026-07-13 20:27:29,228 [INFO] 🤝 Agente 5 y 31: desconocido → conocido (trust: 6.8, attraction: 3.2, commitment: 0.0)
-2026-07-13 20:27:29,232 [INFO] 🚨 Brote: Bacteriofago_X_000012 en Agente 4 (vir: 1.22, trans: 0.25, let: 0.05, inc: 6.5d, asym: 0.33)
-2026-07-13 20:27:29,235 [INFO] 🤒 [CONTAGIO]   Agente 4 contrajo Bacteriofago_X_000012
-2026-07-13 20:27:29,347 [INFO] === INFORME EVOLUTIVO (Día 870.0) ===
-2026-07-13 20:27:29,361 [INFO] 🤝 Agente 28 y 34: desconocido → conocido (trust: 5.1, attraction: 2.3, commitment: 0.0)
-2026-07-13 20:27:29,589 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
-2026-07-13 20:27:29,598 [INFO] === INFORME EVOLUTIVO (Día 900.0) ===
-2026-07-13 20:27:29,647 [INFO] 🚨 Brote: Influenza_000013 en Agente 36 (vir: 0.69, trans: 0.10, let: 0.37, inc: 2.5d, asym: 0.22)
-2026-07-13 20:27:29,651 [INFO] 🤒 [CONTAGIO]   Agente 36 contrajo Influenza_000013
-2026-07-13 20:27:29,852 [INFO] === INFORME EVOLUTIVO (Día 930.0) ===
-2026-07-13 20:27:29,992 [INFO] 🤝 Agente 4 y 33: desconocido → conocido (trust: 5.2, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:30,040 [INFO] 🤝 Agente 18 y 20: desconocido → conocido (trust: 4.1, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:30,058 [INFO] 🤝 Agente 23 y 44: desconocido → conocido (trust: 5.4, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:30,116 [INFO] === INFORME EVOLUTIVO (Día 960.0) ===
-2026-07-13 20:27:30,187 [INFO] 🤝 Agente 7 y 11: desconocido → conocido (trust: 5.9, attraction: 2.7, commitment: 0.0)
-2026-07-13 20:27:30,344 [INFO] 🚨 Brote: Coronavirus_000014 en Agente 2 (vir: 0.63, trans: 0.09, let: 0.15, inc: 2.8d, asym: 0.28)
-2026-07-13 20:27:30,347 [INFO] 🤒 [CONTAGIO]   Agente 2 contrajo Coronavirus_000014
-2026-07-13 20:27:30,367 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
-2026-07-13 20:27:30,377 [INFO] === INFORME EVOLUTIVO (Día 990.0) ===
-2026-07-13 20:27:30,633 [INFO] === INFORME EVOLUTIVO (Día 1020.0) ===
-2026-07-13 20:27:30,842 [INFO] 🤝 Agente 21 y 30: desconocido → conocido (trust: 5.0, attraction: 2.3, commitment: 0.0)
-2026-07-13 20:27:30,883 [INFO] === INFORME EVOLUTIVO (Día 1050.0) ===
-2026-07-13 20:27:31,124 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
-2026-07-13 20:27:31,133 [INFO] === INFORME EVOLUTIVO (Día 1080.0) ===
-2026-07-13 20:27:31,146 [INFO] 🤝 Agente 16 y 18: desconocido → conocido (trust: 4.5, attraction: 2.0, commitment: 0.0)
-2026-07-13 20:27:31,365 [INFO] 🤝 Agente 6 y 22: desconocido → conocido (trust: 5.1, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:31,391 [INFO] === INFORME EVOLUTIVO (Día 1110.0) ===
-2026-07-13 20:27:31,414 [INFO] 🚨 Brote: Bacteriofago_X_000015 en Agente 36 (vir: 0.88, trans: 0.41, let: 0.44, inc: 4.0d, asym: 0.40)
-2026-07-13 20:27:31,417 [INFO] 🤒 [CONTAGIO]   Agente 36 contrajo Bacteriofago_X_000015
-2026-07-13 20:27:31,661 [INFO] === INFORME EVOLUTIVO (Día 1140.0) ===
-2026-07-13 20:27:31,907 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
-2026-07-13 20:27:31,917 [INFO] === INFORME EVOLUTIVO (Día 1170.0) ===
-2026-07-13 20:27:32,174 [INFO] === INFORME EVOLUTIVO (Día 1200.0) ===
-2026-07-13 20:27:32,438 [INFO] === INFORME EVOLUTIVO (Día 1230.0) ===
-2026-07-13 20:27:32,522 [INFO] 🚨 Brote: Influenza_000016 en Agente 29 (vir: 1.36, trans: 0.31, let: 0.50, inc: 2.8d, asym: 0.25)
-2026-07-13 20:27:32,526 [INFO] 🤒 [CONTAGIO]   Agente 29 contrajo Influenza_000016
-2026-07-13 20:27:32,540 [INFO] 🤝 Agente 34 y 36: desconocido → conocido (trust: 4.8, attraction: 2.2, commitment: 0.0)
-2026-07-13 20:27:32,562 [INFO] 🤒 [CONTAGIO]   Agente 30 contrajo Influenza_000016
-2026-07-13 20:27:32,562 [INFO] 🤒 [CONTAGIO]   Agente 33 contrajo Influenza_000016
-2026-07-13 20:27:32,598 [INFO] 🤒 [CONTAGIO]   Agente 13 contrajo Influenza_000016
-2026-07-13 20:27:32,618 [INFO] 🤝 Agente 11 y 40: desconocido → conocido (trust: 5.4, attraction: 2.5, commitment: 0.0)
-2026-07-13 20:27:32,695 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
-2026-07-13 20:27:32,704 [INFO] === INFORME EVOLUTIVO (Día 1260.0) ===
-2026-07-13 20:27:32,804 [INFO] 🤝 Agente 33 y 39: desconocido → conocido (trust: 4.7, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:32,854 [INFO] 🤝 Agente 27 y 40: desconocido → conocido (trust: 4.2, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:32,861 [INFO] 🤝 Agente 6 y 37: desconocido → conocido (trust: 4.2, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:32,964 [INFO] === INFORME EVOLUTIVO (Día 1290.0) ===
-2026-07-13 20:27:33,222 [INFO] === INFORME EVOLUTIVO (Día 1320.0) ===
-2026-07-13 20:27:33,470 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
-2026-07-13 20:27:33,479 [INFO] === INFORME EVOLUTIVO (Día 1350.0) ===
-2026-07-13 20:27:33,735 [INFO] === INFORME EVOLUTIVO (Día 1380.0) ===
-2026-07-13 20:27:33,991 [INFO] === INFORME EVOLUTIVO (Día 1410.0) ===
-2026-07-13 20:27:34,020 [INFO] 🤝 Agente 20 y 34: desconocido → conocido (trust: 4.2, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:34,239 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
-2026-07-13 20:27:34,249 [INFO] === INFORME EVOLUTIVO (Día 1440.0) ===
-2026-07-13 20:27:34,330 [INFO] 🤝 Agente 19 y 41: desconocido → conocido (trust: 4.2, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:34,507 [INFO] === INFORME EVOLUTIVO (Día 1470.0) ===
-2026-07-13 20:27:34,606 [INFO] 🚨 Brote: Bacteriofago_X_000017 en Agente 13 (vir: 0.71, trans: 0.14, let: 0.10, inc: 6.0d, asym: 0.28)
-2026-07-13 20:27:34,610 [INFO] 🤒 [CONTAGIO]   Agente 13 contrajo Bacteriofago_X_000017
-2026-07-13 20:27:34,671 [INFO] 🤒 [CONTAGIO]   Agente 30 contrajo Bacteriofago_X_000017
-2026-07-13 20:27:34,671 [INFO] 🤒 [CONTAGIO]   Agente 33 contrajo Bacteriofago_X_000017
-2026-07-13 20:27:34,732 [INFO] 🤒 [CONTAGIO]   Agente 29 contrajo Bacteriofago_X_000017
-2026-07-13 20:27:34,768 [INFO] === INFORME EVOLUTIVO (Día 1500.0) ===
-2026-07-13 20:27:35,018 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
-2026-07-13 20:27:35,028 [INFO] === INFORME EVOLUTIVO (Día 1530.0) ===
-2026-07-13 20:27:35,285 [INFO] === INFORME EVOLUTIVO (Día 1560.0) ===
-2026-07-13 20:27:35,439 [INFO] 🤝 Agente 30 y 39: desconocido → conocido (trust: 4.6, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:35,536 [INFO] === INFORME EVOLUTIVO (Día 1590.0) ===
-2026-07-13 20:27:35,780 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
-2026-07-13 20:27:35,790 [INFO] === INFORME EVOLUTIVO (Día 1620.0) ===
-2026-07-13 20:27:36,043 [INFO] === INFORME EVOLUTIVO (Día 1650.0) ===
-2026-07-13 20:27:36,192 [INFO] 🤝 Agente 5 y 19: desconocido → conocido (trust: 5.1, attraction: 2.4, commitment: 0.0)
-2026-07-13 20:27:36,303 [INFO] === INFORME EVOLUTIVO (Día 1680.0) ===
-2026-07-13 20:27:36,548 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
-2026-07-13 20:27:36,557 [INFO] === INFORME EVOLUTIVO (Día 1710.0) ===
-2026-07-13 20:27:36,815 [INFO] === INFORME EVOLUTIVO (Día 1740.0) ===
-2026-07-13 20:27:37,008 [INFO] 🤝 Agente 28 y 43: desconocido → conocido (trust: 4.5, attraction: 2.1, commitment: 0.0)
-2026-07-13 20:27:37,075 [INFO] === INFORME EVOLUTIVO (Día 1770.0) ===
-2026-07-13 20:27:37,324 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
-2026-07-13 20:27:37,333 [INFO] === INFORME EVOLUTIVO (Día 1800.0) ===
-2026-07-13 20:27:37,593 [INFO] === INFORME EVOLUTIVO (Día 1830.0) ===
-2026-07-13 20:27:37,853 [INFO] === INFORME EVOLUTIVO (Día 1860.0) ===
-2026-07-13 20:27:38,098 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
-2026-07-13 20:27:38,108 [INFO] === INFORME EVOLUTIVO (Día 1890.0) ===
-2026-07-13 20:27:38,361 [INFO] === INFORME EVOLUTIVO (Día 1920.0) ===
-2026-07-13 20:27:38,614 [INFO] === INFORME EVOLUTIVO (Día 1950.0) ===
-2026-07-13 20:27:38,857 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
-2026-07-13 20:27:38,866 [INFO] === INFORME EVOLUTIVO (Día 1980.0) ===
-2026-07-13 20:27:39,123 [INFO] === INFORME EVOLUTIVO (Día 2010.0) ===
-2026-07-13 20:27:39,382 [INFO] === INFORME EVOLUTIVO (Día 2040.0) ===
-2026-07-13 20:27:39,591 [INFO] 🤝 Agente 10 y 47: desconocido → conocido (trust: 4.4, attraction: 2.0, commitment: 0.0)
-2026-07-13 20:27:39,633 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
-2026-07-13 20:27:39,642 [INFO] === INFORME EVOLUTIVO (Día 2070.0) ===
-2026-07-13 20:27:39,917 [INFO] === INFORME EVOLUTIVO (Día 2100.0) ===
-2026-07-13 20:27:39,945 [INFO] 🤝 Agente 18 y 36: desconocido → conocido (trust: 4.1, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:40,177 [INFO] === INFORME EVOLUTIVO (Día 2130.0) ===
-2026-07-13 20:27:40,226 [INFO] 🚨 Brote: Bacteriofago_X_000018 en Agente 22 (vir: 1.09, trans: 0.07, let: 0.06, inc: 5.0d, asym: 0.36)
-2026-07-13 20:27:40,229 [INFO] 🤒 [CONTAGIO]   Agente 22 contrajo Bacteriofago_X_000018
-2026-07-13 20:27:40,429 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
-2026-07-13 20:27:40,438 [INFO] === INFORME EVOLUTIVO (Día 2160.0) ===
-2026-07-13 20:27:40,699 [INFO] === INFORME EVOLUTIVO (Día 2190.0) ===
-2026-07-13 20:27:40,938 [INFO] 🤝 Agente 34 y 38: desconocido → conocido (trust: 4.5, attraction: 2.0, commitment: 0.0)
-2026-07-13 20:27:40,962 [INFO] === INFORME EVOLUTIVO (Día 2220.0) ===
-2026-07-13 20:27:41,213 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
-2026-07-13 20:27:41,222 [INFO] === INFORME EVOLUTIVO (Día 2250.0) ===
-2026-07-13 20:27:41,482 [INFO] === INFORME EVOLUTIVO (Día 2280.0) ===
-2026-07-13 20:27:41,502 [INFO] 🤝 Agente 29 y 41: desconocido → conocido (trust: 4.1, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:41,504 [INFO] 🚨 Brote: Poxvirus_000019 en Agente 28 (vir: 0.40, trans: 0.46, let: 0.44, inc: 4.6d, asym: 0.27)
-2026-07-13 20:27:41,507 [INFO] 🤒 [CONTAGIO]   Agente 28 contrajo Poxvirus_000019
-2026-07-13 20:27:41,742 [INFO] === INFORME EVOLUTIVO (Día 2310.0) ===
-2026-07-13 20:27:41,996 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
-2026-07-13 20:27:42,005 [INFO] === INFORME EVOLUTIVO (Día 2340.0) ===
-2026-07-13 20:27:42,270 [INFO] === INFORME EVOLUTIVO (Día 2370.0) ===
-2026-07-13 20:27:42,415 [INFO] 🚨 Brote: Coronavirus_000020 en Agente 42 (vir: 0.98, trans: 0.42, let: 0.33, inc: 3.4d, asym: 0.33)
-2026-07-13 20:27:42,418 [INFO] 🤒 [CONTAGIO]   Agente 42 contrajo Coronavirus_000020
-2026-07-13 20:27:42,432 [INFO] 🤝 Agente 33 y 36: desconocido → conocido (trust: 4.2, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:42,497 [INFO] ⚰️ [MUERTE]     Agente 18 falleció. Causa: Fallo sistémico por senectud (Causas naturales)
-2026-07-13 20:27:42,499 [INFO] 🤝 Agente 4 y 11: desconocido → conocido (trust: 4.2, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:42,531 [INFO] === INFORME EVOLUTIVO (Día 2400.0) ===
-2026-07-13 20:27:42,772 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
-2026-07-13 20:27:42,781 [INFO] === INFORME EVOLUTIVO (Día 2430.0) ===
-2026-07-13 20:27:42,943 [INFO] 🚨 Brote: Influenza_000021 en Agente 38 (vir: 1.10, trans: 0.20, let: 0.04, inc: 5.2d, asym: 0.16)
-2026-07-13 20:27:42,946 [INFO] 🤒 [CONTAGIO]   Agente 38 contrajo Influenza_000021
-2026-07-13 20:27:43,003 [INFO] 🤒 [CONTAGIO]   Agente 31 contrajo Influenza_000021
-2026-07-13 20:27:43,029 [INFO] === INFORME EVOLUTIVO (Día 2460.0) ===
-2026-07-13 20:27:43,277 [INFO] === INFORME EVOLUTIVO (Día 2490.0) ===
-2026-07-13 20:27:43,514 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
-2026-07-13 20:27:43,523 [INFO] === INFORME EVOLUTIVO (Día 2520.0) ===
-2026-07-13 20:27:43,771 [INFO] === INFORME EVOLUTIVO (Día 2550.0) ===
-2026-07-13 20:27:43,809 [INFO] 🚨 Brote: Poxvirus_000022 en Agente 49 (vir: 0.43, trans: 0.49, let: 0.28, inc: 4.2d, asym: 0.34)
-2026-07-13 20:27:43,813 [INFO] 🤒 [CONTAGIO]   Agente 49 contrajo Poxvirus_000022
-2026-07-13 20:27:44,021 [INFO] === INFORME EVOLUTIVO (Día 2580.0) ===
-2026-07-13 20:27:44,043 [INFO] 🚨 Brote: Coronavirus_000023 en Agente 22 (vir: 1.20, trans: 0.43, let: 0.41, inc: 5.3d, asym: 0.34)
-2026-07-13 20:27:44,046 [INFO] 🤒 [CONTAGIO]   Agente 22 contrajo Coronavirus_000023
-2026-07-13 20:27:44,262 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
-2026-07-13 20:27:44,271 [INFO] === INFORME EVOLUTIVO (Día 2610.0) ===
-2026-07-13 20:27:44,517 [INFO] === INFORME EVOLUTIVO (Día 2640.0) ===
-2026-07-13 20:27:44,764 [INFO] === INFORME EVOLUTIVO (Día 2670.0) ===
-2026-07-13 20:27:45,004 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
-2026-07-13 20:27:45,014 [INFO] === INFORME EVOLUTIVO (Día 2700.0) ===
-2026-07-13 20:27:45,265 [INFO] === INFORME EVOLUTIVO (Día 2730.0) ===
-2026-07-13 20:27:45,513 [INFO] === INFORME EVOLUTIVO (Día 2760.0) ===
-2026-07-13 20:27:45,755 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
-2026-07-13 20:27:45,764 [INFO] === INFORME EVOLUTIVO (Día 2790.0) ===
-2026-07-13 20:27:46,015 [INFO] === INFORME EVOLUTIVO (Día 2820.0) ===
-2026-07-13 20:27:46,244 [INFO] 🚨 Brote: Bacteriofago_X_000024 en Agente 42 (vir: 0.94, trans: 0.40, let: 0.04, inc: 5.4d, asym: 0.13)
-2026-07-13 20:27:46,247 [INFO] 🤒 [CONTAGIO]   Agente 42 contrajo Bacteriofago_X_000024
-2026-07-13 20:27:46,264 [INFO] === INFORME EVOLUTIVO (Día 2850.0) ===
-2026-07-13 20:27:46,507 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
-2026-07-13 20:27:46,516 [INFO] === INFORME EVOLUTIVO (Día 2880.0) ===
-2026-07-13 20:27:46,765 [INFO] === INFORME EVOLUTIVO (Día 2910.0) ===
-2026-07-13 20:27:46,844 [INFO] 🚨 Brote: Influenza_000025 en Agente 22 (vir: 1.04, trans: 0.15, let: 0.05, inc: 2.3d, asym: 0.27)
-2026-07-13 20:27:46,848 [INFO] 🤒 [CONTAGIO]   Agente 22 contrajo Influenza_000025
-2026-07-13 20:27:47,013 [INFO] === INFORME EVOLUTIVO (Día 2940.0) ===
-2026-07-13 20:27:47,254 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
-2026-07-13 20:27:47,264 [INFO] === INFORME EVOLUTIVO (Día 2970.0) ===
-2026-07-13 20:27:47,494 [INFO] 🚨 Brote: Poxvirus_000026 en Agente 11 (vir: 1.20, trans: 0.24, let: 0.25, inc: 6.2d, asym: 0.31)
-2026-07-13 20:27:47,497 [INFO] 🤒 [CONTAGIO]   Agente 11 contrajo Poxvirus_000026
-2026-07-13 20:27:47,515 [INFO] === INFORME EVOLUTIVO (Día 3000.0) ===
-2026-07-13 20:27:47,764 [INFO] === INFORME EVOLUTIVO (Día 3030.0) ===
-2026-07-13 20:27:48,005 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
-2026-07-13 20:27:48,016 [INFO] === INFORME EVOLUTIVO (Día 3060.0) ===
-2026-07-13 20:27:48,267 [INFO] === INFORME EVOLUTIVO (Día 3090.0) ===
-2026-07-13 20:27:48,501 [INFO] 🚨 Brote: Influenza_000027 en Agente 42 (vir: 1.30, trans: 0.27, let: 0.22, inc: 5.8d, asym: 0.26)
-2026-07-13 20:27:48,505 [INFO] 🤒 [CONTAGIO]   Agente 42 contrajo Influenza_000027
-2026-07-13 20:27:48,514 [INFO] === INFORME EVOLUTIVO (Día 3120.0) ===
-2026-07-13 20:27:48,587 [INFO] 🚨 Brote: Influenza_000028 en Agente 17 (vir: 0.69, trans: 0.30, let: 0.42, inc: 4.6d, asym: 0.34)
-2026-07-13 20:27:48,590 [INFO] 🤒 [CONTAGIO]   Agente 17 contrajo Influenza_000028
-2026-07-13 20:27:48,618 [INFO] 🤝 Agente 5 y 21: desconocido → conocido (trust: 4.3, attraction: 2.0, commitment: 0.0)
-2026-07-13 20:27:48,756 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
-2026-07-13 20:27:48,764 [INFO] === INFORME EVOLUTIVO (Día 3150.0) ===
-2026-07-13 20:27:48,771 [INFO] 🚨 Brote: Influenza_000029 en Agente 37 (vir: 1.39, trans: 0.42, let: 0.12, inc: 6.3d, asym: 0.21)
-2026-07-13 20:27:48,774 [INFO] 🤒 [CONTAGIO]   Agente 37 contrajo Influenza_000029
-2026-07-13 20:27:49,014 [INFO] === INFORME EVOLUTIVO (Día 3180.0) ===
-2026-07-13 20:27:49,267 [INFO] === INFORME EVOLUTIVO (Día 3210.0) ===
-2026-07-13 20:27:49,506 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
-2026-07-13 20:27:49,516 [INFO] === INFORME EVOLUTIVO (Día 3240.0) ===
-2026-07-13 20:27:49,766 [INFO] === INFORME EVOLUTIVO (Día 3270.0) ===
-2026-07-13 20:27:50,017 [INFO] === INFORME EVOLUTIVO (Día 3300.0) ===
-2026-07-13 20:27:50,023 [INFO] 🚨 Brote: Bacteriofago_X_000030 en Agente 48 (vir: 1.10, trans: 0.23, let: 0.29, inc: 4.6d, asym: 0.14)
-2026-07-13 20:27:50,027 [INFO] 🤒 [CONTAGIO]   Agente 48 contrajo Bacteriofago_X_000030
-2026-07-13 20:27:50,258 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
-2026-07-13 20:27:50,267 [INFO] === INFORME EVOLUTIVO (Día 3330.0) ===
-2026-07-13 20:27:50,512 [INFO] === INFORME EVOLUTIVO (Día 3360.0) ===
-2026-07-13 20:27:50,712 [INFO] 🤝 Agente 16 y 34: desconocido → conocido (trust: 4.1, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:50,762 [INFO] === INFORME EVOLUTIVO (Día 3390.0) ===
-2026-07-13 20:27:51,002 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
-2026-07-13 20:27:51,011 [INFO] === INFORME EVOLUTIVO (Día 3420.0) ===
-2026-07-13 20:27:51,221 [INFO] 🤝 Agente 11 y 15: desconocido → conocido (trust: 4.3, attraction: 2.0, commitment: 0.0)
-2026-07-13 20:27:51,261 [INFO] === INFORME EVOLUTIVO (Día 3450.0) ===
-2026-07-13 20:27:51,307 [INFO] 🤝 Agente 39 y 46: desconocido → conocido (trust: 4.2, attraction: 1.9, commitment: 0.0)
-2026-07-13 20:27:51,509 [INFO] === INFORME EVOLUTIVO (Día 3480.0) ===
-2026-07-13 20:27:51,748 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
-2026-07-13 20:27:51,757 [INFO] === INFORME EVOLUTIVO (Día 3510.0) ===
-2026-07-13 20:27:52,005 [INFO] === INFORME EVOLUTIVO (Día 3540.0) ===
-2026-07-13 20:27:52,036 [INFO] 🚨 Brote: Coronavirus_000031 en Agente 20 (vir: 1.02, trans: 0.46, let: 0.49, inc: 5.5d, asym: 0.26)
-2026-07-13 20:27:52,039 [INFO] 🤒 [CONTAGIO]   Agente 20 contrajo Coronavirus_000031
-2026-07-13 20:27:52,097 [INFO] 🤒 [CONTAGIO]   Agente 12 contrajo Coronavirus_000031
-2026-07-13 20:27:52,252 [INFO] === INFORME EVOLUTIVO (Día 3570.0) ===
-2026-07-13 20:27:52,492 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
-2026-07-13 20:27:52,501 [INFO] === INFORME EVOLUTIVO (Día 3600.0) ===
-2026-07-13 20:27:52,753 [INFO] === INFORME EVOLUTIVO (Día 3630.0) ===
-2026-07-13 20:27:52,841 [INFO] 🚨 Brote: Poxvirus_000032 en Agente 3 (vir: 1.33, trans: 0.31, let: 0.29, inc: 5.8d, asym: 0.21)
-2026-07-13 20:27:52,845 [INFO] 🤒 [CONTAGIO]   Agente 3 contrajo Poxvirus_000032
-2026-07-13 20:27:52,920 [INFO] 📊 RESUMEN EJECUTIVO DE LA SIMULACIÓN
+2026-07-23 19:51:12,745 [INFO] 👋 Día 1: Agente 1 conoce a 25 (distancia: 12.2, afinidad: 0.38)
+2026-07-23 19:51:12,746 [INFO] 👋 Día 1: Agente 2 conoce a 32 (distancia: 10.8, afinidad: 0.33)
+2026-07-23 19:51:12,746 [INFO] 👋 Día 1: Agente 3 conoce a 32 (distancia: 19.6, afinidad: 0.27)
+2026-07-23 19:51:12,747 [INFO] 👋 Día 1: Agente 3 conoce a 35 (distancia: 9.2, afinidad: 0.00)
+2026-07-23 19:51:12,747 [INFO] 👋 Día 1: Agente 3 conoce a 46 (distancia: 20.0, afinidad: 0.55)
+2026-07-23 19:51:12,747 [INFO] 👋 Día 1: Agente 5 conoce a 22 (distancia: 25.0, afinidad: 0.42)
+2026-07-23 19:51:12,747 [INFO] 👋 Día 1: Agente 8 conoce a 10 (distancia: 17.0, afinidad: 0.40)
+2026-07-23 19:51:12,747 [INFO] 👋 Día 1: Agente 8 conoce a 21 (distancia: 29.3, afinidad: 0.00)
+2026-07-23 19:51:12,748 [INFO] 👋 Día 1: Agente 10 conoce a 39 (distancia: 5.0, afinidad: 0.00)
+2026-07-23 19:51:12,748 [INFO] 👋 Día 1: Agente 11 conoce a 12 (distancia: 14.4, afinidad: 0.28)
+2026-07-23 19:51:12,748 [INFO] 👋 Día 1: Agente 11 conoce a 17 (distancia: 8.0, afinidad: 0.27)
+2026-07-23 19:51:12,748 [INFO] 👋 Día 1: Agente 11 conoce a 36 (distancia: 24.3, afinidad: 0.04)
+2026-07-23 19:51:12,748 [INFO] 👋 Día 1: Agente 13 conoce a 23 (distancia: 25.0, afinidad: 0.43)
+2026-07-23 19:51:12,749 [INFO] 👋 Día 1: Agente 13 conoce a 29 (distancia: 25.1, afinidad: 0.59)
+2026-07-23 19:51:12,749 [INFO] 👋 Día 1: Agente 15 conoce a 18 (distancia: 12.4, afinidad: 0.49)
+2026-07-23 19:51:12,749 [INFO] 👋 Día 1: Agente 18 conoce a 42 (distancia: 8.1, afinidad: 0.28)
+2026-07-23 19:51:12,749 [INFO] 👋 Día 1: Agente 21 conoce a 33 (distancia: 9.2, afinidad: 0.00)
+2026-07-23 19:51:12,750 [INFO] 👋 Día 1: Agente 23 conoce a 43 (distancia: 32.6, afinidad: 0.38)
+2026-07-23 19:51:12,750 [INFO] 👋 Día 1: Agente 27 conoce a 28 (distancia: 24.8, afinidad: 0.00)
+2026-07-23 19:51:12,750 [INFO] 👋 Día 1: Agente 34 conoce a 50 (distancia: 32.6, afinidad: 0.40)
+2026-07-23 19:51:12,751 [INFO] 👋 Día 1: Agente 40 conoce a 49 (distancia: 8.0, afinidad: 0.17)
+2026-07-23 19:51:12,758 [INFO] 👋 Día 2: Agente 6 conoce a 26 (distancia: 11.0, afinidad: 0.00)
+2026-07-23 19:51:12,758 [INFO] 👋 Día 2: Agente 6 conoce a 38 (distancia: 8.0, afinidad: 0.48)
+2026-07-23 19:51:12,758 [INFO] 👋 Día 2: Agente 7 conoce a 34 (distancia: 13.4, afinidad: 0.40)
+2026-07-23 19:51:12,759 [INFO] 👋 Día 2: Agente 8 conoce a 45 (distancia: 28.3, afinidad: 0.48)
+2026-07-23 19:51:12,759 [INFO] 👋 Día 2: Agente 9 conoce a 22 (distancia: 10.0, afinidad: 0.47)
+2026-07-23 19:51:12,759 [INFO] 👋 Día 2: Agente 11 conoce a 28 (distancia: 18.1, afinidad: 0.07)
+2026-07-23 19:51:12,759 [INFO] 👋 Día 2: Agente 18 conoce a 35 (distancia: 11.7, afinidad: 0.00)
+2026-07-23 19:51:12,760 [INFO] 👋 Día 2: Agente 21 conoce a 43 (distancia: 1.0, afinidad: 0.00)
+2026-07-23 19:51:12,760 [INFO] 👋 Día 2: Agente 23 conoce a 24 (distancia: 6.1, afinidad: 0.41)
+2026-07-23 19:51:12,760 [INFO] 👋 Día 2: Agente 23 conoce a 44 (distancia: 16.3, afinidad: 0.46)
+2026-07-23 19:51:12,760 [INFO] 👋 Día 2: Agente 27 conoce a 36 (distancia: 6.7, afinidad: 0.00)
+2026-07-23 19:51:12,760 [INFO] 👋 Día 2: Agente 28 conoce a 35 (distancia: 20.6, afinidad: 0.36)
+2026-07-23 19:51:12,761 [INFO] 👋 Día 2: Agente 28 conoce a 42 (distancia: 24.7, afinidad: 0.06)
+2026-07-23 19:51:12,761 [INFO] 👋 Día 2: Agente 41 conoce a 43 (distancia: 15.3, afinidad: 0.40)
+2026-07-23 19:51:12,761 [INFO] 👋 Día 2: Agente 45 conoce a 46 (distancia: 11.7, afinidad: 0.53)
+2026-07-23 19:51:12,761 [INFO] 👋 Día 2: Agente 47 conoce a 48 (distancia: 19.0, afinidad: 0.51)
+2026-07-23 19:51:12,768 [INFO] 👋 Día 3: Agente 3 conoce a 14 (distancia: 19.8, afinidad: 0.48)
+2026-07-23 19:51:12,769 [INFO] 👋 Día 3: Agente 4 conoce a 26 (distancia: 13.9, afinidad: 0.27)
+2026-07-23 19:51:12,769 [INFO] 👋 Día 3: Agente 7 conoce a 27 (distancia: 23.2, afinidad: 0.38)
+2026-07-23 19:51:12,769 [INFO] 👋 Día 3: Agente 9 conoce a 49 (distancia: 31.0, afinidad: 0.14)
+2026-07-23 19:51:12,770 [INFO] 👋 Día 3: Agente 11 conoce a 37 (distancia: 19.9, afinidad: 0.32)
+2026-07-23 19:51:12,770 [INFO] 👋 Día 3: Agente 12 conoce a 22 (distancia: 16.2, afinidad: 0.50)
+2026-07-23 19:51:12,770 [INFO] 👋 Día 3: Agente 13 conoce a 45 (distancia: 30.6, afinidad: 0.49)
+2026-07-23 19:51:12,770 [INFO] 👋 Día 3: Agente 14 conoce a 15 (distancia: 13.0, afinidad: 0.51)
+2026-07-23 19:51:12,771 [INFO] 👋 Día 3: Agente 14 conoce a 18 (distancia: 16.4, afinidad: 0.63)
+2026-07-23 19:51:12,771 [INFO] 👋 Día 3: Agente 17 conoce a 24 (distancia: 14.9, afinidad: 0.40)
+2026-07-23 19:51:12,771 [INFO] 👋 Día 3: Agente 19 conoce a 49 (distancia: 16.4, afinidad: 0.16)
+2026-07-23 19:51:12,771 [INFO] 👋 Día 3: Agente 21 conoce a 38 (distancia: 18.4, afinidad: 0.37)
+2026-07-23 19:51:12,772 [INFO] 👋 Día 3: Agente 22 conoce a 34 (distancia: 13.9, afinidad: 0.44)
+2026-07-23 19:51:12,772 [INFO] 👋 Día 3: Agente 25 conoce a 47 (distancia: 12.4, afinidad: 0.62)
+2026-07-23 19:51:12,772 [INFO] 👋 Día 3: Agente 25 conoce a 49 (distancia: 13.2, afinidad: 0.16)
+2026-07-23 19:51:12,772 [INFO] 👋 Día 3: Agente 28 conoce a 36 (distancia: 31.1, afinidad: 0.49)
+2026-07-23 19:51:12,773 [INFO] 👋 Día 3: Agente 33 conoce a 42 (distancia: 22.0, afinidad: 0.28)
+2026-07-23 19:51:12,773 [INFO] 👋 Día 3: Agente 33 conoce a 45 (distancia: 20.0, afinidad: 0.46)
+2026-07-23 19:51:12,773 [INFO] 👋 Día 3: Agente 35 conoce a 46 (distancia: 18.2, afinidad: 0.00)
+2026-07-23 19:51:12,773 [INFO] 👋 Día 3: Agente 38 conoce a 41 (distancia: 20.1, afinidad: 0.00)
+2026-07-23 19:51:12,773 [INFO] 👋 Día 3: Agente 42 conoce a 45 (distancia: 3.2, afinidad: 0.27)
+2026-07-23 19:51:12,779 [INFO] 👋 Día 4: Agente 1 conoce a 49 (distancia: 13.4, afinidad: 0.31)
+2026-07-23 19:51:12,779 [INFO] 👋 Día 4: Agente 2 conoce a 40 (distancia: 12.8, afinidad: 0.47)
+2026-07-23 19:51:12,779 [INFO] 👋 Día 4: Agente 5 conoce a 9 (distancia: 15.0, afinidad: 0.52)
+2026-07-23 19:51:12,780 [INFO] 👋 Día 4: Agente 7 conoce a 24 (distancia: 22.4, afinidad: 0.44)
+2026-07-23 19:51:12,780 [INFO] 👋 Día 4: Agente 9 conoce a 25 (distancia: 27.1, afinidad: 0.37)
+2026-07-23 19:51:12,780 [INFO] 👋 Día 4: Agente 10 conoce a 42 (distancia: 14.8, afinidad: 0.37)
+2026-07-23 19:51:12,780 [INFO] 👋 Día 4: Agente 11 conoce a 27 (distancia: 21.1, afinidad: 0.45)
+2026-07-23 19:51:12,780 [INFO] 👋 Día 4: Agente 13 conoce a 30 (distancia: 28.6, afinidad: 0.44)
+2026-07-23 19:51:12,781 [INFO] 👋 Día 4: Agente 13 conoce a 43 (distancia: 9.0, afinidad: 0.58)
+2026-07-23 19:51:12,781 [INFO] 👋 Día 4: Agente 14 conoce a 46 (distancia: 26.1, afinidad: 0.55)
+2026-07-23 19:51:12,781 [INFO] 👋 Día 4: Agente 16 conoce a 35 (distancia: 8.5, afinidad: 0.00)
+2026-07-23 19:51:12,781 [INFO] 👋 Día 4: Agente 16 conoce a 45 (distancia: 12.1, afinidad: 0.55)
+2026-07-23 19:51:12,781 [INFO] 👋 Día 4: Agente 17 conoce a 34 (distancia: 21.1, afinidad: 0.49)
+2026-07-23 19:51:12,782 [INFO] 👋 Día 4: Agente 19 conoce a 47 (distancia: 3.0, afinidad: 0.60)
+2026-07-23 19:51:12,782 [INFO] 👋 Día 4: Agente 21 conoce a 41 (distancia: 14.4, afinidad: 0.06)
+2026-07-23 19:51:12,782 [INFO] 👋 Día 4: Agente 24 conoce a 30 (distancia: 10.2, afinidad: 0.58)
+2026-07-23 19:51:12,782 [INFO] 👋 Día 4: Agente 24 conoce a 37 (distancia: 31.3, afinidad: 0.50)
+2026-07-23 19:51:12,782 [INFO] 👋 Día 4: Agente 27 conoce a 34 (distancia: 14.2, afinidad: 0.34)
+2026-07-23 19:51:12,783 [INFO] 👋 Día 4: Agente 29 conoce a 44 (distancia: 11.0, afinidad: 0.62)
+2026-07-23 19:51:12,783 [INFO] 👋 Día 4: Agente 32 conoce a 46 (distancia: 22.1, afinidad: 0.35)
+2026-07-23 19:51:12,783 [INFO] 👋 Día 4: Agente 32 conoce a 49 (distancia: 22.8, afinidad: 0.27)
+2026-07-23 19:51:12,783 [INFO] 👋 Día 4: Agente 40 conoce a 47 (distancia: 20.6, afinidad: 0.52)
+2026-07-23 19:51:12,783 [INFO] 👋 Día 4: Agente 40 conoce a 48 (distancia: 10.0, afinidad: 0.49)
+2026-07-23 19:51:12,789 [INFO] 👋 Día 5: Agente 1 conoce a 19 (distancia: 23.1, afinidad: 0.45)
+2026-07-23 19:51:12,789 [INFO] 👋 Día 5: Agente 1 conoce a 32 (distancia: 20.9, afinidad: 0.41)
+2026-07-23 19:51:12,789 [INFO] 👋 Día 5: Agente 1 conoce a 48 (distancia: 26.6, afinidad: 0.35)
+2026-07-23 19:51:12,789 [INFO] 👋 Día 5: Agente 2 conoce a 4 (distancia: 33.8, afinidad: 0.14)
+2026-07-23 19:51:12,789 [INFO] 👋 Día 5: Agente 2 conoce a 7 (distancia: 32.4, afinidad: 0.47)
+2026-07-23 19:51:12,790 [INFO] 👋 Día 5: Agente 9 conoce a 12 (distancia: 14.6, afinidad: 0.51)
+2026-07-23 19:51:12,790 [INFO] 👋 Día 5: Agente 13 conoce a 33 (distancia: 10.6, afinidad: 0.61)
+2026-07-23 19:51:12,790 [INFO] 👋 Día 5: Agente 16 conoce a 32 (distancia: 6.3, afinidad: 0.32)
+2026-07-23 19:51:12,791 [INFO] 👋 Día 5: Agente 17 conoce a 22 (distancia: 31.6, afinidad: 0.43)
+2026-07-23 19:51:12,791 [INFO] 👋 Día 5: Agente 17 conoce a 30 (distancia: 25.0, afinidad: 0.63)
+2026-07-23 19:51:12,791 [INFO] 👋 Día 5: Agente 26 conoce a 38 (distancia: 3.2, afinidad: 0.00)
+2026-07-23 19:51:12,791 [INFO] 👋 Día 5: Agente 26 conoce a 41 (distancia: 17.0, afinidad: 0.49)
+2026-07-23 19:51:12,791 [INFO] 👋 Día 5: Agente 35 conoce a 48 (distancia: 19.7, afinidad: 0.00)
+2026-07-23 19:51:12,797 [INFO] 👋 Día 6: Agente 1 conoce a 28 (distancia: 21.2, afinidad: 0.00)
+2026-07-23 19:51:12,797 [INFO] 👋 Día 6: Agente 1 conoce a 47 (distancia: 22.4, afinidad: 0.31)
+2026-07-23 19:51:12,797 [INFO] 👋 Día 6: Agente 2 conoce a 10 (distancia: 19.2, afinidad: 0.41)
+2026-07-23 19:51:12,797 [INFO] 👋 Día 6: Agente 2 conoce a 15 (distancia: 22.1, afinidad: 0.47)
+2026-07-23 19:51:12,798 [INFO] 👋 Día 6: Agente 2 conoce a 42 (distancia: 4.5, afinidad: 0.24)
+2026-07-23 19:51:12,798 [INFO] 👋 Día 6: Agente 4 conoce a 21 (distancia: 4.0, afinidad: 0.28)
+2026-07-23 19:51:12,798 [INFO] 👋 Día 6: Agente 4 conoce a 43 (distancia: 4.1, afinidad: 0.18)
+2026-07-23 19:51:12,798 [INFO] 👋 Día 6: Agente 5 conoce a 25 (distancia: 12.0, afinidad: 0.41)
+2026-07-23 19:51:12,799 [INFO] 👋 Día 6: Agente 6 conoce a 21 (distancia: 24.4, afinidad: 0.32)
+2026-07-23 19:51:12,799 [INFO] 👋 Día 6: Agente 13 conoce a 44 (distancia: 23.0, afinidad: 0.49)
+2026-07-23 19:51:12,799 [INFO] 👋 Día 6: Agente 16 conoce a 33 (distancia: 21.0, afinidad: 0.49)
+2026-07-23 19:51:12,800 [INFO] 👋 Día 6: Agente 21 conoce a 45 (distancia: 26.9, afinidad: 0.00)
+2026-07-23 19:51:12,800 [INFO] 👋 Día 6: Agente 22 conoce a 27 (distancia: 4.5, afinidad: 0.44)
+2026-07-23 19:51:12,800 [INFO] 👋 Día 6: Agente 23 conoce a 33 (distancia: 27.9, afinidad: 0.38)
+2026-07-23 19:51:12,801 [INFO] 👋 Día 6: Agente 32 conoce a 33 (distancia: 27.0, afinidad: 0.32)
+2026-07-23 19:51:12,801 [INFO] 👋 Día 6: Agente 33 conoce a 41 (distancia: 23.3, afinidad: 0.44)
+2026-07-23 19:51:12,801 [INFO] 👋 Día 6: Agente 34 conoce a 37 (distancia: 30.3, afinidad: 0.37)
+2026-07-23 19:51:12,801 [INFO] 👋 Día 6: Agente 45 conoce a 48 (distancia: 21.9, afinidad: 0.46)
+2026-07-23 19:51:12,802 [INFO] 🚨 Brote: Coronavirus_000001 en Agente 18 (vir: 0.99, trans: 0.24, let: 0.11, inc: 6.6d, asym: 0.11)
+2026-07-23 19:51:12,805 [INFO] 🤒 [CONTAGIO]   Agente 18 contrajo Coronavirus_000001
+2026-07-23 19:51:12,808 [INFO] 👋 Día 7: Agente 1 conoce a 3 (distancia: 28.2, afinidad: 0.38)
+2026-07-23 19:51:12,808 [INFO] 👋 Día 7: Agente 3 conoce a 42 (distancia: 7.6, afinidad: 0.25)
+2026-07-23 19:51:12,808 [INFO] 👋 Día 7: Agente 4 conoce a 6 (distancia: 21.3, afinidad: 0.19)
+2026-07-23 19:51:12,808 [INFO] 👋 Día 7: Agente 4 conoce a 13 (distancia: 5.1, afinidad: 0.20)
+2026-07-23 19:51:12,808 [INFO] 👋 Día 7: Agente 4 conoce a 41 (distancia: 17.0, afinidad: 0.29)
+2026-07-23 19:51:12,808 [INFO] 👋 Día 7: Agente 7 conoce a 16 (distancia: 25.0, afinidad: 0.46)
+2026-07-23 19:51:12,809 [INFO] 👋 Día 7: Agente 10 conoce a 35 (distancia: 20.1, afinidad: 0.06)
+2026-07-23 19:51:12,809 [INFO] 👋 Día 7: Agente 11 conoce a 34 (distancia: 14.9, afinidad: 0.30)
+2026-07-23 19:51:12,809 [INFO] 👋 Día 7: Agente 16 conoce a 23 (distancia: 31.3, afinidad: 0.35)
+2026-07-23 19:51:12,809 [INFO] 👋 Día 7: Agente 16 conoce a 40 (distancia: 20.0, afinidad: 0.44)
+2026-07-23 19:51:12,809 [INFO] 👋 Día 7: Agente 19 conoce a 25 (distancia: 12.0, afinidad: 0.44)
+2026-07-23 19:51:12,810 [INFO] 👋 Día 7: Agente 20 conoce a 27 (distancia: 30.9, afinidad: 0.00)
+2026-07-23 19:51:12,810 [INFO] 👋 Día 7: Agente 29 conoce a 30 (distancia: 19.0, afinidad: 0.56)
+2026-07-23 19:51:12,810 [INFO] 👋 Día 7: Agente 33 conoce a 43 (distancia: 8.2, afinidad: 0.56)
+2026-07-23 19:51:12,810 [INFO] 👋 Día 7: Agente 35 conoce a 42 (distancia: 5.4, afinidad: 0.17)
+2026-07-23 19:51:12,811 [INFO] 👋 Día 7: Agente 39 conoce a 42 (distancia: 19.3, afinidad: 0.06)
+2026-07-23 19:51:12,816 [INFO] 👋 Día 8: Agente 2 conoce a 18 (distancia: 11.2, afinidad: 0.50)
+2026-07-23 19:51:12,816 [INFO] 👋 Día 8: Agente 3 conoce a 18 (distancia: 4.1, afinidad: 0.50)
+2026-07-23 19:51:12,817 [INFO] 👋 Día 8: Agente 3 conoce a 40 (distancia: 11.0, afinidad: 0.43)
+2026-07-23 19:51:12,817 [INFO] 👋 Día 8: Agente 3 conoce a 48 (distancia: 13.5, afinidad: 0.41)
+2026-07-23 19:51:12,817 [INFO] 👋 Día 8: Agente 8 conoce a 46 (distancia: 27.3, afinidad: 0.48)
+2026-07-23 19:51:12,819 [INFO] 👋 Día 8: Agente 17 conoce a 27 (distancia: 29.1, afinidad: 0.40)
+2026-07-23 19:51:12,819 [INFO] 👋 Día 8: Agente 18 conoce a 45 (distancia: 7.3, afinidad: 0.55)
+2026-07-23 19:51:12,820 [INFO] 👋 Día 8: Agente 26 conoce a 29 (distancia: 22.1, afinidad: 0.39)
+2026-07-23 19:51:12,821 [INFO] 👋 Día 8: Agente 28 conoce a 49 (distancia: 28.5, afinidad: 0.16)
+2026-07-23 19:51:12,821 [INFO] 👋 Día 8: Agente 35 conoce a 40 (distancia: 12.0, afinidad: 0.00)
+2026-07-23 19:51:12,826 [INFO] 👋 Día 9: Agente 1 conoce a 5 (distancia: 6.3, afinidad: 0.46)
+2026-07-23 19:51:12,827 [INFO] 👋 Día 9: Agente 2 conoce a 16 (distancia: 8.2, afinidad: 0.50)
+2026-07-23 19:51:12,828 [INFO] 👋 Día 9: Agente 2 conoce a 25 (distancia: 31.6, afinidad: 0.52)
+2026-07-23 19:51:12,828 [INFO] 👋 Día 9: Agente 3 conoce a 49 (distancia: 19.0, afinidad: 0.17)
+2026-07-23 19:51:12,828 [INFO] 👋 Día 9: Agente 5 conoce a 32 (distancia: 26.3, afinidad: 0.31)
+2026-07-23 19:51:12,829 [INFO] 👋 Día 9: Agente 6 conoce a 41 (distancia: 28.1, afinidad: 0.00)
+2026-07-23 19:51:12,830 [INFO] 👋 Día 9: Agente 14 conoce a 45 (distancia: 21.5, afinidad: 0.49)
+2026-07-23 19:51:12,830 [INFO] 👋 Día 9: Agente 15 conoce a 19 (distancia: 33.2, afinidad: 0.48)
+2026-07-23 19:51:12,831 [INFO] 👋 Día 9: Agente 18 conoce a 32 (distancia: 21.9, afinidad: 0.36)
+2026-07-23 19:51:12,831 [INFO] 👋 Día 9: Agente 19 conoce a 48 (distancia: 22.0, afinidad: 0.48)
+2026-07-23 19:51:12,832 [INFO] 👋 Día 9: Agente 26 conoce a 39 (distancia: 34.0, afinidad: 0.00)
+2026-07-23 19:51:12,832 [INFO] 👋 Día 9: Agente 26 conoce a 44 (distancia: 26.4, afinidad: 0.44)
+2026-07-23 19:51:12,832 [INFO] 👋 Día 9: Agente 32 conoce a 34 (distancia: 20.6, afinidad: 0.32)
+2026-07-23 19:51:12,833 [INFO] 👋 Día 9: Agente 34 conoce a 35 (distancia: 30.5, afinidad: 0.00)
+2026-07-23 19:51:12,843 [INFO] 👋 Día 10: Agente 2 conoce a 3 (distancia: 9.1, afinidad: 0.42)
+2026-07-23 19:51:12,843 [INFO] 👋 Día 10: Agente 2 conoce a 45 (distancia: 7.6, afinidad: 0.54)
+2026-07-23 19:51:12,843 [INFO] 👋 Día 10: Agente 3 conoce a 45 (distancia: 8.5, afinidad: 0.46)
+2026-07-23 19:51:12,844 [INFO] 👋 Día 10: Agente 4 conoce a 45 (distancia: 28.7, afinidad: 0.15)
+2026-07-23 19:51:12,844 [INFO] 👋 Día 10: Agente 7 conoce a 11 (distancia: 5.4, afinidad: 0.30)
+2026-07-23 19:51:12,844 [INFO] 👋 Día 10: Agente 7 conoce a 12 (distancia: 12.2, afinidad: 0.53)
+2026-07-23 19:51:12,844 [INFO] 👋 Día 10: Agente 7 conoce a 35 (distancia: 32.2, afinidad: 0.00)
+2026-07-23 19:51:12,845 [INFO] 👋 Día 10: Agente 8 conoce a 14 (distancia: 13.0, afinidad: 0.59)
+2026-07-23 19:51:12,845 [INFO] 👋 Día 10: Agente 12 conoce a 16 (distancia: 24.0, afinidad: 0.50)
+2026-07-23 19:51:12,845 [INFO] 👋 Día 10: Agente 13 conoce a 46 (distancia: 19.1, afinidad: 0.51)
+2026-07-23 19:51:12,846 [INFO] 👋 Día 10: Agente 33 conoce a 46 (distancia: 8.5, afinidad: 0.63)
+2026-07-23 19:51:12,855 [INFO] 👋 Día 11: Agente 1 conoce a 40 (distancia: 18.4, afinidad: 0.35)
+2026-07-23 19:51:12,856 [INFO] 👋 Día 11: Agente 5 conoce a 49 (distancia: 18.4, afinidad: 0.15)
+2026-07-23 19:51:12,857 [INFO] 👋 Día 11: Agente 10 conoce a 14 (distancia: 14.1, afinidad: 0.39)
+2026-07-23 19:51:12,857 [INFO] 👋 Día 11: Agente 13 conoce a 21 (distancia: 9.1, afinidad: 0.00)
+2026-07-23 19:51:12,857 [INFO] 👋 Día 11: Agente 16 conoce a 46 (distancia: 15.8, afinidad: 0.50)
+2026-07-23 19:51:12,858 [INFO] 👋 Día 11: Agente 22 conoce a 37 (distancia: 30.2, afinidad: 0.49)
+2026-07-23 19:51:12,858 [INFO] 👋 Día 11: Agente 25 conoce a 35 (distancia: 30.6, afinidad: 0.00)
+2026-07-23 19:51:12,864 [INFO] 👋 Día 12: Agente 1 conoce a 35 (distancia: 23.3, afinidad: 0.06)
+2026-07-23 19:51:12,864 [INFO] 👋 Día 12: Agente 4 conoce a 33 (distancia: 9.2, afinidad: 0.18)
+2026-07-23 19:51:12,865 [INFO] 👋 Día 12: Agente 4 conoce a 46 (distancia: 17.0, afinidad: 0.19)
+2026-07-23 19:51:12,865 [INFO] 👋 Día 12: Agente 5 conoce a 34 (distancia: 23.9, afinidad: 0.50)
+2026-07-23 19:51:12,865 [INFO] 👋 Día 12: Agente 10 conoce a 16 (distancia: 22.7, afinidad: 0.42)
+2026-07-23 19:51:12,865 [INFO] 👋 Día 12: Agente 10 conoce a 45 (distancia: 11.7, afinidad: 0.41)
+2026-07-23 19:51:12,866 [INFO] 👋 Día 12: Agente 12 conoce a 35 (distancia: 28.7, afinidad: 0.00)
+2026-07-23 19:51:12,866 [INFO] 👋 Día 12: Agente 32 conoce a 40 (distancia: 19.0, afinidad: 0.40)
+2026-07-23 19:51:12,872 [INFO] 👋 Día 13: Agente 3 conoce a 16 (distancia: 17.0, afinidad: 0.43)
+2026-07-23 19:51:12,873 [INFO] 👋 Día 13: Agente 4 conoce a 10 (distancia: 25.0, afinidad: 0.26)
+2026-07-23 19:51:12,873 [INFO] 👋 Día 13: Agente 10 conoce a 15 (distancia: 19.8, afinidad: 0.40)
+2026-07-23 19:51:12,873 [INFO] 👋 Día 13: Agente 11 conoce a 24 (distancia: 22.6, afinidad: 0.24)
+2026-07-23 19:51:12,874 [INFO] 👋 Día 13: Agente 17 conoce a 32 (distancia: 27.5, afinidad: 0.43)
+2026-07-23 19:51:12,874 [INFO] 👋 Día 13: Agente 18 conoce a 40 (distancia: 15.1, afinidad: 0.50)
+2026-07-23 19:51:12,874 [INFO] 👋 Día 13: Agente 23 conoce a 32 (distancia: 32.8, afinidad: 0.35)
+2026-07-23 19:51:12,875 [INFO] 👋 Día 13: Agente 24 conoce a 44 (distancia: 17.3, afinidad: 0.59)
+2026-07-23 19:51:12,881 [INFO] 👋 Día 14: Agente 4 conoce a 16 (distancia: 30.1, afinidad: 0.15)
+2026-07-23 19:51:12,881 [INFO] 👋 Día 14: Agente 9 conoce a 27 (distancia: 14.0, afinidad: 0.35)
+2026-07-23 19:51:12,882 [INFO] 👋 Día 14: Agente 14 conoce a 31 (distancia: 27.0, afinidad: 0.55)
+2026-07-23 19:51:12,882 [INFO] 👋 Día 14: Agente 15 conoce a 45 (distancia: 19.6, afinidad: 0.51)
+2026-07-23 19:51:12,882 [INFO] 👋 Día 14: Agente 23 conoce a 28 (distancia: 30.2, afinidad: 0.00)
+2026-07-23 19:51:12,883 [INFO] 👋 Día 14: Agente 35 conoce a 49 (distancia: 18.8, afinidad: 0.26)
+2026-07-23 19:51:12,883 [INFO] 👋 Día 14: Agente 43 conoce a 46 (distancia: 14.6, afinidad: 0.57)
+2026-07-23 19:51:12,889 [INFO] 👋 Día 15: Agente 2 conoce a 14 (distancia: 27.5, afinidad: 0.54)
+2026-07-23 19:51:12,889 [INFO] 👋 Día 15: Agente 2 conoce a 35 (distancia: 1.0, afinidad: 0.00)
+2026-07-23 19:51:12,890 [INFO] 👋 Día 15: Agente 12 conoce a 32 (distancia: 18.6, afinidad: 0.37)
+2026-07-23 19:51:12,890 [INFO] 👋 Día 15: Agente 12 conoce a 34 (distancia: 2.2, afinidad: 0.51)
+2026-07-23 19:51:12,890 [INFO] 👋 Día 15: Agente 14 conoce a 40 (distancia: 29.2, afinidad: 0.56)
+2026-07-23 19:51:12,890 [INFO] 👋 Día 15: Agente 15 conoce a 40 (distancia: 18.4, afinidad: 0.42)
+2026-07-23 19:51:12,891 [INFO] 👋 Día 15: Agente 22 conoce a 50 (distancia: 24.1, afinidad: 0.45)
+2026-07-23 19:51:12,891 [INFO] 👋 Día 15: Agente 26 conoce a 33 (distancia: 23.1, afinidad: 0.35)
+2026-07-23 19:51:12,891 [INFO] 👋 Día 15: Agente 32 conoce a 42 (distancia: 14.4, afinidad: 0.35)
+2026-07-23 19:51:12,891 [INFO] 👋 Día 15: Agente 32 conoce a 45 (distancia: 17.0, afinidad: 0.32)
+2026-07-23 19:51:12,891 [INFO] 👋 Día 15: Agente 35 conoce a 45 (distancia: 8.5, afinidad: 0.00)
+2026-07-23 19:51:12,897 [INFO] 👋 Día 16: Agente 3 conoce a 8 (distancia: 30.0, afinidad: 0.41)
+2026-07-23 19:51:12,898 [INFO] 👋 Día 16: Agente 30 conoce a 44 (distancia: 8.6, afinidad: 0.43)
+2026-07-23 19:51:12,899 [INFO] 👋 Día 16: Agente 40 conoce a 45 (distancia: 17.7, afinidad: 0.48)
+2026-07-23 19:51:12,904 [INFO] 👋 Día 17: Agente 4 conoce a 38 (distancia: 16.1, afinidad: 0.19)
+2026-07-23 19:51:12,904 [INFO] 👋 Día 17: Agente 5 conoce a 19 (distancia: 24.0, afinidad: 0.49)
+2026-07-23 19:51:12,905 [INFO] 👋 Día 17: Agente 8 conoce a 18 (distancia: 25.9, afinidad: 0.48)
+2026-07-23 19:51:12,905 [INFO] 👋 Día 17: Agente 13 conoce a 26 (distancia: 14.0, afinidad: 0.42)
+2026-07-23 19:51:12,906 [INFO] 👋 Día 17: Agente 15 conoce a 49 (distancia: 24.4, afinidad: 0.17)
+2026-07-23 19:51:12,906 [INFO] 👋 Día 17: Agente 17 conoce a 23 (distancia: 15.0, afinidad: 0.32)
+2026-07-23 19:51:12,906 [INFO] 👋 Día 17: Agente 19 conoce a 40 (distancia: 23.3, afinidad: 0.45)
+2026-07-23 19:51:12,906 [INFO] 👋 Día 17: Agente 21 conoce a 39 (distancia: 18.9, afinidad: 0.40)
+2026-07-23 19:51:12,906 [INFO] 👋 Día 17: Agente 23 conoce a 34 (distancia: 34.5, afinidad: 0.37)
+2026-07-23 19:51:12,907 [INFO] 👋 Día 17: Agente 28 conoce a 32 (distancia: 10.3, afinidad: 0.00)
+2026-07-23 19:51:12,907 [INFO] 👋 Día 17: Agente 42 conoce a 43 (distancia: 28.5, afinidad: 0.24)
+2026-07-23 19:51:12,912 [INFO] 👋 Día 18: Agente 2 conoce a 12 (distancia: 29.2, afinidad: 0.48)
+2026-07-23 19:51:12,912 [INFO] 👋 Día 18: Agente 2 conoce a 48 (distancia: 20.1, afinidad: 0.44)
+2026-07-23 19:51:12,912 [INFO] 👋 Día 18: Agente 2 conoce a 49 (distancia: 19.7, afinidad: 0.17)
+2026-07-23 19:51:12,913 [INFO] 👋 Día 18: Agente 10 conoce a 43 (distancia: 21.3, afinidad: 0.37)
+2026-07-23 19:51:12,913 [INFO] 👋 Día 18: Agente 11 conoce a 20 (distancia: 14.3, afinidad: 0.07)
+2026-07-23 19:51:12,913 [INFO] 👋 Día 18: Agente 12 conoce a 17 (distancia: 20.0, afinidad: 0.47)
+2026-07-23 19:51:12,914 [INFO] 👋 Día 18: Agente 15 conoce a 35 (distancia: 22.2, afinidad: 0.00)
+2026-07-23 19:51:12,914 [INFO] 👋 Día 18: Agente 27 conoce a 50 (distancia: 20.4, afinidad: 0.39)
+2026-07-23 19:51:12,920 [INFO] 👋 Día 19: Agente 2 conoce a 46 (distancia: 17.3, afinidad: 0.45)
+2026-07-23 19:51:12,920 [INFO] 👋 Día 19: Agente 4 conoce a 39 (distancia: 22.4, afinidad: 0.17)
+2026-07-23 19:51:12,921 [INFO] 👋 Día 19: Agente 9 conoce a 34 (distancia: 13.0, afinidad: 0.52)
+2026-07-23 19:51:12,921 [INFO] 👋 Día 19: Agente 10 conoce a 46 (distancia: 12.0, afinidad: 0.42)
+2026-07-23 19:51:12,922 [INFO] 👋 Día 19: Agente 21 conoce a 26 (distancia: 15.8, afinidad: 0.05)
+2026-07-23 19:51:12,922 [INFO] 👋 Día 19: Agente 21 conoce a 46 (distancia: 15.5, afinidad: 0.00)
+2026-07-23 19:51:12,922 [INFO] 👋 Día 19: Agente 23 conoce a 30 (distancia: 12.0, afinidad: 0.41)
+2026-07-23 19:51:12,922 [INFO] 👋 Día 19: Agente 25 conoce a 32 (distancia: 31.4, afinidad: 0.36)
+2026-07-23 19:51:12,928 [INFO] 👋 Día 20: Agente 1 conoce a 9 (distancia: 17.7, afinidad: 0.45)
+2026-07-23 19:51:12,928 [INFO] 👋 Día 20: Agente 5 conoce a 12 (distancia: 24.2, afinidad: 0.47)
+2026-07-23 19:51:12,929 [INFO] 👋 Día 20: Agente 9 conoce a 11 (distancia: 27.2, afinidad: 0.30)
+2026-07-23 19:51:12,929 [INFO] 👋 Día 20: Agente 11 conoce a 22 (distancia: 23.8, afinidad: 0.27)
+2026-07-23 19:51:12,929 [INFO] 👋 Día 20: Agente 11 conoce a 30 (distancia: 32.8, afinidad: 0.33)
+2026-07-23 19:51:12,929 [INFO] 👋 Día 20: Agente 15 conoce a 46 (distancia: 29.2, afinidad: 0.48)
+2026-07-23 19:51:12,930 [INFO] 👋 Día 20: Agente 16 conoce a 18 (distancia: 18.2, afinidad: 0.51)
+2026-07-23 19:51:12,930 [INFO] 👋 Día 20: Agente 33 conoce a 35 (distancia: 25.6, afinidad: 0.00)
+2026-07-23 19:51:12,930 [INFO] 👋 Día 20: Agente 37 conoce a 50 (distancia: 19.0, afinidad: 0.55)
+2026-07-23 19:51:12,936 [INFO] 👋 Día 21: Agente 1 conoce a 45 (distancia: 31.8, afinidad: 0.29)
+2026-07-23 19:51:12,937 [INFO] 👋 Día 21: Agente 5 conoce a 35 (distancia: 29.6, afinidad: 0.00)
+2026-07-23 19:51:12,937 [INFO] 👋 Día 21: Agente 10 conoce a 21 (distancia: 21.9, afinidad: 0.06)
+2026-07-23 19:51:12,937 [INFO] 👋 Día 21: Agente 14 conoce a 42 (distancia: 23.7, afinidad: 0.27)
+2026-07-23 19:51:12,938 [INFO] 👋 Día 21: Agente 20 conoce a 23 (distancia: 22.0, afinidad: 0.00)
+2026-07-23 19:51:12,944 [INFO] 👋 Día 22: Agente 8 conoce a 15 (distancia: 26.0, afinidad: 0.43)
+2026-07-23 19:51:12,944 [INFO] 👋 Día 22: Agente 10 conoce a 40 (distancia: 27.0, afinidad: 0.37)
+2026-07-23 19:51:12,945 [INFO] 👋 Día 22: Agente 12 conoce a 40 (distancia: 33.4, afinidad: 0.52)
+2026-07-23 19:51:12,945 [INFO] 👋 Día 22: Agente 13 conoce a 41 (distancia: 21.4, afinidad: 0.36)
+2026-07-23 19:51:12,945 [INFO] 👋 Día 22: Agente 15 conoce a 42 (distancia: 20.1, afinidad: 0.24)
+2026-07-23 19:51:12,945 [INFO] 👋 Día 22: Agente 18 conoce a 49 (distancia: 23.1, afinidad: 0.17)
+2026-07-23 19:51:12,951 [INFO] 👋 Día 23: Agente 5 conoce a 40 (distancia: 24.4, afinidad: 0.35)
+2026-07-23 19:51:12,951 [INFO] 👋 Día 23: Agente 7 conoce a 17 (distancia: 7.8, afinidad: 0.53)
+2026-07-23 19:51:12,952 [INFO] 👋 Día 23: Agente 10 conoce a 48 (distancia: 27.5, afinidad: 0.36)
+2026-07-23 19:51:12,952 [INFO] 👋 Día 23: Agente 15 conoce a 48 (distancia: 11.7, afinidad: 0.42)
+2026-07-23 19:51:12,953 [INFO] 👋 Día 23: Agente 16 conoce a 42 (distancia: 10.2, afinidad: 0.25)
+2026-07-23 19:51:12,954 [INFO] 👋 Día 23: Agente 47 conoce a 49 (distancia: 14.1, afinidad: 0.20)
+2026-07-23 19:51:12,959 [INFO] 👋 Día 24: Agente 1 conoce a 12 (distancia: 22.8, afinidad: 0.33)
+2026-07-23 19:51:12,959 [INFO] 👋 Día 24: Agente 3 conoce a 15 (distancia: 13.0, afinidad: 0.44)
+2026-07-23 19:51:12,960 [INFO] 👋 Día 24: Agente 18 conoce a 46 (distancia: 17.7, afinidad: 0.48)
+2026-07-23 19:51:12,960 [INFO] 👋 Día 24: Agente 32 conoce a 35 (distancia: 10.4, afinidad: 0.05)
+2026-07-23 19:51:12,960 [INFO] 👋 Día 24: Agente 32 conoce a 48 (distancia: 28.4, afinidad: 0.38)
+2026-07-23 19:51:12,961 [INFO] 👋 Día 24: Agente 40 conoce a 42 (distancia: 15.2, afinidad: 0.25)
+2026-07-23 19:51:12,966 [INFO] 👋 Día 25: Agente 1 conoce a 22 (distancia: 27.7, afinidad: 0.32)
+2026-07-23 19:51:12,966 [INFO] 👋 Día 25: Agente 3 conoce a 10 (distancia: 16.0, afinidad: 0.35)
+2026-07-23 19:51:12,967 [INFO] 👋 Día 25: Agente 27 conoce a 32 (distancia: 34.7, afinidad: 0.42)
+2026-07-23 19:51:12,967 [INFO] 👋 Día 25: Agente 48 conoce a 49 (distancia: 13.5, afinidad: 0.17)
+2026-07-23 19:51:12,972 [INFO] 👋 Día 26: Agente 1 conoce a 16 (distancia: 26.3, afinidad: 0.33)
+2026-07-23 19:51:12,973 [INFO] 👋 Día 26: Agente 4 conoce a 29 (distancia: 29.2, afinidad: 0.18)
+2026-07-23 19:51:12,973 [INFO] 👋 Día 26: Agente 7 conoce a 23 (distancia: 21.4, afinidad: 0.36)
+2026-07-23 19:51:12,973 [INFO] 👋 Día 26: Agente 10 conoce a 33 (distancia: 19.0, afinidad: 0.35)
+2026-07-23 19:51:12,980 [INFO] 👋 Día 27: Agente 42 conoce a 48 (distancia: 20.6, afinidad: 0.27)
+2026-07-23 19:51:12,981 [INFO] 👋 Día 27: Agente 43 conoce a 44 (distancia: 32.0, afinidad: 0.53)
+2026-07-23 19:51:12,985 [INFO] 👋 Día 28: Agente 3 conoce a 5 (distancia: 34.4, afinidad: 0.47)
+2026-07-23 19:51:12,986 [INFO] 👋 Día 28: Agente 23 conoce a 29 (distancia: 27.1, afinidad: 0.39)
+2026-07-23 19:51:12,987 [INFO] 👋 Día 28: Agente 35 conoce a 39 (distancia: 24.7, afinidad: 0.42)
+2026-07-23 19:51:12,987 [INFO] 👋 Día 28: Agente 42 conoce a 49 (distancia: 22.8, afinidad: 0.41)
+2026-07-23 19:51:12,993 [INFO] 👋 Día 29: Agente 18 conoce a 48 (distancia: 16.1, afinidad: 0.48)
+2026-07-23 19:51:12,993 [INFO] 👋 Día 29: Agente 25 conoce a 40 (distancia: 21.1, afinidad: 0.48)
+2026-07-23 19:51:12,998 [INFO] 👋 Día 30: Agente 1 conoce a 34 (distancia: 23.1, afinidad: 0.43)
+2026-07-23 19:51:12,999 [INFO] 👋 Día 30: Agente 10 conoce a 18 (distancia: 12.0, afinidad: 0.45)
+2026-07-23 19:51:13,000 [INFO] 👋 Día 30: Agente 43 conoce a 45 (distancia: 26.0, afinidad: 0.46)
+2026-07-23 19:51:13,008 [INFO] === INFORME EVOLUTIVO (Día 30.0) ===
+2026-07-23 19:51:13,010 [INFO] 👋 Día 31: Agente 11 conoce a 50 (distancia: 30.8, afinidad: 0.29)
+2026-07-23 19:51:13,011 [INFO] 👋 Día 31: Agente 21 conoce a 42 (distancia: 29.4, afinidad: 0.16)
+2026-07-23 19:51:13,012 [INFO] 👋 Día 31: Agente 42 conoce a 46 (distancia: 13.9, afinidad: 0.30)
+2026-07-23 19:51:13,012 [INFO] 👋 Día 31: Agente 45 conoce a 49 (distancia: 25.5, afinidad: 0.18)
+2026-07-23 19:51:13,017 [INFO] 👋 Día 32: Agente 2 conoce a 34 (distancia: 31.1, afinidad: 0.33)
+2026-07-23 19:51:13,017 [INFO] 👋 Día 32: Agente 8 conoce a 41 (distancia: 26.4, afinidad: 0.39)
+2026-07-23 19:51:13,017 [INFO] 👋 Día 32: Agente 12 conoce a 49 (distancia: 33.1, afinidad: 0.19)
+2026-07-23 19:51:13,018 [INFO] 👋 Día 32: Agente 13 conoce a 16 (distancia: 30.1, afinidad: 0.47)
+2026-07-23 19:51:13,018 [INFO] 👋 Día 32: Agente 26 conoce a 46 (distancia: 30.9, afinidad: 0.42)
+2026-07-23 19:51:13,023 [INFO] 👋 Día 33: Agente 3 conoce a 33 (distancia: 28.4, afinidad: 0.50)
+2026-07-23 19:51:13,024 [INFO] 👋 Día 33: Agente 5 conoce a 27 (distancia: 29.1, afinidad: 0.33)
+2026-07-23 19:51:13,025 [INFO] 👋 Día 33: Agente 31 conoce a 41 (distancia: 21.1, afinidad: 0.41)
+2026-07-23 19:51:13,030 [INFO] 👋 Día 34: Agente 4 conoce a 30 (distancia: 33.7, afinidad: 0.16)
+2026-07-23 19:51:13,030 [INFO] 👋 Día 34: Agente 9 conoce a 32 (distancia: 27.3, afinidad: 0.33)
+2026-07-23 19:51:13,031 [INFO] 👋 Día 34: Agente 12 conoce a 27 (distancia: 16.4, afinidad: 0.45)
+2026-07-23 19:51:13,031 [INFO] 👋 Día 34: Agente 12 conoce a 37 (distancia: 31.1, afinidad: 0.56)
+2026-07-23 19:51:13,031 [INFO] 👋 Día 34: Agente 16 conoce a 43 (distancia: 29.0, afinidad: 0.46)
+2026-07-23 19:51:13,037 [INFO] 👋 Día 35: Agente 2 conoce a 43 (distancia: 31.8, afinidad: 0.42)
+2026-07-23 19:51:13,038 [INFO] 👋 Día 35: Agente 25 conoce a 48 (distancia: 25.1, afinidad: 0.48)
+2026-07-23 19:51:13,038 [INFO] 👋 Día 35: Agente 31 conoce a 43 (distancia: 31.0, afinidad: 0.42)
+2026-07-23 19:51:13,044 [INFO] 👋 Día 36: Agente 17 conoce a 37 (distancia: 23.6, afinidad: 0.58)
+2026-07-23 19:51:13,044 [INFO] 👋 Día 36: Agente 18 conoce a 33 (distancia: 26.2, afinidad: 0.57)
+2026-07-23 19:51:13,056 [INFO] 👋 Día 38: Agente 14 conoce a 48 (distancia: 24.5, afinidad: 0.55)
+2026-07-23 19:51:13,057 [INFO] 👋 Día 38: Agente 18 conoce a 47 (distancia: 34.0, afinidad: 0.56)
+2026-07-23 19:51:13,074 [INFO] 👋 Día 41: Agente 7 conoce a 37 (distancia: 25.3, afinidad: 0.51)
+2026-07-23 19:51:13,081 [INFO] 👋 Día 42: Agente 21 conoce a 23 (distancia: 33.1, afinidad: 0.05)
+2026-07-23 19:51:13,082 [INFO] 👋 Día 42: Agente 33 conoce a 44 (distancia: 31.3, afinidad: 0.55)
+2026-07-23 19:51:13,087 [INFO] 👋 Día 43: Agente 10 conoce a 31 (distancia: 28.2, afinidad: 0.36)
+2026-07-23 19:51:13,087 [INFO] 👋 Día 43: Agente 10 conoce a 41 (distancia: 28.2, afinidad: 0.53)
+2026-07-23 19:51:13,093 [INFO] 👋 Día 44: Agente 7 conoce a 9 (distancia: 26.4, afinidad: 0.39)
+2026-07-23 19:51:13,093 [INFO] 👋 Día 44: Agente 14 conoce a 21 (distancia: 34.5, afinidad: 0.00)
+2026-07-23 19:51:13,094 [INFO] 👋 Día 44: Agente 15 conoce a 32 (distancia: 32.6, afinidad: 0.26)
+2026-07-23 19:51:13,094 [INFO] 👋 Día 44: Agente 26 conoce a 43 (distancia: 16.6, afinidad: 0.38)
+2026-07-23 19:51:13,100 [INFO] 👋 Día 45: Agente 1 conoce a 27 (distancia: 31.3, afinidad: 0.51)
+2026-07-23 19:51:13,100 [INFO] 👋 Día 45: Agente 2 conoce a 5 (distancia: 30.6, afinidad: 0.33)
+2026-07-23 19:51:13,101 [INFO] 👋 Día 45: Agente 8 conoce a 31 (distancia: 14.0, afinidad: 0.53)
+2026-07-23 19:51:13,101 [INFO] 👋 Día 45: Agente 27 conoce a 37 (distancia: 25.8, afinidad: 0.35)
+2026-07-23 19:51:13,114 [INFO] 👋 Día 47: Agente 2 conoce a 33 (distancia: 24.7, afinidad: 0.46)
+2026-07-23 19:51:13,115 [INFO] 👋 Día 47: Agente 21 conoce a 31 (distancia: 30.7, afinidad: 0.00)
+2026-07-23 19:51:13,121 [INFO] 👋 Día 48: Agente 4 conoce a 42 (distancia: 30.9, afinidad: 0.34)
+2026-07-23 19:51:13,127 [INFO] 👋 Día 49: Agente 1 conoce a 2 (distancia: 24.3, afinidad: 0.31)
+2026-07-23 19:51:13,129 [INFO] 👋 Día 49: Agente 32 conoce a 39 (distancia: 32.2, afinidad: 0.00)
+2026-07-23 19:51:13,141 [INFO] 👋 Día 51: Agente 3 conoce a 25 (distancia: 32.1, afinidad: 0.45)
+2026-07-23 19:51:13,143 [INFO] 🚨 Brote: Coronavirus_000002 en Agente 29 (vir: 0.44, trans: 0.17, let: 0.42, inc: 4.0d, asym: 0.22)
+2026-07-23 19:51:13,146 [INFO] 🤒 [CONTAGIO]   Agente 29 contrajo Coronavirus_000002
+2026-07-23 19:51:13,149 [INFO] 👋 Día 52: Agente 4 conoce a 23 (distancia: 29.7, afinidad: 0.27)
+2026-07-23 19:51:13,149 [INFO] 👋 Día 52: Agente 7 conoce a 32 (distancia: 22.0, afinidad: 0.32)
+2026-07-23 19:51:13,155 [INFO] 👋 Día 53: Agente 6 conoce a 23 (distancia: 31.3, afinidad: 0.00)
+2026-07-23 19:51:13,156 [INFO] 👋 Día 53: Agente 14 conoce a 33 (distancia: 33.0, afinidad: 0.43)
+2026-07-23 19:51:13,168 [INFO] 👋 Día 55: Agente 21 conoce a 29 (distancia: 32.9, afinidad: 0.00)
+2026-07-23 19:51:13,174 [INFO] 👋 Día 56: Agente 5 conoce a 48 (distancia: 31.9, afinidad: 0.38)
+2026-07-23 19:51:13,175 [INFO] 👋 Día 56: Agente 7 conoce a 22 (distancia: 25.0, afinidad: 0.49)
+2026-07-23 19:51:13,196 [INFO] 👋 Día 59: Agente 34 conoce a 49 (distancia: 34.0, afinidad: 0.14)
+2026-07-23 19:51:13,207 [INFO] === INFORME EVOLUTIVO (Día 60.0) ===
+2026-07-23 19:51:13,210 [INFO] 👋 Día 61: Agente 20 conoce a 36 (distancia: 31.3, afinidad: 0.56)
+2026-07-23 19:51:13,216 [INFO] 👋 Día 62: Agente 16 conoce a 49 (distancia: 25.6, afinidad: 0.18)
+2026-07-23 19:51:13,240 [INFO] 👋 Día 65: Agente 5 conoce a 47 (distancia: 24.1, afinidad: 0.45)
+2026-07-23 19:51:13,257 [INFO] 👋 Día 68: Agente 1 conoce a 42 (distancia: 28.6, afinidad: 0.37)
+2026-07-23 19:51:13,257 [INFO] 👋 Día 68: Agente 11 conoce a 32 (distancia: 27.2, afinidad: 0.40)
+2026-07-23 19:51:13,288 [INFO] 👋 Día 73: Agente 10 conoce a 32 (distancia: 28.3, afinidad: 0.41)
+2026-07-23 19:51:13,288 [INFO] 👋 Día 73: Agente 16 conoce a 21 (distancia: 30.0, afinidad: 0.00)
+2026-07-23 19:51:13,299 [INFO] 👋 Día 75: Agente 22 conoce a 32 (distancia: 33.4, afinidad: 0.29)
+2026-07-23 19:51:13,300 [INFO] 👋 Día 75: Agente 39 conoce a 41 (distancia: 23.4, afinidad: 0.00)
+2026-07-23 19:51:13,306 [INFO] 👋 Día 76: Agente 12 conoce a 42 (distancia: 33.0, afinidad: 0.26)
+2026-07-23 19:51:13,312 [INFO] 👋 Día 77: Agente 1 conoce a 18 (distancia: 32.2, afinidad: 0.39)
+2026-07-23 19:51:13,312 [INFO] 👋 Día 77: Agente 4 conoce a 8 (distancia: 33.2, afinidad: 0.15)
+2026-07-23 19:51:13,318 [INFO] 👋 Día 78: Agente 24 conoce a 29 (distancia: 28.3, afinidad: 0.43)
+2026-07-23 19:51:13,330 [INFO] 👋 Día 80: Agente 3 conoce a 19 (distancia: 33.2, afinidad: 0.49)
+2026-07-23 19:51:13,330 [INFO] 👋 Día 80: Agente 3 conoce a 47 (distancia: 30.4, afinidad: 0.45)
+2026-07-23 19:51:13,360 [INFO] 👋 Día 85: Agente 8 conoce a 33 (distancia: 31.4, afinidad: 0.48)
+2026-07-23 19:51:13,378 [INFO] 👋 Día 88: Agente 14 conoce a 35 (distancia: 28.0, afinidad: 0.00)
+2026-07-23 19:51:13,389 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
+2026-07-23 19:51:13,390 [INFO] 👋 Día 90: Agente 11 conoce a 23 (distancia: 23.0, afinidad: 0.34)
+2026-07-23 19:51:13,396 [INFO] === INFORME EVOLUTIVO (Día 90.0) ===
+2026-07-23 19:51:13,405 [INFO] 👋 Día 92: Agente 13 conoce a 24 (distancia: 30.5, afinidad: 0.53)
+2026-07-23 19:51:13,412 [INFO] 👋 Día 93: Agente 23 conoce a 46 (distancia: 33.0, afinidad: 0.44)
+2026-07-23 19:51:13,418 [INFO] 👋 Día 94: Agente 35 conoce a 47 (distancia: 32.4, afinidad: 0.00)
+2026-07-23 19:51:13,445 [INFO] 👋 Día 97: Agente 15 conoce a 16 (distancia: 30.0, afinidad: 0.47)
+2026-07-23 19:51:13,474 [INFO] 👋 Día 101: Agente 14 conoce a 43 (distancia: 34.0, afinidad: 0.47)
+2026-07-23 19:51:13,481 [INFO] 👋 Día 102: Agente 16 conoce a 17 (distancia: 29.0, afinidad: 0.45)
+2026-07-23 19:51:13,508 [INFO] 👋 Día 106: Agente 4 conoce a 31 (distancia: 34.5, afinidad: 0.14)
+2026-07-23 19:51:13,532 [INFO] 👋 Día 109: Agente 3 conoce a 43 (distancia: 34.0, afinidad: 0.45)
+2026-07-23 19:51:13,533 [INFO] 👋 Día 109: Agente 18 conoce a 43 (distancia: 31.1, afinidad: 0.50)
+2026-07-23 19:51:13,545 [INFO] 👋 Día 111: Agente 12 conoce a 23 (distancia: 32.9, afinidad: 0.32)
+2026-07-23 19:51:13,551 [INFO] 👋 Día 112: Agente 16 conoce a 48 (distancia: 28.2, afinidad: 0.41)
+2026-07-23 19:51:13,564 [INFO] 👋 Día 114: Agente 10 conoce a 13 (distancia: 28.7, afinidad: 0.40)
+2026-07-23 19:51:13,565 [INFO] 👋 Día 114: Agente 16 conoce a 34 (distancia: 26.2, afinidad: 0.39)
+2026-07-23 19:51:13,565 [INFO] 👋 Día 114: Agente 41 conoce a 46 (distancia: 27.3, afinidad: 0.37)
+2026-07-23 19:51:13,571 [INFO] 👋 Día 115: Agente 15 conoce a 47 (distancia: 30.3, afinidad: 0.49)
+2026-07-23 19:51:13,583 [INFO] 👋 Día 117: Agente 8 conoce a 42 (distancia: 31.2, afinidad: 0.23)
+2026-07-23 19:51:13,601 [INFO] 👋 Día 120: Agente 18 conoce a 21 (distancia: 31.9, afinidad: 0.00)
+2026-07-23 19:51:13,602 [INFO] 🚨 Brote: Bacteriofago_X_000003 en Agente 45 (vir: 1.42, trans: 0.49, let: 0.27, inc: 6.3d, asym: 0.27)
+2026-07-23 19:51:13,606 [INFO] === INFORME EVOLUTIVO (Día 120.0) ===
+2026-07-23 19:51:13,607 [INFO] 🤒 [CONTAGIO]   Agente 45 contrajo Bacteriofago_X_000003
+2026-07-23 19:51:13,609 [INFO] 👋 Día 121: Agente 2 conoce a 21 (distancia: 32.8, afinidad: 0.00)
+2026-07-23 19:51:13,621 [INFO] 👋 Día 123: Agente 4 conoce a 44 (distancia: 28.0, afinidad: 0.18)
+2026-07-23 19:51:13,634 [INFO] 👋 Día 125: Agente 40 conoce a 46 (distancia: 29.2, afinidad: 0.42)
+2026-07-23 19:51:13,646 [INFO] 👋 Día 127: Agente 21 conoce a 44 (distancia: 32.0, afinidad: 0.00)
+2026-07-23 19:51:13,655 [INFO] 🤒 [CONTAGIO]   Agente 2 contrajo Bacteriofago_X_000003
+2026-07-23 19:51:13,661 [INFO] 🤒 [CONTAGIO]   Agente 35 contrajo Bacteriofago_X_000003
+2026-07-23 19:51:13,673 [INFO] 🤒 [CONTAGIO]   Agente 42 contrajo Bacteriofago_X_000003
+2026-07-23 19:51:13,705 [INFO] 👋 Día 137: Agente 5 conoce a 16 (distancia: 32.1, afinidad: 0.38)
+2026-07-23 19:51:13,711 [INFO] 👋 Día 138: Agente 29 conoce a 43 (distancia: 33.2, afinidad: 0.51)
+2026-07-23 19:51:13,791 [INFO] === INFORME EVOLUTIVO (Día 150.0) ===
+2026-07-23 19:51:13,853 [INFO] 👋 Día 161: Agente 17 conoce a 44 (distancia: 31.1, afinidad: 0.45)
+2026-07-23 19:51:13,859 [INFO] 👋 Día 162: Agente 11 conoce a 16 (distancia: 30.4, afinidad: 0.27)
+2026-07-23 19:51:13,860 [INFO] 👋 Día 162: Agente 20 conoce a 28 (distancia: 32.0, afinidad: 0.50)
+2026-07-23 19:51:13,889 [INFO] 👋 Día 167: Agente 2 conoce a 47 (distancia: 33.3, afinidad: 0.50)
+2026-07-23 19:51:13,936 [INFO] 👋 Día 175: Agente 8 conoce a 43 (distancia: 29.2, afinidad: 0.44)
+2026-07-23 19:51:13,965 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
+2026-07-23 19:51:13,971 [INFO] === INFORME EVOLUTIVO (Día 180.0) ===
+2026-07-23 19:51:14,027 [INFO] 👋 Día 190: Agente 12 conoce a 50 (distancia: 34.5, afinidad: 0.50)
+2026-07-23 19:51:14,152 [INFO] === INFORME EVOLUTIVO (Día 210.0) ===
+2026-07-23 19:51:14,225 [INFO] 👋 Día 220: Agente 1 conoce a 7 (distancia: 33.8, afinidad: 0.31)
+2026-07-23 19:51:14,245 [INFO] 👋 Día 223: Agente 3 conoce a 21 (distancia: 34.9, afinidad: 0.00)
+2026-07-23 19:51:14,359 [INFO] === INFORME EVOLUTIVO (Día 240.0) ===
+2026-07-23 19:51:14,386 [INFO] 👋 Día 245: Agente 9 conoce a 50 (distancia: 34.1, afinidad: 0.42)
+2026-07-23 19:51:14,481 [INFO] 👋 Día 261: Agente 7 conoce a 30 (distancia: 32.3, afinidad: 0.51)
+2026-07-23 19:51:14,518 [INFO] 👋 Día 267: Agente 46 conoce a 48 (distancia: 33.4, afinidad: 0.43)
+2026-07-23 19:51:14,533 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
+2026-07-23 19:51:14,540 [INFO] === INFORME EVOLUTIVO (Día 270.0) ===
+2026-07-23 19:51:14,560 [INFO] 👋 Día 274: Agente 13 conoce a 42 (distancia: 32.4, afinidad: 0.26)
+2026-07-23 19:51:14,583 [INFO] 👋 Día 278: Agente 14 conoce a 16 (distancia: 33.6, afinidad: 0.50)
+2026-07-23 19:51:14,709 [INFO] 🚨 Brote: Poxvirus_000004 en Agente 24 (vir: 1.39, trans: 0.09, let: 0.46, inc: 2.4d, asym: 0.39)
+2026-07-23 19:51:14,713 [INFO] 🤒 [CONTAGIO]   Agente 24 contrajo Poxvirus_000004
+2026-07-23 19:51:14,720 [INFO] === INFORME EVOLUTIVO (Día 300.0) ===
+2026-07-23 19:51:14,724 [INFO] 👋 Día 301: Agente 9 conoce a 17 (distancia: 34.0, afinidad: 0.49)
+2026-07-23 19:51:14,886 [INFO] 👋 Día 328: Agente 24 conoce a 33 (distancia: 34.0, afinidad: 0.44)
+2026-07-23 19:51:14,904 [INFO] === INFORME EVOLUTIVO (Día 330.0) ===
+2026-07-23 19:51:14,942 [INFO] 🚨 Brote: Influenza_000005 en Agente 17 (vir: 0.76, trans: 0.30, let: 0.08, inc: 2.6d, asym: 0.20)
+2026-07-23 19:51:14,946 [INFO] 🤒 [CONTAGIO]   Agente 17 contrajo Influenza_000005
+2026-07-23 19:51:14,967 [INFO] 🚨 Brote: Coronavirus_000006 en Agente 45 (vir: 1.09, trans: 0.16, let: 0.01, inc: 5.2d, asym: 0.13)
+2026-07-23 19:51:14,970 [INFO] 🤒 [CONTAGIO]   Agente 45 contrajo Coronavirus_000006
+2026-07-23 19:51:14,978 [INFO] ⚰️ [MUERTE]     Agente 12 falleció. Causa: Fallo sistémico por senectud (Causas naturales)
+2026-07-23 19:51:15,081 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
+2026-07-23 19:51:15,089 [INFO] === INFORME EVOLUTIVO (Día 360.0) ===
+2026-07-23 19:51:15,140 [INFO] 👋 Día 369: Agente 35 conoce a 43 (distancia: 32.8, afinidad: 0.00)
+2026-07-23 19:51:15,141 [INFO] 🚨 Brote: Coronavirus_000007 en Agente 11 (vir: 0.62, trans: 0.49, let: 0.40, inc: 6.9d, asym: 0.30)
+2026-07-23 19:51:15,144 [INFO] 🤒 [CONTAGIO]   Agente 11 contrajo Coronavirus_000007
+2026-07-23 19:51:15,193 [INFO] 🚨 Brote: Poxvirus_000008 en Agente 20 (vir: 1.28, trans: 0.36, let: 0.27, inc: 3.1d, asym: 0.11)
+2026-07-23 19:51:15,196 [INFO] 🤒 [CONTAGIO]   Agente 20 contrajo Poxvirus_000008
+2026-07-23 19:51:15,228 [INFO] 👋 Día 384: Agente 9 conoce a 16 (distancia: 33.6, afinidad: 0.39)
+2026-07-23 19:51:15,267 [INFO] === INFORME EVOLUTIVO (Día 390.0) ===
+2026-07-23 19:51:15,440 [INFO] === INFORME EVOLUTIVO (Día 420.0) ===
+2026-07-23 19:51:15,524 [INFO] 👋 Día 435: Agente 21 conoce a 35 (distancia: 33.7, afinidad: 0.39)
+2026-07-23 19:51:15,530 [INFO] 👋 Día 436: Agente 4 conoce a 18 (distancia: 34.2, afinidad: 0.17)
+2026-07-23 19:51:15,608 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
+2026-07-23 19:51:15,614 [INFO] === INFORME EVOLUTIVO (Día 450.0) ===
+2026-07-23 19:51:15,703 [INFO] 🚨 Brote: Influenza_000009 en Agente 30 (vir: 0.54, trans: 0.09, let: 0.17, inc: 5.6d, asym: 0.12)
+2026-07-23 19:51:15,706 [INFO] 🤒 [CONTAGIO]   Agente 30 contrajo Influenza_000009
+2026-07-23 19:51:15,792 [INFO] === INFORME EVOLUTIVO (Día 480.0) ===
+2026-07-23 19:51:15,973 [INFO] === INFORME EVOLUTIVO (Día 510.0) ===
+2026-07-23 19:51:15,995 [INFO] 🚨 Brote: Poxvirus_000010 en Agente 43 (vir: 1.48, trans: 0.07, let: 0.49, inc: 6.0d, asym: 0.19)
+2026-07-23 19:51:15,998 [INFO] 🤒 [CONTAGIO]   Agente 43 contrajo Poxvirus_000010
+2026-07-23 19:51:16,151 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
+2026-07-23 19:51:16,157 [INFO] === INFORME EVOLUTIVO (Día 540.0) ===
+2026-07-23 19:51:16,322 [INFO] 👋 Día 568: Agente 9 conoce a 40 (distancia: 34.7, afinidad: 0.34)
+2026-07-23 19:51:16,338 [INFO] === INFORME EVOLUTIVO (Día 570.0) ===
+2026-07-23 19:51:16,444 [INFO] 🚨 Brote: Bacteriofago_X_000011 en Agente 35 (vir: 1.07, trans: 0.34, let: 0.25, inc: 2.6d, asym: 0.23)
+2026-07-23 19:51:16,448 [INFO] 🤒 [CONTAGIO]   Agente 35 contrajo Bacteriofago_X_000011
+2026-07-23 19:51:16,520 [INFO] === INFORME EVOLUTIVO (Día 600.0) ===
+2026-07-23 19:51:16,666 [INFO] 👋 Día 625: Agente 26 conoce a 30 (distancia: 34.4, afinidad: 0.37)
+2026-07-23 19:51:16,692 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
+2026-07-23 19:51:16,698 [INFO] === INFORME EVOLUTIVO (Día 630.0) ===
+2026-07-23 19:51:16,877 [INFO] === INFORME EVOLUTIVO (Día 660.0) ===
+2026-07-23 19:51:17,061 [INFO] === INFORME EVOLUTIVO (Día 690.0) ===
+2026-07-23 19:51:17,242 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
+2026-07-23 19:51:17,249 [INFO] === INFORME EVOLUTIVO (Día 720.0) ===
+2026-07-23 19:51:17,435 [INFO] === INFORME EVOLUTIVO (Día 750.0) ===
+2026-07-23 19:51:17,450 [INFO] 👋 Día 753: Agente 23 conoce a 38 (distancia: 34.5, afinidad: 0.00)
+2026-07-23 19:51:17,619 [INFO] === INFORME EVOLUTIVO (Día 780.0) ===
+2026-07-23 19:51:17,796 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
+2026-07-23 19:51:17,803 [INFO] === INFORME EVOLUTIVO (Día 810.0) ===
+2026-07-23 19:51:17,905 [INFO] 🚨 Brote: Poxvirus_000012 en Agente 1 (vir: 0.55, trans: 0.13, let: 0.13, inc: 4.1d, asym: 0.14)
+2026-07-23 19:51:17,908 [INFO] 🤒 [CONTAGIO]   Agente 1 contrajo Poxvirus_000012
+2026-07-23 19:51:17,945 [INFO] 🤒 [CONTAGIO]   Agente 5 contrajo Poxvirus_000012
+2026-07-23 19:51:17,988 [INFO] === INFORME EVOLUTIVO (Día 840.0) ===
+2026-07-23 19:51:18,176 [INFO] === INFORME EVOLUTIVO (Día 870.0) ===
+2026-07-23 19:51:18,377 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
+2026-07-23 19:51:18,384 [INFO] === INFORME EVOLUTIVO (Día 900.0) ===
+2026-07-23 19:51:18,586 [INFO] === INFORME EVOLUTIVO (Día 930.0) ===
+2026-07-23 19:51:18,796 [INFO] === INFORME EVOLUTIVO (Día 960.0) ===
+2026-07-23 19:51:18,990 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
+2026-07-23 19:51:18,997 [INFO] === INFORME EVOLUTIVO (Día 990.0) ===
+2026-07-23 19:51:19,053 [INFO] 🚨 Brote: Poxvirus_000013 en Agente 33 (vir: 0.62, trans: 0.08, let: 0.10, inc: 6.9d, asym: 0.34)
+2026-07-23 19:51:19,057 [INFO] 🤒 [CONTAGIO]   Agente 33 contrajo Poxvirus_000013
+2026-07-23 19:51:19,180 [INFO] === INFORME EVOLUTIVO (Día 1020.0) ===
+2026-07-23 19:51:19,362 [INFO] === INFORME EVOLUTIVO (Día 1050.0) ===
+2026-07-23 19:51:19,381 [INFO] 👋 Día 1054: Agente 4 conoce a 35 (distancia: 34.8, afinidad: 0.28)
+2026-07-23 19:51:19,531 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
+2026-07-23 19:51:19,538 [INFO] === INFORME EVOLUTIVO (Día 1080.0) ===
+2026-07-23 19:51:19,713 [INFO] === INFORME EVOLUTIVO (Día 1110.0) ===
+2026-07-23 19:51:19,894 [INFO] === INFORME EVOLUTIVO (Día 1140.0) ===
+2026-07-23 19:51:20,067 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
+2026-07-23 19:51:20,074 [INFO] === INFORME EVOLUTIVO (Día 1170.0) ===
+2026-07-23 19:51:20,250 [INFO] === INFORME EVOLUTIVO (Día 1200.0) ===
+2026-07-23 19:51:20,426 [INFO] === INFORME EVOLUTIVO (Día 1230.0) ===
+2026-07-23 19:51:20,599 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
+2026-07-23 19:51:20,606 [INFO] === INFORME EVOLUTIVO (Día 1260.0) ===
+2026-07-23 19:51:20,737 [INFO] 🚨 Brote: Coronavirus_000014 en Agente 16 (vir: 1.11, trans: 0.42, let: 0.47, inc: 2.4d, asym: 0.31)
+2026-07-23 19:51:20,740 [INFO] 🤒 [CONTAGIO]   Agente 16 contrajo Coronavirus_000014
+2026-07-23 19:51:20,780 [INFO] === INFORME EVOLUTIVO (Día 1290.0) ===
+2026-07-23 19:51:20,954 [INFO] === INFORME EVOLUTIVO (Día 1320.0) ===
+2026-07-23 19:51:20,996 [INFO] 👋 Día 1328: Agente 34 conoce a 40 (distancia: 34.7, afinidad: 0.32)
+2026-07-23 19:51:21,120 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
+2026-07-23 19:51:21,126 [INFO] === INFORME EVOLUTIVO (Día 1350.0) ===
+2026-07-23 19:51:21,299 [INFO] === INFORME EVOLUTIVO (Día 1380.0) ===
+2026-07-23 19:51:21,476 [INFO] === INFORME EVOLUTIVO (Día 1410.0) ===
+2026-07-23 19:51:21,508 [INFO] 🚨 Brote: Bacteriofago_X_000015 en Agente 1 (vir: 1.05, trans: 0.28, let: 0.45, inc: 6.1d, asym: 0.16)
+2026-07-23 19:51:21,511 [INFO] 🤒 [CONTAGIO]   Agente 1 contrajo Bacteriofago_X_000015
+2026-07-23 19:51:21,553 [INFO] 👋 Día 1424: Agente 25 conoce a 34 (distancia: 34.9, afinidad: 0.34)
+2026-07-23 19:51:21,557 [INFO] 🤒 [CONTAGIO]   Agente 5 contrajo Bacteriofago_X_000015
+2026-07-23 19:51:21,645 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
+2026-07-23 19:51:21,652 [INFO] === INFORME EVOLUTIVO (Día 1440.0) ===
+2026-07-23 19:51:21,831 [INFO] === INFORME EVOLUTIVO (Día 1470.0) ===
+2026-07-23 19:51:22,013 [INFO] === INFORME EVOLUTIVO (Día 1500.0) ===
+2026-07-23 19:51:22,185 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
+2026-07-23 19:51:22,191 [INFO] === INFORME EVOLUTIVO (Día 1530.0) ===
+2026-07-23 19:51:22,364 [INFO] === INFORME EVOLUTIVO (Día 1560.0) ===
+2026-07-23 19:51:22,543 [INFO] === INFORME EVOLUTIVO (Día 1590.0) ===
+2026-07-23 19:51:22,715 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
+2026-07-23 19:51:22,722 [INFO] === INFORME EVOLUTIVO (Día 1620.0) ===
+2026-07-23 19:51:22,920 [INFO] === INFORME EVOLUTIVO (Día 1650.0) ===
+2026-07-23 19:51:23,100 [INFO] === INFORME EVOLUTIVO (Día 1680.0) ===
+2026-07-23 19:51:23,274 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
+2026-07-23 19:51:23,281 [INFO] === INFORME EVOLUTIVO (Día 1710.0) ===
+2026-07-23 19:51:23,356 [INFO] 👋 Día 1723: Agente 2 conoce a 13 (distancia: 34.9, afinidad: 0.42)
+2026-07-23 19:51:23,475 [INFO] === INFORME EVOLUTIVO (Día 1740.0) ===
+2026-07-23 19:51:23,657 [INFO] === INFORME EVOLUTIVO (Día 1770.0) ===
+2026-07-23 19:51:23,829 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
+2026-07-23 19:51:23,836 [INFO] === INFORME EVOLUTIVO (Día 1800.0) ===
+2026-07-23 19:51:24,013 [INFO] === INFORME EVOLUTIVO (Día 1830.0) ===
+2026-07-23 19:51:24,190 [INFO] === INFORME EVOLUTIVO (Día 1860.0) ===
+2026-07-23 19:51:24,355 [INFO] 🚨 Brote: Influenza_000016 en Agente 22 (vir: 1.12, trans: 0.21, let: 0.45, inc: 6.6d, asym: 0.18)
+2026-07-23 19:51:24,359 [INFO] 🤒 [CONTAGIO]   Agente 22 contrajo Influenza_000016
+2026-07-23 19:51:24,360 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
+2026-07-23 19:51:24,367 [INFO] === INFORME EVOLUTIVO (Día 1890.0) ===
+2026-07-23 19:51:24,410 [INFO] 🤒 [CONTAGIO]   Agente 27 contrajo Influenza_000016
+2026-07-23 19:51:24,545 [INFO] === INFORME EVOLUTIVO (Día 1920.0) ===
+2026-07-23 19:51:24,724 [INFO] === INFORME EVOLUTIVO (Día 1950.0) ===
+2026-07-23 19:51:24,806 [INFO] 🚨 Brote: Poxvirus_000017 en Agente 38 (vir: 1.42, trans: 0.19, let: 0.02, inc: 6.4d, asym: 0.17)
+2026-07-23 19:51:24,810 [INFO] 🤒 [CONTAGIO]   Agente 38 contrajo Poxvirus_000017
+2026-07-23 19:51:24,894 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
+2026-07-23 19:51:24,901 [INFO] === INFORME EVOLUTIVO (Día 1980.0) ===
+2026-07-23 19:51:25,084 [INFO] === INFORME EVOLUTIVO (Día 2010.0) ===
+2026-07-23 19:51:25,262 [INFO] === INFORME EVOLUTIVO (Día 2040.0) ===
+2026-07-23 19:51:25,429 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
+2026-07-23 19:51:25,436 [INFO] === INFORME EVOLUTIVO (Día 2070.0) ===
+2026-07-23 19:51:25,580 [INFO] 🚨 Brote: Poxvirus_000018 en Agente 44 (vir: 0.82, trans: 0.32, let: 0.19, inc: 6.6d, asym: 0.36)
+2026-07-23 19:51:25,583 [INFO] 🤒 [CONTAGIO]   Agente 44 contrajo Poxvirus_000018
+2026-07-23 19:51:25,615 [INFO] === INFORME EVOLUTIVO (Día 2100.0) ===
+2026-07-23 19:51:25,790 [INFO] === INFORME EVOLUTIVO (Día 2130.0) ===
+2026-07-23 19:51:25,827 [INFO] 🚨 Brote: Influenza_000019 en Agente 7 (vir: 1.27, trans: 0.10, let: 0.35, inc: 6.8d, asym: 0.21)
+2026-07-23 19:51:25,831 [INFO] 🤒 [CONTAGIO]   Agente 7 contrajo Influenza_000019
+2026-07-23 19:51:25,955 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
+2026-07-23 19:51:25,962 [INFO] === INFORME EVOLUTIVO (Día 2160.0) ===
+2026-07-23 19:51:26,157 [INFO] === INFORME EVOLUTIVO (Día 2190.0) ===
+2026-07-23 19:51:26,328 [INFO] === INFORME EVOLUTIVO (Día 2220.0) ===
+2026-07-23 19:51:26,494 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
+2026-07-23 19:51:26,501 [INFO] === INFORME EVOLUTIVO (Día 2250.0) ===
+2026-07-23 19:51:26,677 [INFO] === INFORME EVOLUTIVO (Día 2280.0) ===
+2026-07-23 19:51:26,851 [INFO] === INFORME EVOLUTIVO (Día 2310.0) ===
+2026-07-23 19:51:27,026 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
+2026-07-23 19:51:27,033 [INFO] === INFORME EVOLUTIVO (Día 2340.0) ===
+2026-07-23 19:51:27,202 [INFO] === INFORME EVOLUTIVO (Día 2370.0) ===
+2026-07-23 19:51:27,317 [INFO] 🚨 Brote: Influenza_000020 en Agente 6 (vir: 0.58, trans: 0.47, let: 0.21, inc: 5.5d, asym: 0.15)
+2026-07-23 19:51:27,320 [INFO] 🤒 [CONTAGIO]   Agente 6 contrajo Influenza_000020
+2026-07-23 19:51:27,371 [INFO] === INFORME EVOLUTIVO (Día 2400.0) ===
+2026-07-23 19:51:27,539 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
+2026-07-23 19:51:27,545 [INFO] === INFORME EVOLUTIVO (Día 2430.0) ===
+2026-07-23 19:51:27,721 [INFO] === INFORME EVOLUTIVO (Día 2460.0) ===
+2026-07-23 19:51:27,895 [INFO] === INFORME EVOLUTIVO (Día 2490.0) ===
+2026-07-23 19:51:27,978 [INFO] ⚰️ [MUERTE]     Agente 43 falleció. Causa: Fallo sistémico por senectud (Causas naturales)
+2026-07-23 19:51:28,055 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
+2026-07-23 19:51:28,061 [INFO] === INFORME EVOLUTIVO (Día 2520.0) ===
+2026-07-23 19:51:28,231 [INFO] === INFORME EVOLUTIVO (Día 2550.0) ===
+2026-07-23 19:51:28,397 [INFO] === INFORME EVOLUTIVO (Día 2580.0) ===
+2026-07-23 19:51:28,418 [INFO] 🚨 Brote: Coronavirus_000021 en Agente 3 (vir: 0.86, trans: 0.42, let: 0.24, inc: 4.2d, asym: 0.16)
+2026-07-23 19:51:28,421 [INFO] 🤒 [CONTAGIO]   Agente 3 contrajo Coronavirus_000021
+2026-07-23 19:51:28,455 [INFO] 🤒 [CONTAGIO]   Agente 18 contrajo Coronavirus_000021
+2026-07-23 19:51:28,468 [INFO] 🚨 Brote: Coronavirus_000022 en Agente 44 (vir: 1.42, trans: 0.37, let: 0.13, inc: 3.6d, asym: 0.12)
+2026-07-23 19:51:28,472 [INFO] 🤒 [CONTAGIO]   Agente 44 contrajo Coronavirus_000022
+2026-07-23 19:51:28,502 [INFO] 🚨 Brote: Coronavirus_000023 en Agente 35 (vir: 1.31, trans: 0.50, let: 0.48, inc: 5.2d, asym: 0.20)
+2026-07-23 19:51:28,505 [INFO] 🤒 [CONTAGIO]   Agente 35 contrajo Coronavirus_000023
+2026-07-23 19:51:28,544 [INFO] 🤒 [CONTAGIO]   Agente 2 contrajo Coronavirus_000023
+2026-07-23 19:51:28,544 [INFO] 🤒 [CONTAGIO]   Agente 42 contrajo Coronavirus_000023
+2026-07-23 19:51:28,561 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
+2026-07-23 19:51:28,568 [INFO] === INFORME EVOLUTIVO (Día 2610.0) ===
+2026-07-23 19:51:28,580 [INFO] 🤒 [CONTAGIO]   Agente 45 contrajo Coronavirus_000023
+2026-07-23 19:51:28,592 [INFO] ⚰️ [MUERTE]     Agente 42 falleció. Causa: Sepsis / Fallo multiorgánico por Coronavirus_000023
+2026-07-23 19:51:28,754 [INFO] === INFORME EVOLUTIVO (Día 2640.0) ===
+2026-07-23 19:51:28,919 [INFO] === INFORME EVOLUTIVO (Día 2670.0) ===
+2026-07-23 19:51:29,081 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
+2026-07-23 19:51:29,087 [INFO] === INFORME EVOLUTIVO (Día 2700.0) ===
+2026-07-23 19:51:29,141 [INFO] 🚨 Brote: Poxvirus_000024 en Agente 22 (vir: 0.34, trans: 0.32, let: 0.46, inc: 5.9d, asym: 0.30)
+2026-07-23 19:51:29,144 [INFO] 🤒 [CONTAGIO]   Agente 22 contrajo Poxvirus_000024
+2026-07-23 19:51:29,247 [INFO] 🚨 Brote: Poxvirus_000025 en Agente 7 (vir: 0.54, trans: 0.36, let: 0.18, inc: 6.4d, asym: 0.15)
+2026-07-23 19:51:29,250 [INFO] 🤒 [CONTAGIO]   Agente 7 contrajo Poxvirus_000025
+2026-07-23 19:51:29,257 [INFO] === INFORME EVOLUTIVO (Día 2730.0) ===
+2026-07-23 19:51:29,427 [INFO] === INFORME EVOLUTIVO (Día 2760.0) ===
+2026-07-23 19:51:29,586 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
+2026-07-23 19:51:29,592 [INFO] === INFORME EVOLUTIVO (Día 2790.0) ===
+2026-07-23 19:51:29,761 [INFO] === INFORME EVOLUTIVO (Día 2820.0) ===
+2026-07-23 19:51:29,930 [INFO] === INFORME EVOLUTIVO (Día 2850.0) ===
+2026-07-23 19:51:30,089 [INFO] 🚨 Brote: Bacteriofago_X_000026 en Agente 16 (vir: 1.45, trans: 0.47, let: 0.26, inc: 6.1d, asym: 0.26)
+2026-07-23 19:51:30,092 [INFO] 🤒 [CONTAGIO]   Agente 16 contrajo Bacteriofago_X_000026
+2026-07-23 19:51:30,099 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
+2026-07-23 19:51:30,106 [INFO] === INFORME EVOLUTIVO (Día 2880.0) ===
+2026-07-23 19:51:30,280 [INFO] === INFORME EVOLUTIVO (Día 2910.0) ===
+2026-07-23 19:51:30,451 [INFO] === INFORME EVOLUTIVO (Día 2940.0) ===
+2026-07-23 19:51:30,612 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
+2026-07-23 19:51:30,619 [INFO] === INFORME EVOLUTIVO (Día 2970.0) ===
+2026-07-23 19:51:30,784 [INFO] === INFORME EVOLUTIVO (Día 3000.0) ===
+2026-07-23 19:51:30,943 [INFO] 🚨 Brote: Coronavirus_000027 en Agente 37 (vir: 1.09, trans: 0.35, let: 0.37, inc: 4.9d, asym: 0.32)
+2026-07-23 19:51:30,947 [INFO] === INFORME EVOLUTIVO (Día 3030.0) ===
+2026-07-23 19:51:30,948 [INFO] 🤒 [CONTAGIO]   Agente 37 contrajo Coronavirus_000027
+2026-07-23 19:51:31,108 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
+2026-07-23 19:51:31,114 [INFO] === INFORME EVOLUTIVO (Día 3060.0) ===
+2026-07-23 19:51:31,280 [INFO] === INFORME EVOLUTIVO (Día 3090.0) ===
+2026-07-23 19:51:31,360 [INFO] 🚨 Brote: Bacteriofago_X_000028 en Agente 33 (vir: 1.43, trans: 0.40, let: 0.49, inc: 3.4d, asym: 0.29)
+2026-07-23 19:51:31,363 [INFO] 🤒 [CONTAGIO]   Agente 33 contrajo Bacteriofago_X_000028
+2026-07-23 19:51:31,446 [INFO] === INFORME EVOLUTIVO (Día 3120.0) ===
+2026-07-23 19:51:31,618 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
+2026-07-23 19:51:31,625 [INFO] === INFORME EVOLUTIVO (Día 3150.0) ===
+2026-07-23 19:51:31,797 [INFO] === INFORME EVOLUTIVO (Día 3180.0) ===
+2026-07-23 19:51:31,961 [INFO] === INFORME EVOLUTIVO (Día 3210.0) ===
+2026-07-23 19:51:32,121 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
+2026-07-23 19:51:32,127 [INFO] === INFORME EVOLUTIVO (Día 3240.0) ===
+2026-07-23 19:51:32,289 [INFO] === INFORME EVOLUTIVO (Día 3270.0) ===
+2026-07-23 19:51:32,455 [INFO] === INFORME EVOLUTIVO (Día 3300.0) ===
+2026-07-23 19:51:32,619 [INFO] 🌍 El entorno ha cambiado de estación a: SUMMER
+2026-07-23 19:51:32,626 [INFO] === INFORME EVOLUTIVO (Día 3330.0) ===
+2026-07-23 19:51:32,688 [INFO] 🚨 Brote: Influenza_000029 en Agente 6 (vir: 1.16, trans: 0.38, let: 0.09, inc: 2.7d, asym: 0.23)
+2026-07-23 19:51:32,691 [INFO] 🤒 [CONTAGIO]   Agente 6 contrajo Influenza_000029
+2026-07-23 19:51:32,719 [INFO] 🚨 Brote: Bacteriofago_X_000030 en Agente 20 (vir: 1.44, trans: 0.33, let: 0.24, inc: 6.2d, asym: 0.32)
+2026-07-23 19:51:32,722 [INFO] 🤒 [CONTAGIO]   Agente 20 contrajo Bacteriofago_X_000030
+2026-07-23 19:51:32,789 [INFO] === INFORME EVOLUTIVO (Día 3360.0) ===
+2026-07-23 19:51:32,947 [INFO] === INFORME EVOLUTIVO (Día 3390.0) ===
+2026-07-23 19:51:33,104 [INFO] 🌍 El entorno ha cambiado de estación a: AUTUMN
+2026-07-23 19:51:33,110 [INFO] === INFORME EVOLUTIVO (Día 3420.0) ===
+2026-07-23 19:51:33,274 [INFO] === INFORME EVOLUTIVO (Día 3450.0) ===
+2026-07-23 19:51:33,436 [INFO] === INFORME EVOLUTIVO (Día 3480.0) ===
+2026-07-23 19:51:33,502 [INFO] 🚨 Brote: Bacteriofago_X_000031 en Agente 3 (vir: 1.04, trans: 0.37, let: 0.34, inc: 3.6d, asym: 0.20)
+2026-07-23 19:51:33,506 [INFO] 🤒 [CONTAGIO]   Agente 3 contrajo Bacteriofago_X_000031
+2026-07-23 19:51:33,590 [INFO] 🌍 El entorno ha cambiado de estación a: WINTER
+2026-07-23 19:51:33,600 [INFO] === INFORME EVOLUTIVO (Día 3510.0) ===
+2026-07-23 19:51:33,666 [INFO] ⚰️ [MUERTE]     Agente 1 falleció. Causa: Colapso cardiovascular inducido por estrés crónico
+2026-07-23 19:51:33,759 [INFO] === INFORME EVOLUTIVO (Día 3540.0) ===
+2026-07-23 19:51:33,916 [INFO] === INFORME EVOLUTIVO (Día 3570.0) ===
+2026-07-23 19:51:34,071 [INFO] 🌍 El entorno ha cambiado de estación a: SPRING
+2026-07-23 19:51:34,078 [INFO] === INFORME EVOLUTIVO (Día 3600.0) ===
+2026-07-23 19:51:34,232 [INFO] === INFORME EVOLUTIVO (Día 3630.0) ===
+2026-07-23 19:51:34,350 [INFO] 📊 RESUMEN EJECUTIVO DE LA SIMULACIÓN

@@ -4,6 +4,8 @@ Actúa como un 'Staging Area' (zona de pruebas) donde los sistemas registran
 sus intenciones sin alterar el mundo real. Esto garantiza que el orden de 
 ejecución de los sistemas no cause efectos secundarios indeseados y que 
 los datos fluyan de forma segura hacia la fase de consolidación (commit).
+
+FASE 0: Se añade soporte transaccional para la adición de recuerdos relacionales.
 """
 
 from typing import Any, Dict, List, Optional, Tuple
@@ -41,12 +43,14 @@ class PendingChanges:
         # Colecciones de Libre Albedrío (Flags transaccionales - legacy)
         self.free_will_flags_updates: Dict[int, Dict[str, bool]] = {}
         
-        # =====================================================================
-        # NUEVO: Colecciones de Motivaciones Continuas
-        # =====================================================================
-        # motivation_updates: entity_id -> dict de {motivation_name: delta}
-        # Los deltas son acumulativos durante el tick
+        # Colecciones de Motivaciones Continuas
         self.motivation_updates: Dict[int, Dict[str, float]] = {}
+        
+        # =====================================================================
+        # NUEVO (Fase 0): Colecciones de Relaciones Cognitivas
+        # =====================================================================
+        # relationship_memory_additions: List[Tuple[owner_id, partner_id, PersonalMemory]]
+        self.relationship_memory_additions: List[Tuple[int, int, Any]] = []
 
     # ==========================================
     # SALUD Y EPIDEMIOLOGÍA
@@ -163,7 +167,7 @@ class PendingChanges:
         self.memory_updates[entity_id][key] = value
 
     # ==========================================
-    # LIBRE ALBEDRÍO TRANSACCIONAL (Legacy - Banderas binarias)
+    # LIBRE ALBEDRÍO TRANSACCIONAL (Legacy)
     # ==========================================
     def register_free_will_flag(
         self, entity_id: int, flag_name: str, value: bool
@@ -180,57 +184,39 @@ class PendingChanges:
         self.register_free_will_flag(entity_id, flag_name, False)
 
     # ==========================================
-    # NUEVO: MOTIVACIONES CONTINUAS TRANSACCIONALES
+    # MOTIVACIONES CONTINUAS TRANSACCIONALES
     # ==========================================
     def register_motivation_update(
         self, entity_id: int, motivation_name: str, delta: float
     ) -> None:
-        """Encola un cambio incremental en una motivación continua.
-        
-        Los deltas son acumulativos durante el tick. Al final del tick,
-        todos los deltas se aplican de una vez a las motivaciones del agente.
-        
-        Args:
-            entity_id: ID de la entidad afectada.
-            motivation_name: Nombre de la motivación (ej: 'independence').
-            delta: Cambio incremental (puede ser positivo o negativo).
-        """
+        """Encola un cambio incremental en una motivación continua."""
         if entity_id not in self.motivation_updates:
             self.motivation_updates[entity_id] = {}
-        
-        # Acumular deltas si ya hay cambios previos para esta motivación
         current_delta = self.motivation_updates[entity_id].get(motivation_name, 0.0)
         self.motivation_updates[entity_id][motivation_name] = current_delta + delta
 
     def set_motivation(
         self, entity_id: int, motivation_name: str, value: float
     ) -> None:
-        """Establece un valor absoluto para una motivación (no acumulativo).
-        
-        Útil cuando se quiere forzar un valor específico en lugar de un delta.
-        
-        Args:
-            entity_id: ID de la entidad afectada.
-            motivation_name: Nombre de la motivación.
-            value: Nuevo valor absoluto [0.0, 1.0].
-        """
+        """Establece un valor absoluto para una motivación (no acumulativo)."""
         if entity_id not in self.motivation_updates:
             self.motivation_updates[entity_id] = {}
-        # Usamos un valor especial para indicar que es un set absoluto
         self.motivation_updates[entity_id][f"__set__{motivation_name}"] = value
 
     def get_pending_motivation_deltas(
         self, entity_id: int
     ) -> Dict[str, float]:
-        """Obtiene todos los deltas pendientes de motivaciones para una entidad.
-        
-        Args:
-            entity_id: ID de la entidad.
-            
-        Returns:
-            Diccionario {motivation_name: delta} acumulado.
-        """
+        """Obtiene todos los deltas pendientes de motivaciones para una entidad."""
         return self.motivation_updates.get(entity_id, {})
+
+    # ==========================================
+    # NUEVO (Fase 0): RELACIONES COGNITIVAS
+    # ==========================================
+    def register_relationship_memory(
+        self, owner_id: int, partner_id: int, memory: Any
+    ) -> None:
+        """Encola la adición de un recuerdo personal a una relación."""
+        self.relationship_memory_additions.append((owner_id, partner_id, memory))
 
     # ==========================================
     # CICLO DE VIDA DEL BÚFER
@@ -252,3 +238,4 @@ class PendingChanges:
         self.memory_updates.clear()
         self.free_will_flags_updates.clear()
         self.motivation_updates.clear()
+        self.relationship_memory_additions.clear()

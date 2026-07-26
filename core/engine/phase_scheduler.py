@@ -18,6 +18,7 @@ Cada tick completo procesa las siguientes fases en estricto orden secuencial:
    - Evalúa decisiones autónomas y rebeldía (FreeWillSystem).
    - Calcula vectores de migración masiva (MigrationSystem).
    - Genera vectores de desplazamiento para el tick (MovementSystem).
+   - Emite eventos INTIMACY cuando los agentes están cerca de su pareja.
    - Resuelve colisiones espaciales físicas (MovementResolver).
 
 4. Fase Social ('relationships'):
@@ -76,7 +77,7 @@ from systems.movement.movement_system import MovementSystem
 # NUEVOS sistemas de relaciones (Fase 1)
 from systems.relationships.compatibility_engine import CompatibilityEngine
 from systems.relationships.relationship_manager import RelationshipManager
-from systems.relationships.relationship_experience_engine import RelationshipExperienceEngine  # <-- NUEVO
+from systems.relationships.relationship_experience_engine import RelationshipExperienceEngine
 
 from systems.reproduction.conception_system import ConceptionSystem
 from systems.reproduction.gestation_system import GestationSystem
@@ -90,7 +91,7 @@ class PhaseScheduler:
         self, 
         config: SimulationConfig, 
         event_bus: Any = None,
-        relationship_engine: Optional[RelationshipExperienceEngine] = None,  # <-- NUEVO PARÁMETRO
+        relationship_engine: Optional[RelationshipExperienceEngine] = None,
     ) -> None:
         """Inicializa el planificador orquestando la inyección de dependencias.
 
@@ -101,7 +102,7 @@ class PhaseScheduler:
         """
         self.config = config
         self.event_bus = event_bus
-        self.relationship_engine = relationship_engine  # <-- GUARDAR REFERENCIA
+        self.relationship_engine = relationship_engine
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def build_phases(self) -> list[PhaseDefinition]:
@@ -124,7 +125,7 @@ class PhaseScheduler:
 
         density_system = DensitySystem(self.config)
 
-        # NUEVOS sistemas de relaciones (Fase 1)
+       # NUEVOS sistemas de relaciones (Fase 1)
         compatibility_engine = CompatibilityEngine(self.config)
         relationship_manager = RelationshipManager(
             config=self.config,
@@ -152,30 +153,31 @@ class PhaseScheduler:
             PhaseDefinition(
                 name="behavior_and_movement",
                 systems=[
-                    FreeWillSystem(self.config),
+                    FreeWillSystem(
+                        config=self.config,
+                        relationship_engine=self.relationship_engine,  # <-- NUEVO
+                    ),
                     MigrationSystem(self.config),
                     MovementSystem(
                         config=self.config,
                         density_system=density_system,
+                        relationship_engine=self.relationship_engine,  # <-- NUEVO
                     ),
                     MovementResolver(self.config),
-                ],  # type: ignore[arg-type]
+                ],
             ),
             PhaseDefinition(
                 name="relationships",
                 systems=[
-                    # NUEVOS sistemas de relaciones (reemplazan MarriageSystem y RelationshipSystem)
                     compatibility_engine,
                     relationship_manager,
-                    # Sistemas legacy DESACTIVADOS temporalmente
-                    # relationship_system,
-                    # MarriageSystem(config=self.config, ancestry_queries=ancestry_queries),
                     AdoptionSystem(
                         config=self.config,
                         ancestry_queries=ancestry_queries,
                         event_bus=self.event_bus,
+                        relationship_engine=self.relationship_engine,
                     ),
-                ],  # type: ignore[arg-type]
+                ],
             ),
             PhaseDefinition(
                 name="health",
@@ -183,24 +185,34 @@ class PhaseScheduler:
                     # INYECCIÓN: Pasamos el motor de experiencias al sistema de enfermedades
                     DiseaseSystem(
                         config=self.config,
-                        relationship_engine=self.relationship_engine,  # <-- NUEVO
+                        relationship_engine=self.relationship_engine,
                     ),
                 ],  # type: ignore[arg-type]
             ),
             PhaseDefinition(
                 name="reproduction",
                 systems=[
-                    ConceptionSystem(self.config),
+                    # INYECCIÓN: Pasamos el motor de experiencias al sistema de concepción
+                    ConceptionSystem(
+                        config=self.config,
+                        relationship_engine=self.relationship_engine,  # <-- NUEVO
+                    ),
+                    # INYECCIÓN: Pasamos el motor de experiencias al sistema de gestación
                     GestationSystem(
                         config=self.config,
                         evolution_engine=evolution_engine,
+                        relationship_engine=self.relationship_engine,  # <-- NUEVO
                     ),
                 ],  # type: ignore[arg-type]
             ),
             PhaseDefinition(
                 name="mortality",
                 systems=[
-                    MortalitySystem(self.config),
+                    # INYECCIÓN: Pasamos el motor de experiencias al sistema de mortalidad
+                    MortalitySystem(
+                        config=self.config,
+                        relationship_engine=self.relationship_engine,  # <-- NUEVO
+                    ),
                     DeathResolver(self.config),
                 ],  # type: ignore[arg-type]
             ),

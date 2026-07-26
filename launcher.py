@@ -31,6 +31,7 @@ class RelevantEventsFilter(logging.Filter):
         r"💍",           # Relaciones consolidadas
         r"📊",           # Diagnóstico de relaciones
         r"🔍",           # Debug de relaciones
+      #  r"🧠",           # Experiencias relacionales (NUEVO)
         r"INFORME EVOLUTIVO",
         r"RESUMEN EJECUTIVO",
         r"ERROR",

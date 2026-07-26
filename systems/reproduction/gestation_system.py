@@ -3,18 +3,34 @@
 Este sistema controla los ciclos biológicos de preñez de las distintas especies,
 evalúa el progreso temporal de los embarazos y ejecuta los partos consolidando
 la herencia genética a través del motor evolutivo.
+
+FASE 0: Integra con RelationshipExperienceEngine emitiendo eventos ligeros
+compatibles para fortalecer el vínculo entre los padres mediante recuerdos.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Optional
 
 from core.config.simulation_config import SimulationConfig
 from core.state.pending_changes import PendingChanges
 from core.state.world_state import WorldState
 from systems.environment.environment_context import EnvironmentContext
 from systems.evolution.evolution_engine import EvolutionEngine
+
+# FASE 0: Solo importamos el tipo de evento, no la clase antigua RelationshipEvent
+from systems.relationships.relationship_model import RelationshipEventType
+from systems.relationships.relationship_experience_engine import RelationshipExperienceEngine
+
+
+@dataclass
+class _GestationRelationalEvent:
+    """Evento ligero compatible con el RelationshipExperienceEngine de la Fase 0."""
+    event_type: RelationshipEventType
+    intensity: float
+    context: str
 
 
 class GestationSystem:
@@ -24,26 +40,16 @@ class GestationSystem:
         self,
         config: SimulationConfig,
         evolution_engine: EvolutionEngine,
+        relationship_engine: Optional[RelationshipExperienceEngine] = None,
     ) -> None:
-        """Inicializa el sistema de gestación orquestando sus dependencias.
-
-        Args:
-            config: Configuración compartida de la simulación.
-            evolution_engine: Instancia del motor de evolución de la aplicación.
-        """
+        """Inicializa el sistema de gestación orquestando sus dependencias."""
         self.config = config
         self.evolution_engine = evolution_engine
+        self.relationship_engine = relationship_engine
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def _get_species_traits(self, species: str) -> dict[str, float]:
-        """Recupera el perfil reproductivo local y específico de una especie.
-
-        Args:
-            species: Identificador de la especie (e.g., 'human', 'elf').
-
-        Returns:
-            Un diccionario con las propiedades biológicas de la especie.
-        """
+        """Recupera el perfil reproductivo local y específico de una especie."""
         profiles = {
             "human": {"gestation_days": float(self.config.reproduction.pregnancy_duration_days)},
             "elf": {"gestation_days": 730.0},
@@ -59,16 +65,10 @@ class GestationSystem:
         delta_days: float,
         context: EnvironmentContext,
     ) -> None:
-        """Avanza los embarazos activos y dispara los nacimientos múltiples (camadas).
+        """Avanza los embarazos activos y dispara los nacimientos múltiples (camadas)."""
+        current_day = getattr(state, 'world_days_elapsed', 0.0)
 
-        Args:
-            state: Estado autoritativo y actual del mundo en memoria.
-            pending: Búfer transaccional para registrar cambios antes del commit.
-            delta_days: Fracción de tiempo en días que avanza la simulación.
-            context: Contexto físico y de variables del entorno actual.
-        """
         for person in state.get_all_persons():
-            # Si el agente ha fallecido en este tick o no está encinta, se descarta
             if person.entity_id in pending.deaths or not getattr(person, "is_pregnant", False):
                 continue
 
@@ -77,14 +77,11 @@ class GestationSystem:
             new_days = current_days + delta_days
 
             if new_days >= traits["gestation_days"]:
-                # Recuperamos el tamaño de la camada guardada en la concepción
                 litter_size = getattr(person, "litter_size_gestating", 1)
 
-                # Bucle de nacimientos simultáneos
                 for _ in range(litter_size):
-                    self._execute_birth(person, state, pending)
+                    self._execute_birth(person, state, pending, current_day)
 
-                # Saneamiento del estado biológico de la gestante tras el parto
                 pending.register_pregnancy_update(
                     person.entity_id,
                     is_pregnant=False,
@@ -93,7 +90,6 @@ class GestationSystem:
                     litter_size=1,
                 )
             else:
-                # El embarazo progresa un tick más de forma segura
                 pending.register_pregnancy_update(
                     person.entity_id,
                     is_pregnant=True,
@@ -107,31 +103,33 @@ class GestationSystem:
         mother: Any,
         state: WorldState,
         pending: PendingChanges,
+        current_day: float,
     ) -> None:
-        """Culmina la meiosis individual de una sola cría de la camada.
-
-        Genera el genoma recombinado y encola la inserción del nuevo agente.
-
-        Args:
-            mother: Instancia de la entidad gestante que da a luz.
-            state: Estado autoritativo del mundo.
-            pending: Búfer transaccional de cambios pendientes.
-        """
+        """Culmina la meiosis individual de una sola cría de la camada."""
         partner = state.get_person_by_id(mother.partner_id) if mother.partner_id else None
 
-        # Si no hay partner, Genome.combine() aplicará Partenogénesis automáticamente
         father_genome = partner.genome if partner else None
         baby_genome = mother.genome.combine(father_genome)
 
         pending.register_birth(
             mother_id=mother.entity_id,
-            father_id=mother.partner_id,  # Puede ser None (Legalmente es correcto)
+            father_id=mother.partner_id,
             genome=baby_genome,
             x=mother.x,
             y=mother.y,
         )
+        
+        # FASE 0: Emitir evento relacional de nacimiento usando la clase compatible
+        if self.relationship_engine is not None and partner is not None:
+            birth_event = _GestationRelationalEvent(
+                event_type=RelationshipEventType.BIRTH,
+                intensity=0.8,
+                context="nacimiento",
+            )
+            self.relationship_engine.process_event(birth_event, mother, partner, current_day)
+
         self.logger.info(
-            "Cría nacida: Madre %s (Especie: %s)",
+            "👶 [NACIMIENTO] Madre %s dio a luz (Especie: %s)",
             mother.entity_id,
             mother.species,
         )

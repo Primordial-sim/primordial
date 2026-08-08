@@ -7,12 +7,14 @@ Define la recombinación por segregación independiente y mutación puntual.
 Incluye:
 - Genes base: longevidad, sociabilidad, temperamento, fertilidad, inmunidad
 - Genes específicos de inmunidad por familia de patógenos (heredable)
-- NUEVO: Genes de personalidad para libre albedrío (impulsividad, curiosidad, obediencia, agresividad)
+- Genes de personalidad para libre albedrío (impulsividad, curiosidad, obediencia, agresividad)
+
+OPTIMIZACIÓN: Método combine() refactorizado con _recombine_genes() auxiliar.
 """
 
 import random
 import logging
-from typing import Optional, Dict
+from typing import Optional, Dict, Set
 from .allele import Allele, Gene
 
 
@@ -37,21 +39,7 @@ class Genome:
         obedience: Optional[Gene] = None,
         aggressiveness: Optional[Gene] = None,
     ) -> None:
-        """Inicializa el genoma, generando genes fundadores si no se proveen.
-        
-        Args:
-            longevity: Gen de longevidad.
-            sociability: Gen de sociabilidad.
-            temperament: Gen de temperamento.
-            fertility: Gen de fertilidad.
-            immunity: Gen de inmunidad general.
-            species_baseline: Especie base del organismo.
-            family_specific_immunity: Diccionario de genes específicos por familia de patógenos.
-            impulsivity: Gen de impulsividad (tendencia a actuar sin pensar).
-            curiosity: Gen de curiosidad (deseo de explorar lo desconocido).
-            obedience: Gen de obediencia (tendencia a seguir normas).
-            aggressiveness: Gen de agresividad (tendencia al conflicto).
-        """
+        """Inicializa el genoma, generando genes fundadores si no se proveen."""
         self._species_baseline = species_baseline
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -143,72 +131,82 @@ class Genome:
         return {family: gene.express() for family, gene in self._family_specific_immunity.items()}
 
     # ==========================================
-    # MOTOR DE HERENCIA MENDELIANA
+    # MOTOR DE HERENCIA MENDELIANA (REFACTORIZADO)
     # ==========================================
+    def _recombine_genes(
+        self, 
+        gene_dict_1: Dict[str, Gene], 
+        gene_dict_2: Dict[str, Gene], 
+        all_keys: Set[str], 
+        mutation_rate: float = 0.05,
+        default_base_value: float = 0.5
+    ) -> Dict[str, Gene]:
+        """Recombina dos diccionarios de genes aplicando meiosis y mutación.
+        
+        CORRECCIÓN: Método auxiliar que elimina la duplicación de lógica en combine().
+        
+        Args:
+            gene_dict_1: Diccionario de genes del primer progenitor.
+            gene_dict_2: Diccionario de genes del segundo progenitor.
+            all_keys: Conjunto de todas las claves a recombinar.
+            mutation_rate: Probabilidad de mutación puntual por alelo.
+            default_base_value: Valor base para alelos creados de la nada (cuando un 
+                               progenitor no tiene el gen).
+            
+        Returns:
+            Nuevo diccionario de genes recombinados.
+        """
+        new_genes = {}
+        for key in all_keys:
+            gene_1 = gene_dict_1.get(key)
+            gene_2 = gene_dict_2.get(key)
+            
+            # Obtener alelos por meiosis (o crear uno nuevo si el progenitor no tiene el gen)
+            allele_1 = gene_1.meiosis() if gene_1 else Allele.create_random(default_base_value, 0.1)
+            allele_2 = gene_2.meiosis() if gene_2 else Allele.create_random(default_base_value, 0.1)
+            
+            # Aplicar mutación puntual
+            if random.random() < mutation_rate:
+                allele_1 = Allele.create_random(allele_1.value, 0.15)
+            if random.random() < mutation_rate:
+                allele_2 = Allele.create_random(allele_2.value, 0.15)
+            
+            new_genes[key] = Gene(allele_1, allele_2)
+        
+        return new_genes
+
     def combine(self, other_genome: Optional['Genome']) -> 'Genome':
-        """Cruza este genotipo con el de una pareja mediante meiosis."""
+        """Cruza este genotipo con el de una pareja mediante meiosis.
+        
+        OPTIMIZACIÓN: Refactorizado para usar _recombine_genes() y eliminar duplicación.
+        """
         if other_genome is None:
             other_genome = self
 
         if self._species_baseline != other_genome.species_baseline:
             self.logger.warning("Cruce interespecie. El híbrido heredará la línea materna.")
 
-        new_genes = {}
         mutation_rate = 0.05
 
-        # Recombinar genes base (incluyendo los nuevos genes de personalidad)
-        for trait_name in self._genes.keys():
-            mother_gene = self._genes[trait_name]
-            father_gene = other_genome._genes.get(trait_name, self._create_founder_gene(0.5))
+        # CORRECCIÓN: Recombinar genes base usando método auxiliar
+        all_base_genes = set(self._genes.keys()) | set(other_genome._genes.keys())
+        new_genes = self._recombine_genes(
+            self._genes, 
+            other_genome._genes, 
+            all_base_genes, 
+            mutation_rate,
+            default_base_value=0.5
+        )
 
-            allele_m = mother_gene.meiosis()
-            allele_f = father_gene.meiosis()
-
-            if random.random() < mutation_rate:
-                allele_m = Allele.create_random(allele_m.value, 0.15)
-            if random.random() < mutation_rate:
-                allele_f = Allele.create_random(allele_f.value, 0.15)
-
-            new_genes[trait_name] = Gene(allele_m, allele_f)
-
-        # Recombinar genes específicos por familia
-        new_family_immunity = {}
+        # CORRECCIÓN: Recombinar genes específicos por familia usando método auxiliar
         all_families = set(self._family_specific_immunity.keys()) | set(other_genome._family_specific_immunity.keys())
-        
-        for family in all_families:
-            if family in self._family_specific_immunity and family in other_genome._family_specific_immunity:
-                mother_gene = self._family_specific_immunity[family]
-                father_gene = other_genome._family_specific_immunity[family]
-                
-                allele_m = mother_gene.meiosis()
-                allele_f = father_gene.meiosis()
-                
-                if random.random() < mutation_rate:
-                    allele_m = Allele.create_random(allele_m.value, 0.15)
-                if random.random() < mutation_rate:
-                    allele_f = Allele.create_random(allele_f.value, 0.15)
-                
-                new_family_immunity[family] = Gene(allele_m, allele_f)
-            
-            elif family in self._family_specific_immunity:
-                mother_gene = self._family_specific_immunity[family]
-                allele_m = mother_gene.meiosis()
-                allele_f = Allele.create_random(1.0, 0.1)
-                
-                if random.random() < mutation_rate:
-                    allele_m = Allele.create_random(allele_m.value, 0.15)
-                
-                new_family_immunity[family] = Gene(allele_m, allele_f)
-            
-            elif family in other_genome._family_specific_immunity:
-                father_gene = other_genome._family_specific_immunity[family]
-                allele_f = father_gene.meiosis()
-                allele_m = Allele.create_random(1.0, 0.1)
-                
-                if random.random() < mutation_rate:
-                    allele_f = Allele.create_random(allele_f.value, 0.15)
-                
-                new_family_immunity[family] = Gene(allele_m, allele_f)
+        new_family_immunity = self._recombine_genes(
+            self._family_specific_immunity, 
+            other_genome._family_specific_immunity, 
+            all_families, 
+            mutation_rate,
+            default_base_value=1.0  # Para inmunidad, el valor base es 1.0
+        )
 
         return Genome(
             longevity=new_genes["longevity"],

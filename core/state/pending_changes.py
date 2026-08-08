@@ -46,12 +46,6 @@ class PendingChanges:
         # Colecciones de Motivaciones Continuas
         self.motivation_updates: Dict[int, Dict[str, float]] = {}
         
-        # =====================================================================
-        # NUEVO (Fase 0): Colecciones de Relaciones Cognitivas
-        # =====================================================================
-        # relationship_memory_additions: List[Tuple[owner_id, partner_id, PersonalMemory]]
-        self.relationship_memory_additions: List[Tuple[int, int, Any]] = []
-
     # ==========================================
     # SALUD Y EPIDEMIOLOGÍA
     # ==========================================
@@ -120,6 +114,26 @@ class PendingChanges:
             "failed_increment": int(failed_increment),
             "litter_size": int(litter_size),
         }
+
+        # ==========================================
+    # MIGRACIONES (Fase de Corrección)
+    # ==========================================
+    def set_migration_target(self, entity_id: int, target: Tuple[float, float]) -> None:
+        """Establece un destino de migración para un agente."""
+        if not hasattr(self, 'migration_targets'):
+            self.migration_targets: Dict[int, Tuple[float, float]] = {}
+        self.migration_targets[entity_id] = target
+
+    def get_migration_target(self, entity_id: int) -> Optional[Tuple[float, float]]:
+        """Obtiene el destino de migración de un agente."""
+        if not hasattr(self, 'migration_targets'):
+            return None
+        return self.migration_targets.get(entity_id)
+
+    def clear_migration_target(self, entity_id: int) -> None:
+        """Limpia el destino de migración de un agente."""
+        if hasattr(self, 'migration_targets') and entity_id in self.migration_targets:
+            del self.migration_targets[entity_id]
 
     # ==========================================
     # RELACIONES Y LEGALIDAD
@@ -209,16 +223,7 @@ class PendingChanges:
         """Obtiene todos los deltas pendientes de motivaciones para una entidad."""
         return self.motivation_updates.get(entity_id, {})
 
-    # ==========================================
-    # NUEVO (Fase 0): RELACIONES COGNITIVAS
-    # ==========================================
-    def register_relationship_memory(
-        self, owner_id: int, partner_id: int, memory: Any
-    ) -> None:
-        """Encola la adición de un recuerdo personal a una relación."""
-        self.relationship_memory_additions.append((owner_id, partner_id, memory))
-
-    # ==========================================
+        # ==========================================
     # CICLO DE VIDA DEL BÚFER
     # ==========================================
     def clear(self) -> None:
@@ -237,5 +242,6 @@ class PendingChanges:
         self.emotion_updates.clear()
         self.memory_updates.clear()
         self.free_will_flags_updates.clear()
-        self.motivation_updates.clear()
-        self.relationship_memory_additions.clear()
+        self.motivation_updates.clear() 
+        if hasattr(self, 'migration_targets'):
+            self.migration_targets.clear()

@@ -2,10 +2,17 @@
 
 Expone una API limpia para consultas analíticas complejas, estadísticas de linaje
 y validación de leyes sociales sin exponer el grafo subyacente.
+
+CORRECCIONES APLICADAS (Auditoría):
+- _get_all_ancestors() protegido con conjunto de visitados (evita recursión infinita)
+- get_lineage_statistics() usa age_at_death explícito
+- Método iterativo BFS para ancestros (más robusto que recursión)
 """
 
 from typing import Dict, Any, Set, List
+from collections import deque
 from systems.genealogy.genealogy_system import GenealogySystem
+
 
 class AncestryQueries:
     """Servicio para aislar consultas complejas y estadísticas del sistema central."""
@@ -23,9 +30,6 @@ class AncestryQueries:
         """Calcula y retorna el grado exacto de parentesco biológico."""
         return self._genealogy.get_degree_of_kinship(id_a, id_b)
 
-    # ==========================================
-    # HERRAMIENTAS POTENTES DE ESTADÍSTICA (NUEVO)
-    # ==========================================
     def calculate_lineage_success(self, founder_id: int, vivos_ids: Set[int]) -> Dict[str, Any]:
         """Calcula el éxito reproductivo de un individuo para el motor evolutivo.
         
@@ -37,19 +41,20 @@ class AncestryQueries:
             Diccionario con métricas de éxito genético.
         """
         descendants = self._genealogy.get_all_descendants(founder_id)
-        descendencia_viva = len([d for d in descendants if d in vivos_ids])
+        adoptive_descendants = self._genealogy.get_adoptive_descendants(founder_id)
+        all_descendants = descendants | adoptive_descendants
+        descendencia_viva = len([d for d in all_descendants if d in vivos_ids])
         
         return {
-            "total_descendencia_historica": len(descendants),
+            "total_descendencia_historica": len(all_descendants),
             "total_descendencia_viva": descendencia_viva,
-            "tasa_supervivencia": descendencia_viva / max(1, len(descendants))
+            "tasa_supervivencia": descendencia_viva / max(1, len(all_descendants))
         }
 
     def get_lineage_statistics(self, lineage_id: int) -> Dict[str, Any]:
         """Genera un reporte automático completo sobre una familia entera.
         
-        Útil para interfaces gráficas (GUI) o recolección de métricas al final
-        de la simulación.
+        CORRECCIÓN: Usa age_at_death explícito en lugar de calcularlo desde ticks.
         """
         if lineage_id not in self._genealogy.lineages:
             return {"error": "Linaje no encontrado"}
@@ -59,8 +64,8 @@ class AncestryQueries:
         
         vivos = 0
         muertos = 0
-        edades_al_morir = []
-        generaciones_alcanzadas = set()
+        edades_al_morir: List[float] = []
+        generaciones_alcanzadas: Set[int] = set()
         
         for m_id in miembros_ids:
             if m_id in self._genealogy.registry:
@@ -71,8 +76,11 @@ class AncestryQueries:
                     vivos += 1
                 else:
                     muertos += 1
-                    # Calcula la edad al morir (si el dato de tick está disponible)
-                    if node.death_tick is not None:
+                    # CORRECCIÓN: Usar age_at_death explícito si está disponible
+                    if node.age_at_death is not None:
+                        edades_al_morir.append(node.age_at_death)
+                    elif node.death_tick is not None and node.birth_tick is not None:
+                        # Fallback: calcular desde ticks (menos preciso)
                         edades_al_morir.append(node.death_tick - node.birth_tick)
 
         avg_lifespan = sum(edades_al_morir) / len(edades_al_morir) if edades_al_morir else 0.0
@@ -99,11 +107,11 @@ class AncestryQueries:
             
         node = self._genealogy.registry[entity_id]
         if len(node.biological_parents) != 2:
-            return 0.0 # Familias monoparentales o fundadores no tienen riesgo detectable aquí
+            return 0.0
             
         padre_id, madre_id = node.biological_parents
         
-        # Obtenemos todos los ancestros de ambos padres
+        # CORRECCIÓN: Usar método iterativo con visitados
         ancestros_padre = self._get_all_ancestors(padre_id)
         ancestros_madre = self._get_all_ancestors(madre_id)
         
@@ -113,18 +121,58 @@ class AncestryQueries:
         solapamiento = ancestros_padre.intersection(ancestros_madre)
         total_unicos = ancestros_padre.union(ancestros_madre)
         
-        # El riesgo aumenta cuantos más ancestros compartan en su árbol
         return len(solapamiento) / max(1, len(total_unicos))
 
     def _get_all_ancestors(self, entity_id: int) -> Set[int]:
-        """Algoritmo recursivo protegido para extraer la línea ascendente completa."""
-        ancestros = set()
+        """Algoritmo iterativo (BFS) para extraer la línea ascendente completa.
+        
+        CORRECCIÓN: Protegido con conjunto de visitados para evitar recursión
+        infinita en caso de ciclos genealógicos accidentales.
+        """
+        ancestors: Set[int] = set()
+        queue: deque = deque([entity_id])
+        visited: Set[int] = {entity_id}  # CORRECCIÓN: Conjunto de visitados
+        
+        while queue:
+            current_id = queue.popleft()
+            
+            if current_id not in self._genealogy.registry:
+                continue
+                
+            node = self._genealogy.registry[current_id]
+            
+            # Solo considerar padres biológicos para análisis genético
+            for parent_id in node.biological_parents:
+                if parent_id not in visited:
+                    visited.add(parent_id)
+                    ancestors.add(parent_id)
+                    queue.append(parent_id)
+        
+        return ancestors
+
+    def get_all_ancestors_recursive_safe(self, entity_id: int, max_depth: int = 10) -> Set[int]:
+        """Versión recursiva con límite de profundidad como alternativa.
+        
+        Útil cuando se necesita controlar explícitamente la profundidad
+        del análisis genealógico.
+        """
+        return self._get_ancestors_recursive(entity_id, max_depth, set())
+
+    def _get_ancestors_recursive(self, entity_id: int, depth: int, visited: Set[int]) -> Set[int]:
+        """Helper recursivo con protección contra ciclos y límite de profundidad."""
+        if depth <= 0 or entity_id in visited:
+            return set()
+            
+        visited.add(entity_id)
+        ancestors: Set[int] = set()
+        
         if entity_id not in self._genealogy.registry:
-            return ancestros
+            return ancestors
             
-        parents = self._genealogy.registry[entity_id].biological_parents
-        for parent_id in parents:
-            ancestros.add(parent_id)
-            ancestros.update(self._get_all_ancestors(parent_id))
-            
-        return ancestros
+        node = self._genealogy.registry[entity_id]
+        
+        for parent_id in node.biological_parents:
+            ancestors.add(parent_id)
+            ancestors.update(self._get_ancestors_recursive(parent_id, depth - 1, visited))
+        
+        return ancestors

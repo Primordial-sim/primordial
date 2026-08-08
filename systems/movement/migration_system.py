@@ -1,14 +1,18 @@
 """Módulo responsable de gestionar las migraciones masivas a larga distancia.
 
 Identifica factores de expulsión (push factors: hambre, epidemias, clima hostil,
-superpoblación) y factores de atracción (pull factors: oportunidades de recursos).
+superpoblación, TRAUMA EMOCIONAL) y factores de atracción (pull factors: oportunidades de recursos).
 Asigna vectores de migración que anulan el comportamiento sedentario normal.
 
-Integra con:
-- Sistema de memoria cognitiva para registrar recuerdos de migraciones
-- Sistema de motivaciones continuas para comportamiento emergente
-- Cooldown de migración interno para evitar comportamiento nómada
-- NUEVO: Registro del motivo de cada migración en el log
+CORRECCIONES APLICADAS (Auditoría):
+- Reevaluación periódica del destino migratorio (cada 30 días)
+- Invalidación si el destino se vuelve peligroso
+- Número de muestras configurable (default 20 en lugar de 5)
+- Establecimiento al llegar (memoria positiva + reducción de motivación)
+- Integración con trauma_abandonment y trauma_adoption
+
+BLOQUE 3: Trauma Global Sistémico
+- El trauma de abandono y adopción actúan como potentes factores de expulsión.
 """
 
 import math
@@ -32,9 +36,16 @@ class MigrationSystem:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.arrival_threshold: float = 5.0
         
-        # Registro interno (no depende del sistema transaccional)
+        # CORRECCIÓN: Intervalo de reevaluación del destino (en días simulados)
+        self.reevaluation_interval: float = getattr(
+            config.free_will, 'migration_reevaluation_days', 30.0
+        )
+        
+        # Los cooldowns se mantienen aquí porque son estado interno del sistema
         self._cooldowns: Dict[int, float] = {}
-        self._active_targets: Dict[int, Tuple[float, float]] = {}
+        
+        # CORRECCIÓN: Rastrear cuándo se estableció el destino actual para reevaluación
+        self._target_set_day: Dict[int, float] = {}
 
     def process(
         self,
@@ -51,6 +62,9 @@ class MigrationSystem:
         
         fw_cfg = self.config.free_will
         migration_cooldown = getattr(fw_cfg, 'migration_cooldown_days', 90.0)
+        
+        # CORRECCIÓN: Número de muestras configurable (antes era 5 fijo)
+        migration_samples = getattr(fw_cfg, 'migration_samples', 20)
 
         for person in state.get_all_persons():
             eid = person.entity_id
@@ -58,7 +72,7 @@ class MigrationSystem:
             # 1. INTEGRIDAD DE ESTADO
             if eid in pending.deaths:
                 self._cooldowns.pop(eid, None)
-                self._active_targets.pop(eid, None)
+                self._target_set_day.pop(eid, None)
                 continue
 
             # 2. VERIFICAR COOLDOWN
@@ -67,53 +81,47 @@ class MigrationSystem:
                 continue
 
             # 3. SEGUIMIENTO DE MIGRACIÓN ACTIVA
-            target = self._active_targets.get(eid)
+            target = pending.get_migration_target(eid)
             if target is not None:
                 tx, ty = target
-                dist = math.hypot(person.x - tx, person.y - ty)
                 
-                if dist <= self.arrival_threshold:
-                    mem = person.memory if isinstance(getattr(person, 'memory', None), dict) else {}
-                    
-                    distance_traveled = dist
-                    if distance_traveled < 50:
-                        intensity = 0.3
-                    elif distance_traveled < 150:
-                        intensity = 0.6
-                    else:
-                        intensity = 0.9
-                    
-                    target_id = f"{int(tx)}_{int(ty)}"
-                    
-                    CognitiveMemorySystem.add_memory(
-                        person=person,
-                        mem_type=CognitiveMemorySystem.TYPE_MIGRATION,
-                        target_id=target_id,
-                        intensity=intensity,
-                        valence=1,
-                        context="migracion_exitosa",
-                        current_day=current_day,
-                        pending=pending,
-                    )
-                    
-                    if hasattr(person, 'get_motivation'):
-                        pending.register_motivation_update(
-                            eid, "migration", fw_cfg.success_reinforcement_rate
+                # CORRECCIÓN: Reevaluar destino periódicamente
+                target_day = self._target_set_day.get(eid, 0.0)
+                if (current_day - target_day) >= self.reevaluation_interval:
+                    # Verificar si el destino sigue siendo viable
+                    if not self._is_target_still_valid(tx, ty, context, state):
+                        # Destino ya no es viable: invalidar y buscar nuevo destino
+                        pending.clear_migration_target(eid)
+                        self._target_set_day.pop(eid, None)
+                        self.logger.debug(
+                            "🔄 Agente %s: destino migratorio invalidado, buscando nuevo destino",
+                            eid,
                         )
+                        # Continuar para buscar un nuevo destino en este tick
+                    else:
+                        # Destino sigue válido: continuar hacia él
+                        dist = math.hypot(person.x - tx, person.y - ty)
+                        
+                        if dist <= self.arrival_threshold:
+                            # CORRECCIÓN: Establecimiento al llegar
+                            self._handle_arrival(person, tx, ty, current_day, pending, fw_cfg)
+                            pending.clear_migration_target(eid)
+                            self._target_set_day.pop(eid, None)
+                        continue
+                else:
+                    # Aún no toca reevaluar: continuar hacia el destino
+                    dist = math.hypot(person.x - tx, person.y - ty)
                     
-                    self._active_targets.pop(eid, None)
-                    
-                    self.logger.debug(
-                        "🏁 Agente %s completó migración a (%d, %d)",
-                        eid, int(tx), int(ty),
-                    )
-                
-                continue
+                    if dist <= self.arrival_threshold:
+                        self._handle_arrival(person, tx, ty, current_day, pending, fw_cfg)
+                        pending.clear_migration_target(eid)
+                        self._target_set_day.pop(eid, None)
+                    continue
 
             # 4. EVALUACIÓN DE DETONANTES (Push Factors)
             mem = person.memory if isinstance(getattr(person, 'memory', None), dict) else {}
             needs_to_migrate = False
-            migration_reasons: List[Tuple[str, float]] = []  # NUEVO: (motivo, intensidad)
+            migration_reasons: List[Tuple[str, float]] = []
             
             # A. Superpoblación
             local_pressure = context.get_local_pressure(int(person.x), int(person.y))
@@ -122,17 +130,16 @@ class MigrationSystem:
                 migration_reasons.append(("superpoblación", local_pressure))
             
             # B. Hambre
-            energy = getattr(person, 'emotions', {}).get("energy", 1.0)
+            energy = person.emotions.get("energy", 1.0)
             local_resources = getattr(context, 'get_resources_at', lambda x, y: 0.5)(int(person.x), int(person.y))
             if energy < 0.3 and local_resources < 0.2:
                 needs_to_migrate = True
-                # Intensidad combinada: mayor hambre + menos recursos = más urgente
                 hunger_intensity = (1.0 - energy) + (1.0 - local_resources)
                 migration_reasons.append(("hambre", hunger_intensity))
 
             # C. Epidemias
             trauma_sickness = mem.get("trauma_sickness", 0.0)
-            viral_load = self._safely_get_viral_load(state, person.x, person.y)
+            viral_load = self._get_viral_load(state, person.x, person.y)
             if trauma_sickness > 0.7 or viral_load > 2.0:
                 needs_to_migrate = True
                 epidemic_intensity = max(trauma_sickness, viral_load / 5.0)
@@ -146,12 +153,27 @@ class MigrationSystem:
                     needs_to_migrate = True
                     migration_reasons.append(("clima_hostil", danger))
 
-            # E. Determinación Psicológica
+            # ==========================================
+            # BLOQUE 3: TRAUMA GLOBAL SISTÉMICO (HUIDA EMOCIONAL)
+            # ==========================================
+            # E. Trauma por Abandono
+            abandonment_trauma = mem.get("trauma_abandonment", 0.0)
+            if abandonment_trauma > 0.6:
+                needs_to_migrate = True
+                migration_reasons.append(("trauma_abandono_huida", abandonment_trauma * 1.5))
+
+            # F. Trauma por Adopción
+            adoption_trauma = mem.get("trauma_adoption", 0.0)
+            if adoption_trauma > 0.7:
+                needs_to_migrate = True
+                migration_reasons.append(("trauma_adopcion_huida", adoption_trauma * 1.2))
+
+            # G. Determinación Psicológica
             if getattr(person, 'current_goal', None) == "EMIGRATE":
                 needs_to_migrate = True
                 migration_reasons.append(("objetivo_psicologico", 1.0))
             
-            # F. MOTIVACIÓN INTERNA 'migration'
+            # H. MOTIVACIÓN INTERNA 'migration'
             if hasattr(person, 'get_motivation'):
                 migration_motivation = person.get_motivation("migration")
                 migration_threshold = getattr(fw_cfg, 'migration_action_threshold', 0.85)
@@ -165,13 +187,14 @@ class MigrationSystem:
                 best_target = self._find_opportunity(
                     current_x=person.x, current_y=person.y,
                     max_x=max_x, max_y=max_y,
-                    context=context, env_system=env_system
+                    context=context, env_system=env_system,
+                    num_samples=migration_samples,  # CORRECCIÓN: configurable
                 )
                 if best_target:
-                    self._active_targets[eid] = best_target
+                    pending.set_migration_target(eid, best_target)
                     self._cooldowns[eid] = current_day
+                    self._target_set_day[eid] = current_day  # CORRECCIÓN: registrar cuándo se estableció
                     
-                    # NUEVO: Determinar motivo principal
                     reason = self._determine_migration_reason(migration_reasons)
                     
                     self.logger.debug(
@@ -179,19 +202,100 @@ class MigrationSystem:
                         eid, best_target[0], best_target[1], reason, int(migration_cooldown),
                     )
 
-    def _determine_migration_reason(self, reasons: List[Tuple[str, float]]) -> str:
-        """Determina el motivo principal de la migración.
+    def _is_target_still_valid(
+        self,
+        target_x: float,
+        target_y: float,
+        context: EnvironmentContext,
+        state: WorldState,
+    ) -> bool:
+        """CORRECCIÓN: Verifica si el destino migratorio sigue siendo viable.
         
-        Args:
-            reasons: Lista de tuplas (motivo, intensidad) con todos los factores detectados.
-            
-        Returns:
-            Nombre del motivo con mayor intensidad, o "desconocido" si no hay factores.
+        Un destino se invalida si:
+        - Los recursos han caído por debajo de un umbral
+        - La presión local es excesiva
+        - Hay carga viral alta
         """
+        coord_x = int(target_x)
+        coord_y = int(target_y)
+        
+        # Verificar recursos
+        resources = getattr(context, 'get_resources_at', lambda x, y: 0.5)(coord_x, coord_y)
+        if resources < 0.15:  # Umbral mínimo de recursos
+            return False
+        
+        # Verificar presión
+        pressure = context.get_local_pressure(coord_x, coord_y)
+        if pressure > 2.5:  # Presión excesiva
+            return False
+        
+        # Verificar carga viral
+        viral_load = self._get_viral_load(state, target_x, target_y)
+        if viral_load > 3.0:  # Epidemia activa en el destino
+            return False
+        
+        return True
+
+    def _handle_arrival(
+        self,
+        person: Any,
+        target_x: float,
+        target_y: float,
+        current_day: float,
+        pending: PendingChanges,
+        fw_cfg: Any,
+    ) -> None:
+        """CORRECCIÓN: Gestiona la llegada al destino migratorio.
+        
+        Genera:
+        - Memoria positiva de migración exitosa
+        - Reducción de la motivación migratoria (establecimiento)
+        - Actualización de preferred_sector
+        """
+        distance_traveled = math.hypot(person.x - target_x, person.y - target_y)
+        
+        if distance_traveled < 50:
+            intensity = 0.3
+        elif distance_traveled < 150:
+            intensity = 0.6
+        else:
+            intensity = 0.9
+        
+        target_id = f"{int(target_x)}_{int(target_y)}"
+        
+        # Registrar memoria de migración exitosa
+        CognitiveMemorySystem.add_memory(
+            person=person,
+            mem_type=CognitiveMemorySystem.TYPE_MIGRATION,
+            target_id=target_id,
+            intensity=intensity,
+            valence=1,
+            context="migracion_exitosa",
+            current_day=current_day,
+            pending=pending,
+        )
+        
+        # CORRECCIÓN: Reducir motivación migratoria (establecimiento)
+        if hasattr(person, 'get_motivation'):
+            pending.register_motivation_update(
+                person.entity_id, "migration", fw_cfg.success_reinforcement_rate
+            )
+        
+        # CORRECCIÓN: Actualizar preferred_sector para arraigo territorial
+        sector_size = self.config.environment.sector_size
+        preferred_sector = (int(target_x) // sector_size, int(target_y) // sector_size)
+        pending.register_memory_update(person.entity_id, "preferred_sector", preferred_sector)
+        
+        self.logger.debug(
+            "🏁 Agente %s completó migración a (%d, %d) - establecido",
+            person.entity_id, int(target_x), int(target_y),
+        )
+
+    def _determine_migration_reason(self, reasons: List[Tuple[str, float]]) -> str:
+        """Determina el motivo principal de la migración."""
         if not reasons:
             return "desconocido"
         
-        # Ordenar por intensidad descendente y devolver el principal
         reasons_sorted = sorted(reasons, key=lambda x: x[1], reverse=True)
         return reasons_sorted[0][0]
 
@@ -203,15 +307,20 @@ class MigrationSystem:
         max_y: int,
         context: EnvironmentContext,
         env_system: Any,
+        num_samples: int = 20,  # CORRECCIÓN: configurable (antes era 5)
     ) -> Optional[Tuple[float, float]]:
-        """Muestrea el mapa global para encontrar un sector prometedor."""
+        """Muestrea el mapa global para encontrar un sector prometedor.
+        
+        CORRECCIÓN: Número de muestras configurable para mapas grandes.
+        """
         best_score = -float('inf')
         best_coord = None
         
-        for _ in range(5):
+        for _ in range(num_samples):
             tx = random.uniform(0, max_x)
             ty = random.uniform(0, max_y)
             
+            # Evitar destinos demasiado cercanos
             if math.hypot(current_x - tx, current_y - ty) < 25.0:
                 continue
 
@@ -233,8 +342,9 @@ class MigrationSystem:
                 
         return best_coord
 
-    def _safely_get_viral_load(self, state: WorldState, x: float, y: float) -> float:
-        """Extrae la carga viral de una celda de forma blindada."""
+    @staticmethod
+    def _get_viral_load(state: WorldState, x: float, y: float) -> float:
+        """Método compartido para obtener carga viral de una celda."""
         ep_map = getattr(state, 'epidemiological_map', None)
         if not ep_map:
             return 0.0

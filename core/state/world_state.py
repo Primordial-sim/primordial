@@ -65,9 +65,9 @@ class WorldState:
         """Alias de compatibilidad para evitar roturas de código heredado."""
         return self.get_person(entity_id)
 
-    def get_all_persons(self) -> List[Person]:
-        """Retorna un volcado instantáneo de todos los agentes vivos."""
-        return list(self.persons.values())
+    def get_all_persons(self) -> Any:  # Cambiado de List[Person] a Any para aceptar dict_values
+        """Retorna una vista instantánea de todos los agentes vivos (O(1), sin copiar en memoria)."""
+        return self.persons.values()
 
     def apply_commit(
         self, pending: Any, event_bus: Any = None, current_tick: int = 0

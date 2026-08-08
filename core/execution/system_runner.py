@@ -1,4 +1,7 @@
-"""Ejecución segura de sistemas individuales."""
+"""Ejecución segura de sistemas individuales.
+
+OPTIMIZACIÓN: Logging reducido para evitar saturación en simulaciones largas.
+"""
 
 from __future__ import annotations
 
@@ -56,13 +59,9 @@ class SystemRunner:
             )
 
         try:
-            self.logger.debug(
-                "Ejecutando %s en fase %s, tick %s.",
-                system_name,
-                phase_name,
-                context.current_tick,
-            )
-
+            # CORRECCIÓN: Eliminado logging DEBUG excesivo por cada sistema
+            # PhaseExecutor ya logea el inicio de cada fase
+            
             process(
                 context.state,
                 context.pending,

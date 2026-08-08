@@ -3,6 +3,9 @@
 El pipeline ejecuta todas las fases de un tick y devuelve los cambios
 pendientes. No aplica el commit; esa responsabilidad pertenece a
 ``WorldState`` y se invoca desde ``SimulationEngine``.
+
+OPTIMIZACIÓN: Reutiliza EnvironmentContext entre ticks para evitar
+recalcular el sector_map en cada iteración.
 """
 
 from __future__ import annotations
@@ -35,7 +38,7 @@ class ExecutionPipeline:
             phase_executor: Ejecutor opcional para cada fase.
 
         Raises:
-            ValueError: Si no se proporciona ninguna fase.
+            ValueError: Si no se proporciona ninguna fase o hay duplicados.
         """
 
         self.config = config
@@ -45,6 +48,21 @@ class ExecutionPipeline:
 
         if not self.phases:
             raise ValueError("ExecutionPipeline necesita al menos una fase.")
+
+        # CORRECCIÓN: Validar que no haya fases duplicadas
+        phase_names = [p.name for p in self.phases]
+        if len(phase_names) != len(set(phase_names)):
+            duplicates = [name for name in phase_names if phase_names.count(name) > 1]
+            raise ValueError(f"Fases duplicadas detectadas en el pipeline: {set(duplicates)}")
+
+        # CORRECCIÓN: Validar que todos los sistemas implementen process()
+        for phase in self.phases:
+            for system in phase.systems:
+                if not hasattr(system, 'process') or not callable(system.process):
+                    raise TypeError(
+                        f"El sistema {system.__class__.__name__} en fase "
+                        f"'{phase.name}' no implementa process()."
+                    )
 
     def execute_tick(
         self,
@@ -68,7 +86,16 @@ class ExecutionPipeline:
         """
 
         pending = PendingChanges()
-        environment = EnvironmentContext(state=state)
+        
+        # CORRECCIÓN: Reutilizar EnvironmentContext para optimizar rendimiento
+        if not hasattr(self, '_environment'):
+            self._environment = EnvironmentContext(state=state, config=self.config)
+        else:
+            # Actualizar sector_map (los agentes se mueven entre ticks)
+            self._environment.sector_map = self._environment._build_sector_map(state)
+            self._environment.pressure_map.clear()
+        
+        environment = self._environment
 
         context = ExecutionContext(
             state=state,

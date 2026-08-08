@@ -40,6 +40,21 @@ class AdoptionsConfig:
         self.min_single_parent_energy: float = 0.7
         self.max_single_parent_stress: float = 0.5
 
+        # =====================================================================
+        # PESOS DE LA UTILITY AI PARA ADOPCIÓN
+        # =====================================================================
+        self.kinship_weight: float = 100.0
+        self.distance_weight: float = 0.2
+        self.pressure_weight: float = 50.0
+        self.sociability_weight: float = 10.0
+        self.stress_weight: float = 30.0
+        self.happiness_weight: float = 20.0
+        self.children_count_weight: float = 5.0
+        self.stability_weight: float = 1.5
+        self.senior_penalty: float = 10.0
+        self.motivation_protection_weight: float = 20.0
+        self.motivation_cooperation_weight: float = 15.0
+
 
 class CognitionConfig:
     """Parámetros de memoria, trauma y psicología de los agentes."""
@@ -111,6 +126,32 @@ class ReproductionConfig:
         self.daily_birth_rate: float = 0.0033
         self.base_conception_chance: float = 0.15
 
+    # =====================================================================
+    # NUEVO: PERFILES DE ESPECIES (Fuente única de verdad)
+    # =====================================================================
+        self.species_profiles: dict = {
+            "human": {
+                "parthenogenesis_chance": 0.0,
+                "litter_size_min": 1, "litter_size_max": 1,
+                "gestation_days": self.pregnancy_duration_days
+            },
+            "elf": {
+                "parthenogenesis_chance": 0.0,
+                "litter_size_min": 1, "litter_size_max": 1,
+                "gestation_days": 730.0
+            },
+            "goblin": {
+                "parthenogenesis_chance": 0.05,
+                "litter_size_min": 3, "litter_size_max": 6,
+                "gestation_days": 120.0
+            },
+            "dragon": {
+                "parthenogenesis_chance": 0.1,
+                "litter_size_min": 1, "litter_size_max": 3,
+                "gestation_days": 1200.0
+            }
+        }
+
 
 class MovementConfig:
     """Parámetros de desplazamiento espacial."""
@@ -127,7 +168,7 @@ class DiseasesConfig:
         # =====================================================================
         # PARÁMETROS DE BROTES Y CONTAGIO
         # =====================================================================
-        self.base_outbreak_chance: float = 0.02
+        self.base_outbreak_chance: float = 1.5
         self.base_transmission_chance: float = 0.18
         self.base_recovery_chance: float = 0.15
         self.transmission_radius: int = 2
@@ -363,13 +404,7 @@ class RelationshipsConfig:
         # Días mínimos en un estado antes de poder avanzar al siguiente
         self.min_days_for_cohabitation: float = 180.0   # ~6 meses
         self.min_days_for_consolidated: float = 730.0   # ~2 años
-        
-        # =====================================================================
-        # DECAIMIENTO POR INACTIVIDAD
-        # =====================================================================
-        # Días máximos sin interacción antes de decaer un nivel
-        self.max_days_unknown: float = 365.0            # ~1 año
-        
+               
         # =====================================================================
         # RECESIVIDAD Y RUPTURA
         # =====================================================================
@@ -378,7 +413,18 @@ class RelationshipsConfig:
         self.casual_affinity_threshold: float = 0.50  # Más difícil degradar a casual
         self.friendship_recovery_threshold: float = 0.40  # Más difícil volver a solo amigos
         self.max_days_unknown: float = 548.0  # ~1.5 años sin interacción antes de decaer
+
+        # =====================================================================
+        # NUEVO: PARÁMETROS DE PATÓGENOS AMBIENTALES (CORRECCIÓN)
+        # =====================================================================
+        self.environmental_asymptomatic_chance: float = 0.3
+        self.environmental_incubation_days: float = 5.0
         
+        # =====================================================================
+        # NUEVO: FAMILIAS DE PATÓGENOS DISPONIBLES (CORRECCIÓN)
+        # =====================================================================
+        self.pathogen_families: list = ["Influenza", "Coronavirus", "Poxvirus", "Bacteriofago_X"]
+                
         # =====================================================================
         # LEGACY (mantenido para compatibilidad)
         # =====================================================================

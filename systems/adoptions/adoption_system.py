@@ -5,12 +5,14 @@ utilizando un algoritmo de utilidad (Utility AI) que evalúa selección de paren
 (Kin Selection), factores genéticos, emocionales, de salud y proximidad espacial,
 garantizando una diferencia de edad mínima coherente y límites de bienestar (Hard Limits).
 
-Integra con:
-- Sistema de cohesión de hermanos (agrupación O(n))
-- Sistema de fallback con penalizaciones progresivas por abandono
-- Soporte para adopción monoparental
-- Sistema de motivaciones continuas para comportamiento emergente
-- Emisión de eventos relacionales (CARE) al RelationshipExperienceEngine (Fase 0)
+BLOQUE 4 AÑADIDO: 
+- Scoring ajustado para evitar clustering en "zonas felices" (anti-hoarding).
+- Integración con Social Memory Layer (registro de eventos y actualización de reputación).
+- Prioridad sobre migración (garantizado por el reordenamiento en PhaseScheduler).
+
+INTEGRACIÓN CON MEMORIA:
+- La adopción genera recuerdos episódicos positivos tanto para el huérfano
+  como para los padres adoptivos, reforzando la cooperación y la protección.
 """
 
 from __future__ import annotations
@@ -25,15 +27,15 @@ from core.state.pending_changes import PendingChanges
 from core.state.world_state import WorldState
 from entities.person.person import Person
 from systems.environment.environment_context import EnvironmentContext
+from systems.behavior.cognitive_memory_system import CognitiveMemorySystem
 
-# Fase 0: Importamos solo RelationshipEventType, ya no RelationshipEvent
 from systems.relationships.relationship_model import RelationshipEventType
 from systems.relationships.relationship_experience_engine import RelationshipExperienceEngine
 
 
 @dataclass
 class _AdoptionRelationalEvent:
-    """Evento ligero compatible con el RelationshipExperienceEngine de la Fase 0."""
+    """Evento ligero compatible con el RelationshipExperienceEngine."""
     event_type: RelationshipEventType
     intensity: float
     context: str
@@ -49,7 +51,6 @@ class AdoptionSystem:
         event_bus: Any = None,
         relationship_engine: Optional[RelationshipExperienceEngine] = None,
     ) -> None:
-        """Inicializa el sistema vinculándolo a la configuración centralizada."""
         self.config = config
         self.ancestry_queries = ancestry_queries
         self.event_bus = event_bus
@@ -66,7 +67,6 @@ class AdoptionSystem:
         """Ejecuta el ciclo de adopciones con filtrado de idoneidad estricto."""
         adoptions_cfg = self.config.adoptions
         all_persons = state.get_all_persons()
-        
         current_day = getattr(state, 'world_days_elapsed', 0.0)
 
         # 1. DETECCIÓN DE HUÉRFANOS
@@ -160,10 +160,6 @@ class AdoptionSystem:
         # 4. FALLBACK: PENALIZACIONES PROGRESIVAS PARA HUÉRFANOS NO ADOPTADOS
         self._apply_abandonment_penalties(orphans, adopted_orphans, delta_days, pending)
 
-    # =====================================================================
-    # AGRUPACIÓN POR HERMANDAD (Optimizado O(n))
-    # =====================================================================
-
     def _group_by_siblinghood(self, orphans: List[Person]) -> List[List[Person]]:
         """Agrupa huérfanos por hermandad (biológica o adoptiva) en O(n)."""
         if not orphans:
@@ -215,10 +211,6 @@ class AdoptionSystem:
 
         return list(groups.values())
 
-    # =====================================================================
-    # BÚSQUEDA Y ASIGNACIÓN DE FAMILIAS
-    # =====================================================================
-
     def _find_family_for_sibling_group(
         self,
         sibling_group: List[Person],
@@ -259,10 +251,6 @@ class AdoptionSystem:
         valid_families.sort(key=family_suitability, reverse=True)
         return valid_families[0]
 
-    # =====================================================================
-    # PROCESAMIENTO DE ADOPCIONES (Con impacto emocional y relacional)
-    # =====================================================================
-
     def _apply_parent_emotional_impact(
         self,
         parent: Person,
@@ -271,40 +259,28 @@ class AdoptionSystem:
         is_group_adoption: bool,
         pending: PendingChanges,
     ) -> None:
-        """Registra en el búfer el impacto emocional en los padres adoptivos."""
+        """Registra en el búfer el impacto emocional en los padres adoptivos (DRY)."""
         fw_cfg = self.config.free_will
         
-        if is_group_adoption:
-            happiness_gain = 0.6 + (children_count * 0.1)
-        else:
-            happiness_gain = 0.5
-        
+        adopters = [parent]
+        if partner is not None:
+            adopters.append(partner)
+            
+        happiness_gain = 0.6 + (children_count * 0.1) if is_group_adoption else 0.5
         stress_gain = 0.3 + (children_count * 0.15)
         energy_loss = 0.1 + (children_count * 0.05)
         
-        pending.register_emotion_update(parent.entity_id, "happiness", happiness_gain)
-        pending.register_emotion_update(parent.entity_id, "stress", stress_gain)
-        pending.register_emotion_update(parent.entity_id, "energy", -energy_loss)
-        
-        if hasattr(parent, 'get_motivation'):
-            pending.register_motivation_update(
-                parent.entity_id, "protection", fw_cfg.success_reinforcement_rate
-            )
-            pending.register_motivation_update(
-                parent.entity_id, "cooperation", fw_cfg.success_reinforcement_rate * 0.7
-            )
-        
-        if partner is not None:
-            pending.register_emotion_update(partner.entity_id, "happiness", happiness_gain)
-            pending.register_emotion_update(partner.entity_id, "stress", stress_gain)
-            pending.register_emotion_update(partner.entity_id, "energy", -energy_loss)
+        for adopter in adopters:
+            pending.register_emotion_update(adopter.entity_id, "happiness", happiness_gain)
+            pending.register_emotion_update(adopter.entity_id, "stress", stress_gain)
+            pending.register_emotion_update(adopter.entity_id, "energy", -energy_loss)
             
-            if hasattr(partner, 'get_motivation'):
+            if hasattr(adopter, 'get_motivation'):
                 pending.register_motivation_update(
-                    partner.entity_id, "protection", fw_cfg.success_reinforcement_rate
+                    adopter.entity_id, "protection", fw_cfg.success_reinforcement_rate
                 )
                 pending.register_motivation_update(
-                    partner.entity_id, "cooperation", fw_cfg.success_reinforcement_rate * 0.7
+                    adopter.entity_id, "cooperation", fw_cfg.success_reinforcement_rate * 0.7
                 )
 
     def _process_group_adoption(
@@ -317,14 +293,23 @@ class AdoptionSystem:
         current_day: float,
     ) -> None:
         """Procesa la adopción de un grupo completo de hermanos."""
-        new_partner = (
-            state.get_person_by_id(new_parent.partner_id)
-            if new_parent.partner_id
-            else None
-        )
+        new_partner = None
+        if new_parent.partner_id and new_parent.partner_id not in pending.deaths:
+            new_partner = state.get_person_by_id(new_parent.partner_id)
+            
         is_single_parent = new_partner is None
 
+        context_str = "adopcion_grupal_familiar"
+        if self.ancestry_queries and self.ancestry_queries.get_kinship_degree(new_parent.entity_id, sibling_group[0].entity_id) == 0:
+            context_str = "adopcion_grupal"
+
         for orphan in sibling_group:
+            # BLOQUE 1 y 4: Registrar evento en el historial social
+            orphan.register_adoption_event("adopted_by", new_parent.entity_id, current_day, context_str)
+            new_parent.register_adoption_event("adopted", orphan.entity_id, current_day, context_str)
+            if new_partner:
+                new_partner.register_adoption_event("adopted", orphan.entity_id, current_day, context_str)
+
             pending.register_adoption(
                 child_id=orphan.entity_id,
                 parent_a=new_parent.entity_id,
@@ -336,22 +321,61 @@ class AdoptionSystem:
             pending.register_emotion_update(orphan.entity_id, "stress", 0.4)
             pending.register_emotion_update(orphan.entity_id, "happiness", -0.2)
 
-            # Fase 0: Emitir evento relacional de adopción usando la clase compatible
             if self.relationship_engine:
                 event_parent = _AdoptionRelationalEvent(
                     event_type=RelationshipEventType.CARE,
-                    intensity=0.7,
-                    context="adopcion_grupal",
+                    intensity=0.8,
+                    context=context_str,
                 )
                 self.relationship_engine.process_event(event_parent, new_parent, orphan, current_day)
                 
                 if new_partner:
                     event_partner = _AdoptionRelationalEvent(
                         event_type=RelationshipEventType.CARE,
-                        intensity=0.7,
-                        context="adopcion_grupal",
+                        intensity=0.8,
+                        context=context_str,
                     )
                     self.relationship_engine.process_event(event_partner, new_partner, orphan, current_day)
+
+            # ==========================================
+            # INTEGRACIÓN CON MEMORIA EPISÓDICA
+            # ==========================================
+            # Recordar la adopción para el huérfano (recuerdo positivo: encontró familia)
+            CognitiveMemorySystem.add_memory(
+                person=orphan,
+                mem_type=CognitiveMemorySystem.TYPE_ADOPTION,
+                target_id=str(new_parent.entity_id),
+                intensity=0.7,
+                valence=1,
+                context=context_str,
+                current_day=current_day,
+                pending=pending,
+            )
+            
+            # Recordar la adopción para el padre adoptivo
+            CognitiveMemorySystem.add_memory(
+                person=new_parent,
+                mem_type=CognitiveMemorySystem.TYPE_ADOPTION,
+                target_id=str(orphan.entity_id),
+                intensity=0.8,
+                valence=1,
+                context=context_str,
+                current_day=current_day,
+                pending=pending,
+            )
+            
+            # Recordar la adopción para la pareja del padre adoptivo (si existe)
+            if new_partner:
+                CognitiveMemorySystem.add_memory(
+                    person=new_partner,
+                    mem_type=CognitiveMemorySystem.TYPE_ADOPTION,
+                    target_id=str(orphan.entity_id),
+                    intensity=0.8,
+                    valence=1,
+                    context=context_str,
+                    current_day=current_day,
+                    pending=pending,
+                )
 
             adopted_orphans.add(orphan.entity_id)
 
@@ -402,12 +426,21 @@ class AdoptionSystem:
         new_parent = valid_candidates[0]
         eligible_parents.remove(new_parent)
 
-        new_partner = (
-            state.get_person_by_id(new_parent.partner_id)
-            if new_parent.partner_id
-            else None
-        )
+        new_partner = None
+        if new_parent.partner_id and new_parent.partner_id not in pending.deaths:
+            new_partner = state.get_person_by_id(new_parent.partner_id)
+            
         is_single_parent = new_partner is None
+
+        context_str = "adopcion_familiar_cercana"
+        if self.ancestry_queries and self.ancestry_queries.get_kinship_degree(new_parent.entity_id, orphan.entity_id) == 0:
+            context_str = "adopcion_individual"
+
+        # BLOQUE 1 y 4: Registrar evento en el historial social
+        orphan.register_adoption_event("adopted_by", new_parent.entity_id, current_day, context_str)
+        new_parent.register_adoption_event("adopted", orphan.entity_id, current_day, context_str)
+        if new_partner:
+            new_partner.register_adoption_event("adopted", orphan.entity_id, current_day, context_str)
 
         pending.register_adoption(
             child_id=orphan.entity_id,
@@ -420,12 +453,11 @@ class AdoptionSystem:
         pending.register_emotion_update(orphan.entity_id, "stress", 0.7)
         pending.register_emotion_update(orphan.entity_id, "happiness", -0.6)
 
-        # Fase 0: Emitir evento relacional de adopción usando la clase compatible
         if self.relationship_engine:
             event_parent = _AdoptionRelationalEvent(
                 event_type=RelationshipEventType.CARE,
                 intensity=0.7,
-                context="adopcion_individual",
+                context=context_str,
             )
             self.relationship_engine.process_event(event_parent, new_parent, orphan, current_day)
             
@@ -433,9 +465,49 @@ class AdoptionSystem:
                 event_partner = _AdoptionRelationalEvent(
                     event_type=RelationshipEventType.CARE,
                     intensity=0.7,
-                    context="adopcion_individual",
+                    context=context_str,
                 )
                 self.relationship_engine.process_event(event_partner, new_partner, orphan, current_day)
+
+        # ==========================================
+        # INTEGRACIÓN CON MEMORIA EPISÓDICA
+        # ==========================================
+        # Recordar la adopción para el huérfano
+        CognitiveMemorySystem.add_memory(
+            person=orphan,
+            mem_type=CognitiveMemorySystem.TYPE_ADOPTION,
+            target_id=str(new_parent.entity_id),
+            intensity=0.8,
+            valence=1,
+            context=context_str,
+            current_day=current_day,
+            pending=pending,
+        )
+        
+        # Recordar la adopción para el padre adoptivo
+        CognitiveMemorySystem.add_memory(
+            person=new_parent,
+            mem_type=CognitiveMemorySystem.TYPE_ADOPTION,
+            target_id=str(orphan.entity_id),
+            intensity=0.9,
+            valence=1,
+            context=context_str,
+            current_day=current_day,
+            pending=pending,
+        )
+        
+        # Recordar la adopción para la pareja del padre adoptivo (si existe)
+        if new_partner:
+            CognitiveMemorySystem.add_memory(
+                person=new_partner,
+                mem_type=CognitiveMemorySystem.TYPE_ADOPTION,
+                target_id=str(orphan.entity_id),
+                intensity=0.9,
+                valence=1,
+                context=context_str,
+                current_day=current_day,
+                pending=pending,
+            )
 
         self._apply_parent_emotional_impact(
             parent=new_parent,
@@ -448,16 +520,13 @@ class AdoptionSystem:
         adopted_orphans.add(orphan.entity_id)
 
         self.logger.info(
-            "Adopción individual: Menor %s -> Familia %s%s (Dif. Edad: %.1f días)",
+            "Adopción individual: Menor %s -> Familia %s%s (Dif. Edad: %.1f días, Contexto: %s)",
             orphan.entity_id,
             new_parent.entity_id,
             " (monoparental)" if is_single_parent else "",
             (new_parent.age - orphan.age),
+            context_str,
         )
-
-    # =====================================================================
-    # FALLBACK: PENALIZACIONES POR ABANDONO (TRANSACCIONAL)
-    # =====================================================================
 
     def _apply_abandonment_penalties(
         self,
@@ -496,10 +565,6 @@ class AdoptionSystem:
                     new_trauma,
                 )
 
-    # =====================================================================
-    # VALIDACIÓN Y EVALUACIÓN
-    # =====================================================================
-
     def _is_eligible_orphan(
         self, person: Person, state: WorldState, pending: PendingChanges, cfg: Any
     ) -> bool:
@@ -531,38 +596,63 @@ class AdoptionSystem:
         ancestry: Any,
         context: EnvironmentContext,
     ) -> float:
-        """Calcula el índice de idoneidad de un adoptante (Utility AI)."""
+        """Calcula el índice de idoneidad de un adoptante (Utility AI).
+        
+        BLOQUE 4: Scoring ajustado para evitar clustering en "zonas felices" 
+        y promover una distribución más realista y solidaria.
+        """
         score = 0.0
+        cfg = self.config.adoptions
 
+        # 1. Parentesco (Máxima prioridad)
         if ancestry is not None:
             kinship_degree = ancestry.get_kinship_degree(parent.entity_id, orphan.entity_id)
             if kinship_degree > 0:
-                score += 100.0 / kinship_degree
+                score += getattr(cfg, 'kinship_weight', 100.0) / kinship_degree
 
+        # 2. Distancia física
         distance = math.sqrt((parent.x - orphan.x) ** 2 + (parent.y - orphan.y) ** 2)
-        score -= distance * 0.2
+        score -= distance * getattr(cfg, 'distance_weight', 0.2)
         
+        # 3. Presión local (evitar hacinamiento)
         local_pressure = context.get_local_pressure(parent.x, parent.y)
-        score -= local_pressure * 50.0
+        score -= local_pressure * getattr(cfg, 'pressure_weight', 50.0)
 
-        score += parent.effective_sociability * 10.0
-
+        # 4. Factores emocionales y de reputación (CORREGIDO)
         stress = parent.emotions.get("stress", 0.0)
         happiness = parent.emotions.get("happiness", 0.5)
+        reputation = getattr(parent, 'reputation_score', 0.5)
         
-        score -= stress * 30.0
-        score += happiness * 20.0
-        score -= parent.children_count * 5.0
+        # En lugar de penalizar linealmente el estrés, usamos una curva que permite 
+        # familias con estrés moderado si tienen alta reputación o motivación de protección.
+        if stress > 0.7:
+            score -= (stress - 0.7) * getattr(cfg, 'stress_weight', 50.0)
+        
+        # La felicidad bonifica, pero con rendimientos decrecientes
+        score += (happiness - 0.5) * getattr(cfg, 'happiness_weight', 15.0)
+        
+        # BLOQUE 4: La buena reputación compensa el estrés moderado
+        score += (reputation - 0.5) * 20.0
 
+        # 5. Capacidad familiar y historial (ANTI-CLUSTERING)
+        current_children = parent.children_count
+        score -= current_children * getattr(cfg, 'children_count_weight', 5.0)
+        
+        # Penalización por adopciones previas múltiples (evita que una familia adopte a todos)
+        previous_adoptions = len(parent.get_adoptions_as_parent())
+        if previous_adoptions > 0:
+            score -= previous_adoptions * 15.0
+
+        # 6. Estabilidad relacional
         stability_years = parent.relationship_days / 365.0
-        score += min(15.0, stability_years * 1.5)
+        score += min(15.0, stability_years * getattr(cfg, 'stability_weight', 1.5))
 
+        # 7. Edad y estado del padre
         if parent.is_senior:
-            score -= 10.0
+            score -= getattr(cfg, 'senior_penalty', 10.0)
 
-        adoptions_cfg = self.config.adoptions
-        age_ratio = orphan.age / adoptions_cfg.max_orphan_age_days
-        age_penalty = (age_ratio ** adoptions_cfg.age_penalty_exponent) * adoptions_cfg.age_penalty_multiplier
+        age_ratio = orphan.age / cfg.max_orphan_age_days
+        age_penalty = (age_ratio ** cfg.age_penalty_exponent) * cfg.age_penalty_multiplier
         score -= age_penalty
 
         is_single_parent = (
@@ -570,12 +660,14 @@ class AdoptionSystem:
             and parent.partner_id is None
         )
         if is_single_parent:
-            score -= adoptions_cfg.single_parent_penalty
+            score -= cfg.single_parent_penalty
 
+        # 8. Motivaciones (El deseo de proteger es un fuerte indicador de idoneidad)
         if hasattr(parent, 'get_motivation'):
             protection = parent.get_motivation("protection")
             cooperation = parent.get_motivation("cooperation")
-            score += protection * 20.0
-            score += cooperation * 15.0
+            
+            score += protection * getattr(cfg, 'motivation_protection_weight', 25.0)
+            score += cooperation * getattr(cfg, 'motivation_cooperation_weight', 15.0)
 
         return score

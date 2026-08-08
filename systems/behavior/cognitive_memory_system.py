@@ -7,9 +7,6 @@ Implementa un sistema de memoria transaccional avanzado que:
 - Desarrolla preferencias espaciales
 - Usa arquitectura transaccional (PendingChanges) para todas las modificaciones
 - Se integra con todos los sistemas para generar recuerdos automáticamente
-
-Todos los cambios se registran en el búfer transaccional y se aplican
-atómicamente durante el commit, garantizando coherencia del estado.
 """
 
 from __future__ import annotations
@@ -25,11 +22,7 @@ from systems.environment.environment_context import EnvironmentContext
 
 
 class CognitiveMemorySystem:
-    """Procesa la impronta cognitiva, recuerdos específicos y desgaste psicológico.
-
-    Combina el condicionamiento ambiental (traumas) con la memoria episódica
-    para alterar el comportamiento de forma transaccional y coherente.
-    """
+    """Procesa la impronta cognitiva, recuerdos específicos y desgaste psicológico."""
 
     # Tipos de memoria episódica
     TYPE_COMPANION = "companion"
@@ -45,13 +38,16 @@ class CognitiveMemorySystem:
     TYPE_MIGRATION = "migration"
 
     def __init__(self, config: SimulationConfig) -> None:
-        """Inicializa el sistema vinculándolo a la configuración centralizada.
-        
-        Args:
-            config: Configuración maestra de la simulación.
-        """
         self.config = config
         self.logger = logging.getLogger(self.__class__.__name__)
+
+    def _get_current_trauma(self, person: Any, pending: PendingChanges, trauma_key: str) -> float:
+        """Helper para obtener el valor actual de un trauma, respetando el búfer transaccional."""
+        if person.entity_id in pending.memory_updates:
+            return pending.memory_updates[person.entity_id].get(
+                trauma_key, person.memory.get(trauma_key, 0.0)
+            )
+        return person.memory.get(trauma_key, 0.0)
 
     def process(
         self,
@@ -60,14 +56,7 @@ class CognitiveMemorySystem:
         delta_days: float,
         context: EnvironmentContext,
     ) -> None:
-        """Actualiza el estado mental de todos los agentes vivos de forma transaccional.
-        
-        Args:
-            state: Estado autoritativo del mundo.
-            pending: Búfer transaccional donde se registran los cambios.
-            delta_days: Duración del tick en días simulados.
-            context: Contexto ambiental del tick.
-        """
+        """Actualiza el estado mental de todos los agentes vivos de forma transaccional."""
         cog_cfg = self.config.cognition
 
         for person in state.get_all_persons():
@@ -78,69 +67,36 @@ class CognitiveMemorySystem:
             # PARTE A: MEMORIA IMPLÍCITA (Traumas y Preferencias)
             # =================================================================
             
-            temperament = getattr(person.genome, 'temperament', 0.5) if hasattr(person, 'genome') else 0.5
+            # OPTIMIZACIÓN: Acceso directo a propiedades garantizadas
+            temperament = person.genome.temperament
             adjusted_lambda = cog_cfg.base_forgetting_rate * (temperament + cog_cfg.temperament_modifier)
             decay_factor = math.exp(-adjusted_lambda * delta_days)
 
             local_pressure = context.get_local_pressure(person.x, person.y)
             
             # TRAUMA POR HACINAMIENTO
-            if person.entity_id in pending.memory_updates:
-                old_trauma_overcrowding = pending.memory_updates[person.entity_id].get(
-                    "trauma_overcrowding", person.memory.get("trauma_overcrowding", 0.0)
-                )
-            else:
-                old_trauma_overcrowding = person.memory.get("trauma_overcrowding", 0.0)
-            
-            trauma_overcrowding = old_trauma_overcrowding * decay_factor
+            trauma_overcrowding = self._get_current_trauma(person, pending, "trauma_overcrowding") * decay_factor
             if local_pressure > cog_cfg.overcrowding_threshold:
                 trauma_overcrowding += (cog_cfg.overcrowding_impact * delta_days)
             
             # TRAUMA POR ENFERMEDAD
-            if person.entity_id in pending.memory_updates:
-                old_trauma_sickness = pending.memory_updates[person.entity_id].get(
-                    "trauma_sickness", person.memory.get("trauma_sickness", 0.0)
-                )
-            else:
-                old_trauma_sickness = person.memory.get("trauma_sickness", 0.0)
-            
-            trauma_sickness = old_trauma_sickness * decay_factor
-            if getattr(person, 'is_sick', False):
+            trauma_sickness = self._get_current_trauma(person, pending, "trauma_sickness") * decay_factor
+            if person.is_sick:
                 trauma_sickness += (cog_cfg.sickness_impact * delta_days)
             
             # TRAUMA POR ADOPCIÓN
-            if person.entity_id in pending.memory_updates:
-                old_trauma_adoption = pending.memory_updates[person.entity_id].get(
-                    "trauma_adoption", person.memory.get("trauma_adoption", 0.0)
-                )
-            else:
-                old_trauma_adoption = person.memory.get("trauma_adoption", 0.0)
-            
-            trauma_adoption = old_trauma_adoption * decay_factor
-            
-            if old_trauma_adoption > 0.0:
-                delta_trauma = old_trauma_adoption - trauma_adoption
+            trauma_adoption = self._get_current_trauma(person, pending, "trauma_adoption") * decay_factor
+            if trauma_adoption > 0.0:
+                delta_trauma = trauma_adoption - (trauma_adoption * decay_factor) # Aproximación del decaimiento
                 pending.register_emotion_update(person.entity_id, "stress", -delta_trauma * 0.6)
                 pending.register_emotion_update(person.entity_id, "happiness", delta_trauma * 0.5)
             
             # TRAUMA POR ABANDONO
-            if person.entity_id in pending.memory_updates:
-                old_trauma_abandonment = pending.memory_updates[person.entity_id].get(
-                    "trauma_abandonment", person.memory.get("trauma_abandonment", 0.0)
-                )
-            else:
-                old_trauma_abandonment = person.memory.get("trauma_abandonment", 0.0)
-            
-            trauma_abandonment = old_trauma_abandonment * decay_factor
+            trauma_abandonment = self._get_current_trauma(person, pending, "trauma_abandonment") * decay_factor
             
             # PREFERENCIA ESPACIAL
             preferred_sector = person.memory.get("preferred_sector", None)
-            is_adult = getattr(person, 'is_adult', False)
-            is_sick = getattr(person, 'is_sick', False)
-            has_children = getattr(person, 'children_count', 0) > 0
-            is_senior = getattr(person, 'is_senior', False)
-            
-            if (is_adult and not is_sick and has_children) or is_senior:
+            if (person.is_adult and not person.is_sick and person.children_count > 0) or person.is_senior:
                 preferred_sector = (person.x // context.sector_size, person.y // context.sector_size)
             
             rebellion_cooldown = max(0.0, person.memory.get("rebellion_cooldown", 0.0) - delta_days)
@@ -156,10 +112,11 @@ class CognitiveMemorySystem:
             # =================================================================
             # PARTE B: MEMORIA EXPLÍCITA (Recuerdos episódicos con metadatos)
             # =================================================================
-            if "episodic" not in person.memory or not isinstance(person.memory["episodic"], dict):
+            episodic = person.memory.get("episodic", {})
+            if not isinstance(episodic, dict):
                 episodic = {}
             else:
-                episodic = person.memory["episodic"].copy()
+                episodic = episodic.copy() # Copia superficial segura para mutación transaccional
                 
             keys_to_delete = []
             total_trauma_episodic = 0.0
@@ -168,24 +125,18 @@ class CognitiveMemorySystem:
             current_day = getattr(state, 'world_days_elapsed', 0.0)
             
             for mem_key, mem_data in episodic.items():
-                # Asegurar que el recuerdo tiene todos los metadatos (compatibilidad hacia atrás)
-                if 'created_day' not in mem_data:
-                    mem_data['created_day'] = current_day
-                if 'last_reinforced_day' not in mem_data:
-                    mem_data['last_reinforced_day'] = current_day
-                if 'times_reinforced' not in mem_data:
-                    mem_data['times_reinforced'] = 1
-                if 'context' not in mem_data:
-                    mem_data['context'] = "general"
+                # Asegurar metadatos (compatibilidad hacia atrás)
+                mem_data.setdefault('created_day', current_day)
+                mem_data.setdefault('last_reinforced_day', current_day)
+                mem_data.setdefault('times_reinforced', 1)
+                mem_data.setdefault('context', "general")
                 
                 # Decaimiento exponencial con consolidación
-                # Eventos repetidos o traumáticos se olvidan más lento
                 emotional_importance = abs(mem_data.get('valence', 0)) * cog_cfg.emotional_importance_factor
                 reinforcement_bonus = min(0.5, mem_data.get('times_reinforced', 1) * 0.05)
                 effective_forgetting_rate = cog_cfg.episodic_forgetting_rate * (1.0 - emotional_importance - reinforcement_bonus)
-                decay = math.exp(-effective_forgetting_rate * delta_days)
                 
-                mem_data['intensity'] *= decay
+                mem_data['intensity'] *= math.exp(-effective_forgetting_rate * delta_days)
                 
                 if mem_data['intensity'] <= cog_cfg.episodic_min_intensity:
                     keys_to_delete.append(mem_key)
@@ -198,6 +149,7 @@ class CognitiveMemorySystem:
             for k in keys_to_delete:
                 del episodic[k]
             
+            # Poda de capacidad máxima
             if len(episodic) > cog_cfg.max_episodic_memories:
                 sorted_memories = sorted(episodic.items(), key=lambda x: x[1]['intensity'])
                 to_remove = len(episodic) - cog_cfg.max_episodic_memories
@@ -206,6 +158,7 @@ class CognitiveMemorySystem:
             
             pending.register_memory_update(person.entity_id, "episodic", episodic)
 
+            # Cálculo de estrés cognitivo
             trauma_penalty = min(cog_cfg.max_cognitive_stress, total_trauma_episodic * cog_cfg.trauma_to_stress_factor)
             nostalgia_buff = min(cog_cfg.max_cognitive_stress, total_nostalgia * cog_cfg.nostalgia_buffer_factor)
             cognitive_stress = max(0.0, trauma_penalty - nostalgia_buff)
@@ -226,18 +179,7 @@ class CognitiveMemorySystem:
         current_day: float = 0.0,
         pending: Optional[PendingChanges] = None,
     ) -> None:
-        """Graba un suceso en el cerebro del agente con metadatos completos.
-        
-        Args:
-            person: Entidad que recordará el suceso.
-            mem_type: Tipo de memoria (TYPE_COMPANION, TYPE_CONFLICT, etc.).
-            target_id: ID del objetivo del recuerdo.
-            intensity: Intensidad inicial del recuerdo [0.0, 1.0].
-            valence: Valor emocional (-1 negativo, 0 neutro, 1 positivo).
-            context: Contexto del recuerdo (ej: "infancia", "matrimonio", "guerra").
-            current_day: Día simulado en que ocurre el evento.
-            pending: Búfer transaccional (si es None, se muta directamente - legacy).
-        """
+        """Graba un suceso en el cerebro del agente con metadatos completos."""
         if not hasattr(person, 'memory') or not isinstance(person.memory, dict):
             return
             
@@ -269,21 +211,12 @@ class CognitiveMemorySystem:
 
     @staticmethod
     def get_bias_towards(person: Any, target_id: str) -> float:
-        """Calcula la afinidad hacia una persona o lugar basada en recuerdos pasados.
-        
-        Args:
-            person: Entidad cuyo sesgo se calcula.
-            target_id: ID del objetivo.
-            
-        Returns:
-            Sesgo en rango [-1.0, 1.0] (negativo = aversión, positivo = afinidad).
-        """
-        if not hasattr(person, 'memory') or not isinstance(person.memory.get("episodic"), dict):
+        """Calcula la afinidad hacia una persona o lugar basada en recuerdos pasados."""
+        episodic = person.memory.get("episodic", {})
+        if not isinstance(episodic, dict):
             return 0.0
             
-        episodic = person.memory["episodic"]
         bias = 0.0
-        
         for mem_type in [
             CognitiveMemorySystem.TYPE_COMPANION,
             CognitiveMemorySystem.TYPE_CONFLICT,

@@ -2,6 +2,18 @@
 
 FASE 0: Actualizado para ser compatible con el nuevo modelo de Relationship 
 basado en memoria, manteniendo compatibilidad legacy para atributos de estado.
+
+BLOQUE 1 AÑADIDO: Social Memory Layer
+- adoption_history: historial completo de eventos de adopción
+- parental_status: estado parental dinámico
+- reputation_score: reputación social basada en historial parental
+
+OPTIMIZACIONES APLICADAS:
+- get_specific_immunity() unificado (eliminada duplicación de lógica)
+- _get_active_relationships() con caché para evitar O(N) repetido
+- Eliminada add_relationship_days() (código muerto)
+- Uso consistente de getattr para atributos de Relationship
+- infect() ahora reemplaza cepas de la misma familia (evita acumulación infinita)
 """
 
 from __future__ import annotations
@@ -65,6 +77,12 @@ class Person:
         self._parents: List[int] = []
         self._adoptive_parents: List[int] = []
 
+        # ==========================================
+        # BLOQUE 1: SOCIAL MEMORY LAYER
+        # ==========================================
+        self._adoption_history: List[Dict[str, Any]] = []
+        self._reputation_score: float = 0.5  # Reputación inicial neutral (0.0 = terrible, 1.0 = excelente)
+
         self._memory: Dict[str, Any] = {
             "trauma_overcrowding": 0.0,
             "trauma_sickness": 0.0,
@@ -95,6 +113,10 @@ class Person:
         self._partner_id: Optional[int] = None
         self._marital_status: str = "soltero"
 
+        # CORRECCIÓN: Sistema de caché para relaciones activas
+        self._active_relationships_cache: Optional[List[Relationship]] = None
+        self._relationships_cache_dirty: bool = True
+
         self._check_milestones()
 
     def _generate_orientation(self) -> SexualOrientation:
@@ -107,6 +129,9 @@ class Person:
         elif roll < 0.95: return SexualOrientation.MOSTLY_HOMO
         else: return SexualOrientation.HOMOSEXUAL
 
+    # ==========================================
+    # PROPERTIES BÁSICAS
+    # ==========================================
     @property
     def entity_id(self) -> int: return self._entity_id
     @property
@@ -177,11 +202,39 @@ class Person:
     @property
     def relationships(self) -> List[Relationship]: return self._relationships
 
+    # ==========================================
+    # BLOQUE 1: PROPERTIES DE SOCIAL MEMORY LAYER
+    # ==========================================
+    @property
+    def adoption_history(self) -> List[Dict[str, Any]]:
+        return self._adoption_history
+
+    @property
+    def parental_status(self) -> str:
+        adopted_count = self._children_count - self._biological_children_count
+        if self._children_count == 0: return "sin_hijos"
+        elif self._biological_children_count > 0 and adopted_count == 0: return "padre_biologico"
+        elif self._biological_children_count == 0 and adopted_count > 0: return "padre_adoptivo"
+        else: return "padre_mixto"
+
+    @property
+    def reputation_score(self) -> float:
+        return self._reputation_score
+
+    @property
+    def adopted_children_count(self) -> int:
+        return max(0, self._children_count - self._biological_children_count)
+
+    # ==========================================
+    # PROPERTIES DE RELACIONES (CON CACHÉ)
+    # ==========================================
     @property
     def partner_id(self) -> Optional[int]:
         active = self._get_active_relationships()
         if not active: return self._partner_id
-        priority = [RelationshipStatus.CONSOLIDATED, RelationshipStatus.COHABITATION, RelationshipStatus.DATING, RelationshipStatus.CASUAL, RelationshipStatus.ROMANTIC_INTEREST]
+        priority = [RelationshipStatus.CONSOLIDATED, RelationshipStatus.COHABITATION, 
+                    RelationshipStatus.DATING, RelationshipStatus.CASUAL, 
+                    RelationshipStatus.ROMANTIC_INTEREST]
         for status in priority:
             for rel in active:
                 if getattr(rel, 'status', None) == status: return rel.partner_id
@@ -191,7 +244,8 @@ class Person:
     def marital_status(self) -> str:
         active = self._get_active_relationships()
         if not active: return self._marital_status
-        priority = [RelationshipStatus.CONSOLIDATED, RelationshipStatus.COHABITATION, RelationshipStatus.DATING, RelationshipStatus.ROMANTIC_INTEREST]
+        priority = [RelationshipStatus.CONSOLIDATED, RelationshipStatus.COHABITATION, 
+                    RelationshipStatus.DATING, RelationshipStatus.ROMANTIC_INTEREST]
         for status in priority:
             for rel in active:
                 if getattr(rel, 'status', None) == status: return "casado"
@@ -206,40 +260,47 @@ class Person:
         priority = [RelationshipStatus.CONSOLIDATED, RelationshipStatus.COHABITATION, RelationshipStatus.DATING]
         for status in priority:
             for rel in active:
-                if getattr(rel, 'status', None) == status: return rel.last_interaction_day - rel.start_day
+                if getattr(rel, 'status', None) == status: 
+                    return getattr(rel, 'last_interaction_day', 0.0) - getattr(rel, 'start_day', 0.0)
         return 0.0
 
     def _get_active_relationships(self) -> List[Relationship]:
-        return [r for r in self._relationships if getattr(r, 'status', RelationshipStatus.UNKNOWN) not in (RelationshipStatus.UNKNOWN, RelationshipStatus.EX_PARTNER)]
+        if self._relationships_cache_dirty or self._active_relationships_cache is None:
+            self._active_relationships_cache = [
+                r for r in self._relationships 
+                if getattr(r, 'status', RelationshipStatus.UNKNOWN) 
+                not in (RelationshipStatus.UNKNOWN, RelationshipStatus.EX_PARTNER)
+            ]
+            self._relationships_cache_dirty = False
+        return self._active_relationships_cache
 
-    def get_relationship_with(self, partner_id: int, current_day: float = 0.0) -> Optional[Relationship]:
+    def _invalidate_relationships_cache(self) -> None:
+        self._relationships_cache_dirty = True
+
+    # ==========================================
+    # GESTIÓN DE RELACIONES
+    # ==========================================
+    def get_relationship_with(self, partner_id: int, current_day: float = 0.0) -> Relationship:
         for r in self._relationships:
             if r.partner_id == partner_id: return r
-        
+    
         new_rel = Relationship(owner_id=self.entity_id, partner_id=partner_id, start_day=current_day)
         new_rel.status = RelationshipStatus.UNKNOWN
         new_rel.affinity = 0.5
         new_rel.relationship_type = RelationshipType.EXCLUSIVE
         new_rel.shared_children = 0
         self._relationships.append(new_rel)
+        self._invalidate_relationships_cache()
         return new_rel
 
-    def add_relationship(self, partner_id: int, status: RelationshipStatus, current_day: float, affinity: float = 0.5, rel_type: RelationshipType = RelationshipType.EXCLUSIVE) -> Relationship:
+    def add_relationship(self, partner_id: int, status: RelationshipStatus, current_day: float, 
+                         affinity: float = 0.5, rel_type: RelationshipType = RelationshipType.EXCLUSIVE) -> Relationship:
         rel = self.get_relationship_with(partner_id, current_day)
-        if rel is None:
-            # Esto nunca debería pasar, pero por seguridad
-            new_rel = Relationship(owner_id=self.entity_id, partner_id=partner_id, start_day=current_day)
-            new_rel.status = RelationshipStatus.UNKNOWN
-            new_rel.affinity = 0.5
-            new_rel.relationship_type = RelationshipType.EXCLUSIVE
-            new_rel.shared_children = 0
-            self._relationships.append(new_rel)
-            rel = new_rel
-    
         setattr(rel, 'status', status)
         setattr(rel, 'affinity', affinity)
         setattr(rel, 'relationship_type', rel_type)
         setattr(rel, 'last_interaction_day', max(getattr(rel, 'last_interaction_day', current_day), current_day))
+        self._invalidate_relationships_cache()
         return rel
 
     def update_relationship_status(self, partner_id: int, new_status: RelationshipStatus, current_day: float) -> None:
@@ -247,56 +308,90 @@ class Person:
         if rel is not None:
             setattr(rel, 'status', new_status)
             setattr(rel, 'last_interaction_day', max(getattr(rel, 'last_interaction_day', current_day), current_day))
+            self._invalidate_relationships_cache()
 
+    # ==========================================
+    # BLOQUE 1: MÉTODOS DE SOCIAL MEMORY LAYER
+    # ==========================================
+    def register_adoption_event(self, event_type: str, entity_id: int, day: float, context: str = "adopcion") -> None:
+        event = {"type": event_type, "entity_id": entity_id, "day": day, "context": context}
+        self._adoption_history.append(event)
+        if event_type == "adopted":
+            self._reputation_score = min(1.0, self._reputation_score + 0.05)
+
+    def get_adoption_history(self) -> List[Dict[str, Any]]: return self._adoption_history
+    def get_adoptions_as_parent(self) -> List[Dict[str, Any]]: return [e for e in self._adoption_history if e["type"] == "adopted"]
+    def get_adoptions_as_child(self) -> List[Dict[str, Any]]: return [e for e in self._adoption_history if e["type"] == "adopted_by"]
+
+    def update_reputation_score(self, delta: float) -> None:
+        self._reputation_score = max(0.0, min(1.0, self._reputation_score + delta))
+
+    # ==========================================
+    # INMUNIDAD (UNIFICADA)
+    # ==========================================
     def get_specific_immunity(self, pathogen: Any) -> float:
         if isinstance(pathogen, str):
             family = pathogen
-            base_innate = max(0.1, self._genome.immunity - ((1.0 - self._emotions["energy"]) * 0.2))
-            genetic_specific = self._genome.get_family_specific_immunity(family)
-            acquired_bonus = self._immune_memory.get(family, 0.0)
-            cross_immunity = 0.0
-            for other_family, immunity_level in self._immune_memory.items():
-                if other_family != family:
-                    similarity = Pathogen.get_family_similarity(family, other_family)
-                    if similarity > 0.0: cross_immunity += immunity_level * similarity * 0.3
-            return min(5.0, base_innate + genetic_specific + acquired_bonus + cross_immunity)
+            pathogen_obj = None
+        else:
+            family = pathogen.family
+            pathogen_obj = pathogen
         
-        family = pathogen.family
         base_innate = max(0.1, self._genome.immunity - ((1.0 - self._emotions["energy"]) * 0.2))
-        strain_immunity = 0.0
-        if hasattr(pathogen, 'pathogen_id'):
-            direct_immunity = self._strain_immunity.get(pathogen.pathogen_id, 0.0)
-            related_immunity = self._calculate_related_strain_immunity(pathogen)
-            strain_immunity = max(direct_immunity, related_immunity)
         genetic_specific = self._genome.get_family_specific_immunity(family)
         acquired_bonus = self._immune_memory.get(family, 0.0)
+        
         cross_immunity = 0.0
         for other_family, immunity_level in self._immune_memory.items():
             if other_family != family:
                 similarity = Pathogen.get_family_similarity(family, other_family)
                 if similarity > 0.0: cross_immunity += immunity_level * similarity * 0.3
-        for other_family in Pathogen.get_related_families(family, min_similarity=0.1):
-            other_genetic = self._genome.get_family_specific_immunity(other_family)
-            if other_genetic > 0.0:
-                similarity = Pathogen.get_family_similarity(family, other_family)
-                cross_immunity += other_genetic * similarity * 0.2
+        
+        if pathogen_obj is not None:
+            for other_family in Pathogen.get_related_families(family, min_similarity=0.1):
+                other_genetic = self._genome.get_family_specific_immunity(other_family)
+                if other_genetic > 0.0:
+                    similarity = Pathogen.get_family_similarity(family, other_family)
+                    cross_immunity += other_genetic * similarity * 0.2
+        
+        strain_immunity = 0.0
+        if pathogen_obj and hasattr(pathogen_obj, 'pathogen_id'):
+            direct_immunity = self._strain_immunity.get(pathogen_obj.pathogen_id, 0.0)
+            related_immunity = self._calculate_related_strain_immunity(pathogen_obj)
+            strain_immunity = max(direct_immunity, related_immunity)
+        
         return min(5.0, base_innate + strain_immunity + genetic_specific + acquired_bonus + cross_immunity)
 
     def _calculate_related_strain_immunity(self, pathogen: Any) -> float:
         if not hasattr(pathogen, 'pathogen_id') or not hasattr(pathogen, 'generation'): return 0.0
-        max_related_immunity = 0.0
+        max_related = 0.0
         for strain_id, immunity in self._strain_immunity.items():
             if not strain_id.startswith(f"{pathogen.family}_"): continue
             metadata = self._strain_metadata.get(strain_id, {})
-            known_generation = metadata.get("generation", 1)
-            generation_diff = abs(pathogen.generation - known_generation)
-            similarity_factor = max(0.0, 1.0 - (generation_diff * 0.15))
-            max_related_immunity = max(max_related_immunity, immunity * similarity_factor)
-        return max_related_immunity
+            known_gen = metadata.get("generation", 1)
+            gen_diff = abs(pathogen.generation - known_gen)
+            similarity_factor = max(0.0, 1.0 - (gen_diff * 0.15))
+            max_related = max(max_related, immunity * similarity_factor)
+        return max_related
 
+    # ==========================================
+    # ENFERMEDADES
+    # ==========================================
     def infect(self, pathogen: Pathogen) -> None:
+        """Infecta al agente, reemplazando cepas previas de la misma familia (Prioridad 3)."""
+        # 1. Eliminar cepas anteriores de la misma familia para evitar acumulación infinita
+        pathogens_to_remove = [
+            pid for pid, state in self._active_infections.items() 
+            if state.pathogen.family == pathogen.family
+        ]
+        for pid in pathogens_to_remove:
+            del self._active_infections[pid]
+            
+        # 2. Añadir la nueva infección
         infection_state = InfectionState(pathogen)
         self._active_infections[pathogen.pathogen_id] = infection_state
+        
+        # 3. Actualizar estado de salud solo si NO es asintomático
         if not infection_state.is_asymptomatic:
             self._health_state = "enfermo"
             self.update_emotion("stress", 0.3)
@@ -308,11 +403,15 @@ class Person:
             pathogen = infection_state.pathogen
             current_strain_immunity = self._strain_immunity.get(pathogen_id, 0.0)
             self._strain_immunity[pathogen_id] = min(2.0, current_strain_immunity + 0.8)
-            self._strain_metadata[pathogen_id] = {"family": pathogen.family, "generation": pathogen.generation, "virulence": pathogen.virulence, "transmission": pathogen.transmission, "lethality": pathogen.lethality}
+            self._strain_metadata[pathogen_id] = {
+                "family": pathogen.family, "generation": pathogen.generation, 
+                "virulence": pathogen.virulence, "transmission": pathogen.transmission, 
+                "lethality": pathogen.lethality
+            }
             family_immunity = self._immune_memory.get(pathogen.family, 0.0)
             self._immune_memory[pathogen.family] = min(1.5, family_immunity + 0.4)
-        if not self._active_infections: self._health_state = "sano"
-        elif not self.is_symptomatic: self._health_state = "sano"
+        if not self._active_infections or not self.is_symptomatic: 
+            self._health_state = "sano"
 
     def advance_infections(self, delta_days: float) -> None:
         for infection_state in self._active_infections.values():
@@ -325,22 +424,27 @@ class Person:
                     self.update_emotion("energy", -0.3)
 
     def decay_immunity(self, delta_days: float, decay_rate: float = 0.001) -> None:
-        strain_decay_factor = math.exp(-decay_rate * 0.5 * delta_days)
+        strain_decay = math.exp(-decay_rate * 0.5 * delta_days)
         for strain_id in list(self._strain_immunity.keys()):
-            self._strain_immunity[strain_id] *= strain_decay_factor
+            self._strain_immunity[strain_id] *= strain_decay
             if self._strain_immunity[strain_id] < 0.01:
                 del self._strain_immunity[strain_id]
                 self._strain_metadata.pop(strain_id, None)
-        family_decay_factor = math.exp(-decay_rate * delta_days)
+                
+        family_decay = math.exp(-decay_rate * delta_days)
         for family in list(self._immune_memory.keys()):
-            self._immune_memory[family] *= family_decay_factor
-            if self._immune_memory[family] < 0.01: del self._immune_memory[family]
+            self._immune_memory[family] *= family_decay
+            if self._immune_memory[family] < 0.01: 
+                del self._immune_memory[family]
 
     def set_health_state(self, new_state: str) -> None:
         if new_state == "sano":
             self._active_infections.clear()
             self._health_state = "sano"
 
+    # ==========================================
+    # MOTIVACIONES, POSICIÓN, EDAD, MATRIMONIO, EMBARAZO, ETC.
+    # ==========================================
     def get_motivation(self, motivation_name: str) -> float: return self._motivations.get(motivation_name, 0.0)
     def update_motivation(self, motivation_name: str, amount: float) -> None:
         if motivation_name in self._motivations:
@@ -377,6 +481,7 @@ class Person:
             rel = self.get_relationship_with(old_partner, current_day)
             if rel:
                 setattr(rel, 'status', RelationshipStatus.EX_PARTNER)
+                self._invalidate_relationships_cache()
         self.update_emotion("stress", 0.5)
         self.update_emotion("happiness", -0.5)
 
@@ -395,14 +500,11 @@ class Person:
         partner_id = self.partner_id
         if partner_id:
             rel = self.get_relationship_with(partner_id)
-            if rel and hasattr(rel, 'shared_children'):
-                rel.shared_children += 1
+            if rel and hasattr(rel, 'shared_children'): rel.shared_children += 1
 
     def add_biological_child(self) -> None:
         self._biological_children_count += 1
         self.add_child()
-
-    def add_relationship_days(self, days: float) -> None: pass
 
     def set_parents(self, mother_id: int, father_id: Optional[int] = None) -> None:
         self._mother_id = mother_id
@@ -410,10 +512,11 @@ class Person:
         self._parents = [mother_id]
         if father_id is not None: self._parents.append(father_id)
 
-    def add_adoptive_parent(self, parent_id: int) -> None:
+    def add_adoptive_parent(self, parent_id: int, current_day: float = 0.0) -> None:
         if parent_id not in self._adoptive_parents:
             self._adoptive_parents.append(parent_id)
             self.update_emotion("happiness", 0.3)
+            self.register_adoption_event(event_type="adopted_by", entity_id=parent_id, day=current_day, context="adopcion")
 
     def update_emotion(self, emotion: str, amount: float) -> None:
         if emotion in self._emotions:

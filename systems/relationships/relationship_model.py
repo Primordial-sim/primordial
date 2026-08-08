@@ -384,21 +384,26 @@ class Relationship:
 # =============================================================================
 
 class BiasEngine:
-    """Aplica sesgos cognitivos al peso de un recuerdo (Punto 7)."""
+    """Aplica sesgos cognitivos al peso de un recuerdo (Fase 1 + Fase 4: Contextos)."""
     
     @staticmethod
     def apply_biases(memory: PersonalMemory, agent: Any, rel: Relationship, current_day: float) -> float:
         weight = memory.personal_weight
+        context_lower = memory.context.lower()
         
         # 1. Sesgo de confirmación
         dominant_valence = 0.0
         if rel.my_narratives:
-            pos_strength = sum(n.current_strength(current_day) for n in rel.my_narratives if "ayuda" in n.pattern.lower() or "confía" in n.pattern.lower())
-            neg_strength = sum(n.current_strength(current_day) for n in rel.my_narratives if "falla" in n.pattern.lower() or "traición" in n.pattern.lower())
+            pos_strength = sum(n.current_strength(current_day) for n in rel.my_narratives if any(w in n.pattern.lower() for w in ["ayuda", "confía", "conexión", "roca"]))
+            neg_strength = sum(n.current_strength(current_day) for n in rel.my_narratives if any(w in n.pattern.lower() for w in ["falla", "traición", "tensión", "discutiendo"]))
             dominant_valence = 1.0 if pos_strength > neg_strength else -1.0
         
         if (memory.emotional_valence > 0 and dominant_valence > 0) or (memory.emotional_valence < 0 and dominant_valence < 0):
-            weight *= 1.5
+            confirmation_multiplier = 1.5
+            # FASE 4: Contextos de alto impacto amplifican el sesgo de confirmación
+            if any(word in context_lower for word in ["traicion", "sabotaje", "noche_romantica", "apoyo_incondicional", "confesion"]):
+                confirmation_multiplier = 2.0
+            weight *= confirmation_multiplier
             
         # 2. Efecto halo
         overall_impression = rel.get_familiarity(current_day) / 100.0
@@ -410,19 +415,21 @@ class BiasEngine:
         recency = math.exp(-days_ago / 365.0)
         weight *= (0.5 + recency * 0.5)
         
-        # 4. Idealización post-mortem (APLICAR ANTES DE NEGATIVIDAD)
-        # Si el partner ha fallecido, los recuerdos negativos se "perdonan"
+        # 4. Idealización post-mortem
         post_mortem_applied = False
         if rel.partner_is_deceased and memory.emotional_valence < 0:
             weight *= 0.3
             post_mortem_applied = True
         
-        # 5. Negatividad (SOLO si no se aplicó idealización post-mortem)
+        # 5. Negatividad
         if not post_mortem_applied and memory.emotional_valence < 0:
-            weight *= 1.8
+            negativity_multiplier = 1.8
+            # FASE 4: Las traiciones en contextos específicos duelen significativamente más
+            if any(word in context_lower for word in ["traicion", "sabotaje", "ataque_directo", "hostilidad"]):
+                negativity_multiplier = 2.5
+            weight *= negativity_multiplier
             
         return weight
-
 
 class GoalFilter:
     """Objetivos como lentes que modifican la relevancia de un recuerdo (Punto 5)."""
@@ -475,36 +482,47 @@ class RelationshipEvaluator:
 
 
 class LabelGenerator:
-    """Etiquetas como vistas, no estado. Basado en pesos, no conteos (Puntos 2 y 3)."""
+    """Etiquetas como vistas, no estado. Basado en pesos, no conteos (Puntos 2 y 3).
+    
+    VALORES DE PRODUCCIÓN: Ajustados para que las etiquetas se alcancen 
+    de forma orgánica tras varios meses/años de interacción consistente.
+    """
     
     @staticmethod
     def generate(rel: Relationship, current_day: float) -> List[str]:
         labels = []
         
-        # Calcular pesos totales por categoría (Punto 3)
+        # Calcular pesos totales por categoría
         romantic_weight = sum(mem.current_weight(current_day) for mem in rel.memories if mem.category == MemoryCategory.ROMANTIC)
         conflict_weight = sum(mem.current_weight(current_day) for mem in rel.memories if mem.category == MemoryCategory.CONFLICT)
         cooperation_weight = sum(mem.current_weight(current_day) for mem in rel.memories if mem.category == MemoryCategory.COOPERATION)
         family_weight = sum(mem.current_weight(current_day) for mem in rel.memories if mem.category == MemoryCategory.FAMILY)
 
-        if romantic_weight > 500:
+        # --- UMBRALES DE PRODUCCIÓN ---
+        
+        # Relaciones Románticas
+        if romantic_weight > 250:  # ~5-6 eventos románticos significativos
             labels.append("Amante")
-        elif romantic_weight > 200:
+        elif romantic_weight > 80:   # ~2 eventos románticos
             labels.append("Interés Romántico")
             
-        if conflict_weight > 300:
+        # Relaciones de Conflicto
+        if conflict_weight > 150:    # ~4-5 eventos de conflicto graves
             labels.append("Rival")
-        if conflict_weight > 100 and cooperation_weight > 100:
+        if conflict_weight > 60 and cooperation_weight > 60:  # Relación compleja/competitiva
             labels.append("Rival Respetado")
             
-        if cooperation_weight > 400 and conflict_weight < 100:
+        # Relaciones Positivas
+        if cooperation_weight > 200 and conflict_weight < 100:  # ~4-5 eventos positivos, pocos negativos
             labels.append("Amigo")
-        elif cooperation_weight > 150:
+        elif cooperation_weight > 80:  # ~2 eventos positivos sólidos
             labels.append("Aliado")
             
-        if family_weight > 300:
+        # Relaciones Familiares
+        if family_weight > 150:  # Lazos familiares fuertes
             labels.append("Familia Elegida")
             
+        # Fallback
         if not labels:
             if len(rel.memories) > 0:
                 labels.append("Conocido")

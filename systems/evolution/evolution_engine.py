@@ -7,7 +7,7 @@ correlaciones entre genes, y análisis de causas de muerte y enfermedades.
 
 Características avanzadas:
 - Análisis de diversidad genética mediante varianza (no media+varianza)
-- Diferencial de selección ponderado por descendencia total (no solo hijos)
+- Diferencial de selección ponderado por descendencia total viva (no solo hijos)
 - Correlaciones entre genes para detectar patrones emergentes
 - Análisis de causas de muerte y su correlación con genotipos
 - Análisis de selección sobre inmunidad y enfermedades
@@ -59,7 +59,7 @@ class EvolutionEngine:
         # El motor es dueño de su propio historial, aislando la analítica del WorldState
         self.history: List[Dict[str, Any]] = []
         
-        # Historial persistente de muertes entre snapshots (Problema 3)
+        # Historial persistente de muertes entre snapshots
         self.death_history: List[Dict[str, Any]] = []
 
     def process(
@@ -83,7 +83,7 @@ class EvolutionEngine:
         """
         evo_cfg = self.config.evolution
         
-        # Acumular muertes en el historial persistente (Problema 3)
+        # Acumular muertes en el historial persistente
         self._accumulate_deaths(pending, state)
         
         # Filtramos la población activa garantizando la integridad referencial
@@ -94,7 +94,7 @@ class EvolutionEngine:
         current_time = getattr(state, 'world_days_elapsed', 0.0)
         current_population = len(vivos)
         
-        # Detectar eventos drásticos (Problema 6)
+        # Detectar eventos drásticos (cuellos de botella o mortalidad masiva)
         is_drastic_event = self._detect_drastic_event(current_population)
         
         # Disparamos el análisis genético si ha transcurrido el intervalo configurado
@@ -304,10 +304,10 @@ class EvolutionEngine:
             "gene_averages": {},
             "gene_variances": {},
             "selection_differentials": {},
-            "genes_in_extinction_risk": [],  # Problema 1: Solo varianza
-            "gene_correlations": {},  # Problema 5: Correlaciones entre genes
-            "death_analysis": {},  # Problema 3: Análisis de causas de muerte
-            "disease_analysis": {},  # Problema 4: Análisis de enfermedades
+            "genes_in_extinction_risk": [],
+            "gene_correlations": {},
+            "death_analysis": {},
+            "disease_analysis": {},
             "dominant_lineages": []
         }
 
@@ -319,14 +319,12 @@ class EvolutionEngine:
         nombres_genes = self._get_tracked_genes(primer_agente.genome)
         
         # =====================================================================
-        # PROBLEMA 2: Diferencial de selección ponderado por descendencia total
+        # CÁLCULO DE FITNESS BASADO EN DESCENDENCIA VIVA (NO SOLO HIJOS)
         # =====================================================================
-        # En lugar de solo hijos directos, usamos descendencia total viva
-        # (hijos + nietos + bisnietos) mediante ancestry_queries
         fitness_scores = self._calculate_fitness_scores(vivos)
 
         # =====================================================================
-        # 1. ANÁLISIS GENÉTICO PROFUNDO
+        # 1. ANÁLISIS GENÉTICO PROFUNDO (MEDIAS, VARIANZAS Y SELECCIÓN)
         # =====================================================================
         gene_values_matrix: Dict[str, List[float]] = {}
         
@@ -336,15 +334,13 @@ class EvolutionEngine:
             
             if valores_poblacion:
                 mean_val = sum(valores_poblacion) / len(valores_poblacion)
-                # Problema 1: Solo usar varianza (no media+varianza)
                 variance_val = sum((x - mean_val) ** 2 for x in valores_poblacion) / len(valores_poblacion)
                 
                 snapshot["gene_averages"][gen] = mean_val
                 snapshot["gene_variances"][gen] = variance_val
 
-                # Problema 1: Alerta de homogeneización solo por varianza
+                # CORRECCIÓN: Solo usar varianza para detectar pérdida de diversidad
                 # Si la varianza colapsa, el gen está fijado (no en peligro de extinción)
-                # Pero si la varianza es alta y la media es baja, hay diversidad con valores bajos
                 if variance_val < evo_cfg.variance_extinction_threshold:
                     snapshot["genes_in_extinction_risk"].append({
                         "gene": gen,
@@ -353,9 +349,8 @@ class EvolutionEngine:
                         "mean": mean_val
                     })
 
-                # Problema 2: Diferencial de selección ponderado por fitness total
+                # Diferencial de selección ponderado por fitness total (descendencia viva)
                 if fitness_scores:
-                    # Calcular media ponderada por fitness
                     total_fitness = sum(fitness_scores.values())
                     if total_fitness > 0:
                         weighted_mean = sum(
@@ -371,24 +366,24 @@ class EvolutionEngine:
                     snapshot["selection_differentials"][gen] = 0.0
 
         # =====================================================================
-        # PROBLEMA 5: Correlaciones entre genes
+        # 2. ANÁLISIS DE CORRELACIONES ENTRE GENES
         # =====================================================================
         if len(nombres_genes) >= 2 and len(vivos) >= 10:
             snapshot["gene_correlations"] = self._calculate_gene_correlations(gene_values_matrix, nombres_genes)
 
         # =====================================================================
-        # PROBLEMA 3: Análisis de causas de muerte
+        # 3. ANÁLISIS DE CAUSAS DE MUERTE (PRESIONES SELECTIVAS)
         # =====================================================================
         if self.death_history:
             snapshot["death_analysis"] = self._analyze_death_causes(nombres_genes)
 
         # =====================================================================
-        # PROBLEMA 4: Análisis de enfermedades e inmunidad
+        # 4. ANÁLISIS DE ENFERMEDADES E INMUNIDAD
         # =====================================================================
         snapshot["disease_analysis"] = self._analyze_disease_selection(vivos, nombres_genes)
 
         # =====================================================================
-        # 2. SUPERVIVENCIA Y ÉXITO DE LINAJES
+        # 5. SUPERVIVENCIA Y ÉXITO DE LINAJES
         # =====================================================================
         if self.ancestry_queries:
             vivos_ids = {p.entity_id for p in vivos}
@@ -422,10 +417,10 @@ class EvolutionEngine:
         return snapshot
 
     def _calculate_fitness_scores(self, vivos: List[Any]) -> Dict[int, float]:
-        """Calcula el fitness evolutivo de cada individuo usando descendencia total.
+        """Calcula el fitness evolutivo de cada individuo usando descendencia total viva.
         
         En lugar de solo contar hijos directos, usa ancestry_queries para obtener
-        descendencia total viva (hijos + nietos + bisnietos), lo que representa
+        descendencia total viva (hijos + nietos + bisnietos + ...), lo que representa
         mejor el éxito evolutivo real.
         
         Args:
@@ -684,7 +679,7 @@ class EvolutionEngine:
         ]
         self.logger.info(f" Presiones de Selección Activas: {', '.join(insights_seleccion)}")
         
-        # Genes en riesgo (Problema 1)
+        # Genes en riesgo (baja diversidad)
         if snapshot["genes_in_extinction_risk"]:
             for risk in snapshot["genes_in_extinction_risk"]:
                 self.logger.warning(
@@ -692,7 +687,7 @@ class EvolutionEngine:
                     f"(varianza: {risk['variance']:.4f}, media: {risk['mean']:.2f})"
                 )
         
-        # Correlaciones fuertes (Problema 5)
+        # Correlaciones fuertes
         correlations = snapshot.get("gene_correlations", {})
         strong_correlations = []
         for gen1, corr_dict in correlations.items():
@@ -704,7 +699,7 @@ class EvolutionEngine:
         if strong_correlations:
             self.logger.info(f" Correlaciones Genéticas Fuertes: {', '.join(strong_correlations)}")
         
-        # Análisis de enfermedades (Problema 4)
+        # Análisis de enfermedades
         disease_analysis = snapshot.get("disease_analysis", {})
         if disease_analysis.get("sick_count", 0) > 0:
             self.logger.info(
@@ -722,7 +717,7 @@ class EvolutionEngine:
             if significant_diffs:
                 self.logger.info(f" Diferencias Genéticas Sanos vs Enfermos: {', '.join(significant_diffs)}")
         
-        # Análisis de causas de muerte (Problema 3)
+        # Análisis de causas de muerte
         death_analysis = snapshot.get("death_analysis", {})
         if death_analysis.get("total_deaths", 0) > 0:
             self.logger.info(f" Mortalidad: {death_analysis['total_deaths']} muertes entre snapshots")

@@ -5,6 +5,15 @@ DOCUMENTACIÓN DEL CICLO DE VIDA (TICK):
 La simulación opera en una arquitectura de Tiempo Discreto con Búfer Transaccional.
 Cada tick completo procesa las siguientes fases en estricto orden secuencial:
 
+JERARQUÍA DE PRIORIDAD SOCIAL (BLOQUE 4):
+1. Muerte (mortalidad) - Prioridad máxima: un agente muerto no puede adoptar ni migrar
+2. Nacimiento (reproduction) - Prioridad alta: nuevos agentes necesitan contexto social
+3. Adopción (relationships) - Prioridad media-alta: reestructuración familiar
+4. Matrimonio/Relaciones (relationships) - Prioridad media: transiciones relacionales
+5. Migración (behavior_and_movement) - Prioridad media-baja: movimiento espacial
+6. Otros comportamientos (behavior_and_movement) - Prioridad baja
+
+ORDEN DE FASES:
 1. Fase Temporal ('temporal'):
    - Actualiza los relojes internos de la simulación.
    - Incrementa la edad biológica de las entidades en el búfer transaccional.
@@ -12,23 +21,25 @@ Cada tick completo procesa las siguientes fases en estricto orden secuencial:
 2. Fase Ambiental ('environment'):
    - Propaga variables físicas (cargas virales, degradación de recursos).
    - Calcula el mapa de densidad poblacional.
+   - BLOQUE 4: Aplica "Social Pressure Field" (eventos sociales del tick anterior).
    - Actualiza la memoria cognitiva de los agentes según el estrés del entorno.
 
-3. Fase de Movimiento y Conducta ('behavior_and_movement'):
+3. Fase Social ('relationships'):
+   - Precalcula compatibilidades (CompatibilityEngine).
+   - BLOQUE B: Gestiona formación de relaciones (MarriageSystem).
+   - BLOQUE B: Gestiona mantenimiento y ruptura (RelationshipSystem).
+   - Procesa reasignaciones familiares legales (Adopciones).
+   - Genera experiencias basadas en etiquetas (ExperienceGenerator).
+
+4. Fase de Movimiento y Conducta ('behavior_and_movement'):
    - Evalúa decisiones autónomas y rebeldía (FreeWillSystem).
    - Calcula vectores de migración masiva (MigrationSystem).
    - Genera vectores de desplazamiento para el tick (MovementSystem).
-   - Emite eventos INTIMACY cuando los agentes están cerca de su pareja.
    - Resuelve colisiones espaciales físicas (MovementResolver).
-
-4. Fase Social ('relationships'):
-   - NUEVO: Precalcula compatibilidades (CompatibilityEngine).
-   - NUEVO: Gestiona transiciones relacionales (RelationshipManager).
-   - Procesa reasignaciones familiares legales (Adopciones).
 
 5. Fase de Salud ('health'):
    - Resuelve interacciones inmunológicas y calcula contagios/recuperaciones.
-   - NUEVO: Emite eventos relacionales (cuidado, duelo) al RelationshipExperienceEngine.
+   - Emite eventos relacionales (cuidado, duelo) al RelationshipExperienceEngine.
 
 6. Fase Reproductiva ('reproduction'):
    - Verifica las ventanas de fertilidad e inicia concepciones.
@@ -63,6 +74,7 @@ from systems.diseases.disease_system import DiseaseSystem
 from systems.environment.density_system import DensitySystem
 from systems.environment.environment_system import EnvironmentSystem
 from systems.environment.epidemiological_system import EpidemiologicalSystem
+from systems.environment.social_pressure_system import SocialPressureSystem
 from systems.evolution.evolution_engine import EvolutionEngine
 from systems.free_will.free_will_system import FreeWillSystem
 from systems.genealogy.ancestry_queries import AncestryQueries
@@ -74,10 +86,13 @@ from systems.movement.migration_system import MigrationSystem
 from systems.movement.movement_resolver import MovementResolver
 from systems.movement.movement_system import MovementSystem
 
-# NUEVOS sistemas de relaciones (Fase 1)
+# Sistemas de relaciones
 from systems.relationships.compatibility_engine import CompatibilityEngine
+from systems.relationships.marriage_system import MarriageSystem
+from systems.relationships.relationship_system import RelationshipSystem
 from systems.relationships.relationship_manager import RelationshipManager
 from systems.relationships.relationship_experience_engine import RelationshipExperienceEngine
+from systems.relationships.experience_generator import ExperienceGenerator
 
 from systems.reproduction.conception_system import ConceptionSystem
 from systems.reproduction.gestation_system import GestationSystem
@@ -107,12 +122,14 @@ class PhaseScheduler:
 
     def build_phases(self) -> list[PhaseDefinition]:
         """Ensambla las fases de ejecución en el orden del ciclo principal.
-
-        Se aplican inyecciones cruzadas seguras garantizando que se resuelvan
-        las dependencias inter-sistema antes de la ejecución del pipeline.
-
-        Returns:
-            Lista ordenada de fases que serán ejecutadas por el pipeline.
+        
+        BLOQUE 4: Reordenamiento para establecer jerarquía social clara:
+        - relationships va ANTES de behavior_and_movement (adopción antes que migración)
+        - Se añade SocialPressureSystem en environment para feedback social
+        
+        BLOQUE B: Integración de MarriageSystem y RelationshipSystem
+        - MarriageSystem gestiona formación de relaciones (búsqueda bidireccional)
+        - RelationshipSystem gestiona mantenimiento y ruptura (estados graduales)
         """
         # Construcción de dependencias compartidas inter-sistema
         genealogy_system = GenealogySystem(self.config)
@@ -125,104 +142,163 @@ class PhaseScheduler:
 
         density_system = DensitySystem(self.config)
 
-       # NUEVOS sistemas de relaciones (Fase 1)
+        # Sistemas de relaciones
         compatibility_engine = CompatibilityEngine(self.config)
+        
+        # BLOQUE B: MarriageSystem (formación de relaciones)
+        marriage_system = MarriageSystem(
+            config=self.config,
+            compatibility_engine=compatibility_engine,
+            relationship_engine=self.relationship_engine,
+        )
+        
+        # BLOQUE B: RelationshipSystem (mantenimiento y ruptura)
+        relationship_system = RelationshipSystem(
+            config=self.config,
+            relationship_engine=self.relationship_engine,
+        )
+        
+        # RelationshipManager existente (transiciones relacionales)
         relationship_manager = RelationshipManager(
             config=self.config,
             compatibility_engine=compatibility_engine,
         )
+        
+        # FASE 3: Generador de experiencias basado en etiquetas
+        experience_generator = ExperienceGenerator(
+            config=self.config,
+            relationship_engine=self.relationship_engine,
+        )
+
+        # BLOQUE 4: Sistema de presión social
+        social_pressure_system = SocialPressureSystem(self.config)
 
         # Definición estructurada del ciclo biológico y físico
         phases = [
+            # ================================================================
+            # FASE 1: TEMPORAL
+            # ================================================================
             PhaseDefinition(
                 name="temporal",
                 systems=[
                     TemporalSystem(self.config),
                     AgingSystem(self.config),
-                ],  # type: ignore[arg-type]
+                ],
             ),
+            
+            # ================================================================
+            # FASE 2: AMBIENTAL
+            # ================================================================
             PhaseDefinition(
                 name="environment",
                 systems=[
                     EnvironmentSystem(self.config),
                     density_system,
                     EpidemiologicalSystem(self.config),
+                    social_pressure_system,  # BLOQUE 4: Feedback social al entorno
                     CognitiveMemorySystem(self.config),
-                ],  # type: ignore[arg-type]
-            ),
-            PhaseDefinition(
-                name="behavior_and_movement",
-                systems=[
-                    FreeWillSystem(
-                        config=self.config,
-                        relationship_engine=self.relationship_engine,  # <-- NUEVO
-                    ),
-                    MigrationSystem(self.config),
-                    MovementSystem(
-                        config=self.config,
-                        density_system=density_system,
-                        relationship_engine=self.relationship_engine,  # <-- NUEVO
-                    ),
-                    MovementResolver(self.config),
                 ],
             ),
+            
+            # ================================================================
+            # FASE 3: SOCIAL (RELACIONES)
+            # ================================================================
             PhaseDefinition(
                 name="relationships",
                 systems=[
                     compatibility_engine,
-                    relationship_manager,
+                    marriage_system,         # Genera eventos de intimidad (NUEVO)
+                    # relationship_system,   # ELIMINADO: Era el que causaba las 7.908 rupturas
+                    relationship_manager,    # Crea relaciones iniciales y detecta encuentros
                     AdoptionSystem(
                         config=self.config,
                         ancestry_queries=ancestry_queries,
                         event_bus=self.event_bus,
                         relationship_engine=self.relationship_engine,
                     ),
+                    experience_generator,    # Genera experiencias basadas en etiquetas
                 ],
             ),
+            
+            # ================================================================
+            # FASE 4: MOVIMIENTO Y CONDUCTA
+            # ================================================================
+            PhaseDefinition(
+                name="behavior_and_movement",
+                systems=[
+                    FreeWillSystem(
+                        config=self.config,
+                        relationship_engine=self.relationship_engine,
+                    ),
+                    MigrationSystem(self.config),
+                    MovementSystem(
+                        config=self.config,
+                        density_system=density_system,
+                        relationship_engine=self.relationship_engine,
+                    ),
+                    MovementResolver(self.config),
+                ],
+            ),
+            
+            # ================================================================
+            # FASE 5: SALUD
+            # ================================================================
             PhaseDefinition(
                 name="health",
                 systems=[
-                    # INYECCIÓN: Pasamos el motor de experiencias al sistema de enfermedades
                     DiseaseSystem(
                         config=self.config,
                         relationship_engine=self.relationship_engine,
                     ),
-                ],  # type: ignore[arg-type]
+                ],
             ),
+            
+            # ================================================================
+            # FASE 6: REPRODUCCIÓN
+            # ================================================================
             PhaseDefinition(
                 name="reproduction",
                 systems=[
-                    # INYECCIÓN: Pasamos el motor de experiencias al sistema de concepción
                     ConceptionSystem(
                         config=self.config,
-                        relationship_engine=self.relationship_engine,  # <-- NUEVO
+                        relationship_engine=self.relationship_engine,
                     ),
-                    # INYECCIÓN: Pasamos el motor de experiencias al sistema de gestación
                     GestationSystem(
                         config=self.config,
                         evolution_engine=evolution_engine,
-                        relationship_engine=self.relationship_engine,  # <-- NUEVO
+                        relationship_engine=self.relationship_engine,
                     ),
-                ],  # type: ignore[arg-type]
+                ],
             ),
+            
+            # ================================================================
+            # FASE 7: MORTALIDAD
+            # ================================================================
             PhaseDefinition(
                 name="mortality",
                 systems=[
-                    # INYECCIÓN: Pasamos el motor de experiencias al sistema de mortalidad
                     MortalitySystem(
                         config=self.config,
-                        relationship_engine=self.relationship_engine,  # <-- NUEVO
+                        relationship_engine=self.relationship_engine,
+                        ancestry_queries=ancestry_queries,  # CORRECCIÓN: Para endogamia
                     ),
                     DeathResolver(self.config),
-                ],  # type: ignore[arg-type]
+                ],
             ),
+            
+            # ================================================================
+            # FASE 8: OBSERVADORES
+            # ================================================================
             PhaseDefinition(
                 name="observers",
                 systems=[
                     genealogy_system,
-                    MetricsSystem(self.config),
+                    MetricsSystem(
+                        self.config, 
+                        genealogy_system=genealogy_system,  # CORRECCIÓN: Para métricas de linajes
+                    ),
                     evolution_engine,
-                ],  # type: ignore[arg-type]
+                ],
             ),
         ]
 

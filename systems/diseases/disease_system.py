@@ -6,6 +6,16 @@ Implementa un modelo de propagación espacial con fases de infección:
 FASE 0: Integración con el RelationshipExperienceEngine mediante eventos
 ligeros compatibles para que las enfermedades y recuperaciones afecten 
 las relaciones (cuidado, duelo, etc.) a través de recuerdos.
+
+FASE 1: Progresión de infecciones, recuperación y mutación
+FASE 2: Contagios locales con CARGA VIRAL ACUMULATIVA por sector
+FASE 3: Brotes espontáneos (evaluados UNA VEZ por tick, no por agente)
+
+CORRECCIONES APLICADAS:
+- Alineado con el nuevo sistema de relaciones (Fases 0-4)
+- Prioridad 9: Carga viral del sector acumulativa (no binaria)
+- BUG CRÍTICO CORREGIDO: Brotes fuera del bucle de agentes
+- Integración con memoria episódica (recuperaciones)
 """
 
 import random
@@ -22,7 +32,6 @@ from systems.environment.environment_context import EnvironmentContext
 from core.config.simulation_config import SimulationConfig
 from systems.diseases.pathogen import Pathogen, InfectionPhase
 
-# FASE 0: Solo importamos el tipo de evento y el estado legacy para compatibilidad
 from systems.relationships.relationship_model import (
     RelationshipEventType,
     RelationshipStatus,
@@ -46,7 +55,6 @@ class DiseaseSystem:
         config: SimulationConfig,
         relationship_engine: Optional[RelationshipExperienceEngine] = None,
     ) -> None:
-        """Inicializa el sistema vinculándolo a la configuración centralizada."""
         self.config = config
         self.relationship_engine = relationship_engine
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -86,6 +94,7 @@ class DiseaseSystem:
             for path_id, infection_state in list(person.active_infections.items()):
                 pathogen = infection_state.pathogen
                 
+                # Riesgo de muerte por síntomas graves
                 if infection_state.phase == InfectionPhase.SYMPTOMATIC:
                     lethality_risk = pathogen.lethality * 0.01 * delta_days
                     total_immunity = person.get_specific_immunity(pathogen)
@@ -99,6 +108,7 @@ class DiseaseSystem:
                         self._notify_partner_death(person, state, pending, current_day)
                         continue
                 
+                # Intento de recuperación
                 if infection_state.phase in (InfectionPhase.RECOVERING, InfectionPhase.SYMPTOMATIC):
                     total_immunity = person.get_specific_immunity(pathogen)
                     daily_recovery_rate = (dis_cfg.base_recovery_chance * 3.0 * total_immunity) / max(0.1, pathogen.virulence)
@@ -108,6 +118,7 @@ class DiseaseSystem:
                         pending.register_recovery(person.entity_id, path_id)
                         self._notify_recovery_care(person, state, pending, current_day, pathogen)
                         
+                        # Memoria episódica de la recuperación
                         intensity = min(1.0, 0.3 + (pathogen.virulence * 0.6))
                         CognitiveMemorySystem.add_memory(
                             person=person,
@@ -121,116 +132,203 @@ class DiseaseSystem:
                         )
                         continue
                 
+                # Contribuir a la carga viral del sector si es contagioso
                 if infection_state.is_contagious():
                     sector = (person.x // sector_size, person.y // sector_size)
                     effective_transmission = pathogen.transmission * infection_state.get_transmission_multiplier()
                     pathogen_map[sector].append((pathogen, effective_transmission))
                 
+                # Intento de mutación
                 if infection_state.phase in (InfectionPhase.CONTAGIOUS, InfectionPhase.SYMPTOMATIC):
                     mutation_chance = 0.005 * delta_days
                     if random.random() < mutation_chance:
                         new_variant = pathogen.mutate()
-                        for old_path_id in list(person.active_infections.keys()):
-                            if old_path_id.startswith(f"{pathogen.family}_"):
-                                pending.register_recovery(person.entity_id, old_path_id)
-                        pending.register_infection(person.entity_id, new_variant)
+                        
+                        # Verificar que la nueva variante no esté ya activa
+                        if new_variant.pathogen_id not in person.active_infections:
+                            # Marcar las variantes antiguas para recuperación
+                            for old_path_id in list(person.active_infections.keys()):
+                                if old_path_id.startswith(f"{pathogen.family}_") and old_path_id != new_variant.pathogen_id:
+                                    pending.register_recovery(person.entity_id, old_path_id)
+                            
+                            # Registrar la nueva variante
+                            pending.register_infection(person.entity_id, new_variant)
 
         # =================================================================
-        # FASE 2: CONTAGIOS LOCALES Y BROTES ESPONTÁNEOS
+        # FASE 2: CONTAGIOS LOCALES (CARGA VIRAL ACUMULADA)
         # =================================================================
+        
+        # 1. Calcular carga viral total por sector
+        sector_viral_load: Dict[tuple, float] = defaultdict(float)
+        sector_pathogens: Dict[tuple, list] = defaultdict(list)
+        
+        for sector, pathogens in pathogen_map.items():
+            sector_pathogens[sector] = [p for p, _ in pathogens]
+            for _, effective_transmission in pathogens:
+                sector_viral_load[sector] += effective_transmission
+
+        # 2. Evaluar contagio para cada agente sano
         for person in state.get_all_persons():
             if person.entity_id in pending.deaths:
                 continue
+            if getattr(person, 'is_sick', False):
+                continue
             
             sector = (person.x // sector_size, person.y // sector_size)
-            local_pathogens = pathogen_map.get(sector, [])
-            agent_infections_this_tick: Set[str] = set()
+            viral_load = sector_viral_load.get(sector, 0.0)
             
-            family_counts = defaultdict(int)
-            for pid in person.active_infections.keys():
-                family = pid.split('_')[0]
-                family_counts[family] += 1
+            # Si no hay carga viral en el sector, no hay riesgo de contagio ambiental
+            if viral_load <= 0.0:
+                continue
             
-            for pathogen, _ in local_pathogens:
-                if pathogen.pathogen_id in person.active_infections or pathogen.pathogen_id in agent_infections_this_tick:
-                    continue
-                if family_counts[pathogen.family] >= 2:
-                    continue
-                
-                total_immunity = person.get_specific_immunity(pathogen)
-                if total_immunity > 1.5:
-                    continue
-                
-                crowding_pressure = context.get_local_pressure(person.x, person.y)
-                immunity_factor = min(1.0, total_immunity / 2.0)
-                base_rate = (pathogen.transmission * max(1.0, crowding_pressure)) / max(0.5, total_immunity)
-                daily_transmission_rate = base_rate * (1.0 - immunity_factor * 0.8)
-                infection_chance = 1.0 - math.exp(-daily_transmission_rate * delta_days)
-                
-                if random.random() < infection_chance:
-                    pending.register_infection(person.entity_id, pathogen)
-                    agent_infections_this_tick.add(pathogen.pathogen_id)
-                    family_counts[pathogen.family] += 1
+            # Inmunidad innate base como defensa general
+            base_innate_immunity = max(
+                0.1, 
+                person.genome.immunity - ((1.0 - person.emotions.get("energy", 1.0)) * 0.2)
+            )
+            crowding_pressure = context.get_local_pressure(person.x, person.y)
+            immunity_factor = min(1.0, base_innate_immunity / 2.0)
             
-            outbreak_chance = 1.0 - math.exp(-(dis_cfg.base_outbreak_chance / 100.0) * delta_days)
-            if random.random() < outbreak_chance:
-                familia_random = random.choice(["Influenza", "Coronavirus", "Poxvirus", "Bacteriofago_X"])
+            # La tasa de transmisión escala con la CARGA VIRAL TOTAL del sector
+            base_rate = (viral_load * max(1.0, crowding_pressure)) / max(0.5, base_innate_immunity)
+            daily_transmission_rate = base_rate * (1.0 - immunity_factor * 0.8)
+            infection_chance = 1.0 - math.exp(-daily_transmission_rate * delta_days)
+            
+            if random.random() < infection_chance:
+                # Seleccionar un patógeno aleatorio de los presentes en el sector
+                local_p = sector_pathogens.get(sector, [])
+                if local_p:
+                    chosen_pathogen = random.choice(local_p)
+                    # Verificar que no lo tenga ya (doble chequeo de seguridad)
+                    if chosen_pathogen.pathogen_id not in person.active_infections:
+                        pending.register_infection(person.entity_id, chosen_pathogen)
+
+        # =================================================================
+        # FASE 3: BROTES ESPONTÁNEOS (CORREGIDO: FUERA DEL BUCLE DE AGENTES)
+        # =================================================================
+        # Se evalúa UNA VEZ por tick para toda la población, no una vez por agente.
+        
+        outbreak_chance = 1.0 - math.exp(-(dis_cfg.base_outbreak_chance / 100.0) * delta_days)
+        
+        if random.random() < outbreak_chance:
+            # Seleccionar un paciente cero aleatorio de entre todos los agentes vivos y sanos
+            alive_and_healthy = [
+                p for p in state.get_all_persons() 
+                if p.entity_id not in pending.deaths 
+                and not getattr(p, 'is_sick', False)
+            ]
+            
+            if alive_and_healthy:
+                patient_zero = random.choice(alive_and_healthy)
+                
+                # Crear un patógeno aleatorio
+                pathogen_families = getattr(
+                    dis_cfg, 
+                    'pathogen_families', 
+                    ["Influenza", "Coronavirus", "Poxvirus", "Bacteriofago_X"]
+                )
+                familia_random = random.choice(pathogen_families)
                 patient_zero_virus = Pathogen.create_random_variant(familia_random)
                 
-                if patient_zero_virus.pathogen_id not in person.active_infections and patient_zero_virus.pathogen_id not in agent_infections_this_tick:
-                    pending.register_infection(person.entity_id, patient_zero_virus)
-                    agent_infections_this_tick.add(patient_zero_virus.pathogen_id)
+                # Verificar que el paciente cero no esté ya infectado con esta familia
+                already_infected = any(
+                    inf_state.pathogen.family == patient_zero_virus.family 
+                    for inf_state in patient_zero.active_infections.values()
+                )
+                
+                # Verificar que no tenga ya una infección pendiente en este tick
+                already_pending = any(
+                    eid == patient_zero.entity_id 
+                    for eid, _ in pending.infections
+                )
+                
+                if not already_infected and not already_pending:
+                    pending.register_infection(patient_zero.entity_id, patient_zero_virus)
+                    
                     self.logger.info(
                         "🚨 Brote: %s en Agente %s (vir: %.2f, trans: %.2f, let: %.2f, inc: %.1fd, asym: %.2f)",
-                        patient_zero_virus.pathogen_id, person.entity_id,
-                        patient_zero_virus.virulence, patient_zero_virus.transmission,
-                        patient_zero_virus.lethality, patient_zero_virus.incubation_days,
+                        patient_zero_virus.pathogen_id, 
+                        patient_zero.entity_id,
+                        patient_zero_virus.virulence, 
+                        patient_zero_virus.transmission,
+                        patient_zero_virus.lethality, 
+                        patient_zero_virus.incubation_days,
                         patient_zero_virus.asymptomatic_chance,
                     )
 
     # =========================================================================
-    # INTEGRACIÓN CON RELATIONSHIP EXPERIENCE ENGINE (FASE 0)
+    # INTEGRACIÓN CON RELATIONSHIP EXPERIENCE ENGINE (FASE 0 + CORRECCIONES)
     # =========================================================================
 
-    def _notify_recovery_care(self, patient: Any, state: WorldState, pending: PendingChanges, current_day: float, pathogen: Any) -> None:
+    def _notify_recovery_care(
+        self, 
+        patient: Any, 
+        state: WorldState, 
+        pending: PendingChanges, 
+        current_day: float, 
+        pathogen: Any
+    ) -> None:
         """Notifica al motor de relaciones que un agente se recuperó, generando eventos de cuidado."""
         if not self.relationship_engine:
             return
 
-        for rel in getattr(patient, 'relationships', []):
-            # FASE 0: Usamos getattr para compatibilidad con el campo legacy 'status'
-            if getattr(rel, 'status', None) in (RelationshipStatus.DATING, RelationshipStatus.COHABITATION, RelationshipStatus.CONSOLIDATED):
+        for rel in patient._relationships:
+            if getattr(rel, 'status', None) in (
+                RelationshipStatus.DATING, 
+                RelationshipStatus.COHABITATION, 
+                RelationshipStatus.CONSOLIDATED
+            ):
                 partner = state.get_person_by_id(rel.partner_id)
                 if partner and partner.entity_id not in pending.deaths:
                     distance = math.hypot(patient.x - partner.x, patient.y - partner.y)
                     if distance < 15.0:
-                        intensity = min(1.0, 0.4 + (pathogen.virulence * 0.5))
+                        # Calcular intensidad basada en la fuerza real de la relación
+                        rel_strength = sum(m.current_weight(current_day) for m in rel.memories)
+                        base_intensity = min(1.0, 0.4 + (pathogen.virulence * 0.5))
+                        relationship_bonus = min(0.3, rel_strength * 0.001)
+                        intensity = min(1.0, base_intensity + relationship_bonus)
+                        
+                        # Contexto rico que el BiasEngine pueda reconocer
+                        context = "cuidado_enfermedad" if rel_strength > 100 else f"recuperacion_de_{pathogen.pathogen_id}"
                         
                         event_care = _DiseaseRelationalEvent(
                             event_type=RelationshipEventType.CARE,
                             intensity=intensity,
-                            context=f"recuperacion_de_{pathogen.pathogen_id}",
+                            context=context,
                         )
-                        # agent_a es quien cuida (partner), agent_b es quien se recupera (patient)
                         self.relationship_engine.process_event(event_care, partner, patient, current_day)
 
-    def _notify_partner_death(self, deceased: Any, state: WorldState, pending: PendingChanges, current_day: float) -> None:
+    def _notify_partner_death(
+        self, 
+        deceased: Any, 
+        state: WorldState, 
+        pending: PendingChanges, 
+        current_day: float
+    ) -> None:
         """Notifica a las relaciones cercanas sobre la muerte de un agente."""
         if not self.relationship_engine:
             return
 
-        for rel in getattr(deceased, 'relationships', []):
-            # FASE 0: Usamos getattr para compatibilidad con los campos legacy
+        for rel in deceased._relationships:
             if getattr(rel, 'status', None) != RelationshipStatus.EX_PARTNER:
                 survivor = state.get_person_by_id(rel.partner_id)
                 if survivor and survivor.entity_id not in pending.deaths:
-                    attachment = getattr(rel, 'attachment', 50.0)
-                    intensity = min(1.0, 0.5 + (attachment / 100.0) * 0.5)
+                    rel_strength = sum(m.current_weight(current_day) for m in rel.memories)
+                    
+                    base_intensity = 0.5
+                    relationship_bonus = min(0.5, rel_strength * 0.002)
+                    intensity = min(1.0, base_intensity + relationship_bonus)
+                    
+                    if rel_strength > 200:
+                        context = "perdida_de_ser_querido"
+                    elif rel_strength > 100:
+                        context = "duelo_profundo"
+                    else:
+                        context = "fallecimiento"
                     
                     event_death = _DiseaseRelationalEvent(
                         event_type=RelationshipEventType.PARTNER_DEATH,
                         intensity=intensity,
-                        context="fallecimiento",
+                        context=context,
                     )
-                    # agent_a es el sobreviviente, agent_b es el fallecido
                     self.relationship_engine.process_event(event_death, survivor, deceased, current_day)

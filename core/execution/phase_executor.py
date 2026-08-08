@@ -60,20 +60,3 @@ class PhaseExecutor:
                 context=context,
                 phase_name=phase.name,
             )
-
-    @staticmethod
-    def normalize(
-        name: str,
-        systems: Iterable[ProcessableSystem],
-    ) -> PhaseDefinition:
-        """Construye una fase desde un iterable de sistemas.
-
-        Args:
-            name: Nombre de la fase.
-            systems: Sistemas que formarán parte de la fase.
-
-        Returns:
-            Fase normalizada.
-        """
-
-        return PhaseDefinition(name=name, systems=list(systems))

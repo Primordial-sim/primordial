@@ -1,4 +1,16 @@
-"""Módulo responsable de la integridad transaccional tras eventos de mortalidad."""
+"""Módulo responsable de la integridad transaccional tras eventos de mortalidad.
+
+Actúa como filtro de contingencia que purga todas las intenciones pendientes
+de entidades que han fallecido durante el tick actual, evitando estados
+inconsistentes en el commit final.
+
+CORRECCIONES APLICADAS (Auditoría):
+- Bug crítico: filtrado correcto de tuplas (entity_id, pathogen) en infections
+- Limpieza de pending.recoveries
+- Limpieza de pending.pregnancy_updates
+- Limpieza de pending.births (si la madre muere, se cancela el parto)
+- Limpieza de pending.emotion_updates y pending.memory_updates
+"""
 
 import logging
 from core.state.pending_changes import PendingChanges
@@ -11,7 +23,6 @@ class DeathResolver:
     """Filtro de contingencia para purgar intenciones de entidades fallecidas."""
 
     def __init__(self, config: SimulationConfig) -> None:
-        """Inicializa el resolutor cumpliendo el contrato de la arquitectura."""
         self.config = config
         self.logger = logging.getLogger("DeathResolver")
 
@@ -42,18 +53,20 @@ class DeathResolver:
             if e_id not in muertos_set
         }
 
-        # 3. Cancelar infecciones recientes (desempaquetando tuplas)
+        # 3. CORRECCIÓN CRÍTICA: Cancelar infecciones recientes
+        # pending.infections contiene tuplas (entity_id, pathogen), no simples IDs
         pending.infections = [
-            (e_id, pathogen)
-            for e_id, pathogen in pending.infections
-            if e_id not in muertos_set
+            (entity_id, pathogen)
+            for entity_id, pathogen in pending.infections
+            if entity_id not in muertos_set
         ]
 
-        # 4. Cancelar recuperaciones de enfermedades
+        # 4. CORRECCIÓN: Cancelar recuperaciones de enfermedades
+        # pending.recoveries contiene tuplas (entity_id, pathogen_id)
         pending.recoveries = [
-            (e_id, pathogen_id)
-            for e_id, pathogen_id in pending.recoveries
-            if e_id not in muertos_set
+            (entity_id, pathogen_id)
+            for entity_id, pathogen_id in pending.recoveries
+            if entity_id not in muertos_set
         ]
 
         # 5. Cancelar trámites de nupcias
@@ -77,17 +90,28 @@ class DeathResolver:
                 for adop in pending.adoptions
                 if adop.get("child_id") not in muertos_set
                 and adop.get("parent_a") not in muertos_set
-                and adop.get("parent_b") not in muertos_set
+                and (adop.get("parent_b") is None or adop.get("parent_b") not in muertos_set)
             ]
 
-        # 8. Cancelar actualizaciones de embarazo
-        pending.pregnancy_updates = {
-            e_id: data
-            for e_id, data in pending.pregnancy_updates.items()
-            if e_id not in muertos_set
-        }
+        # 8. CORRECCIÓN: Cancelar actualizaciones de embarazo
+        if hasattr(pending, "pregnancy_updates"):
+            pending.pregnancy_updates = {
+                e_id: data
+                for e_id, data in pending.pregnancy_updates.items()
+                if e_id not in muertos_set
+            }
 
-        # 9. Cancelar actualizaciones emocionales
+        # 9. CORRECCIÓN: Cancelar nacimientos pendientes si la madre muere
+        # Decisión: si la madre muere antes del commit, el parto se cancela
+        # (el bebé no nace). Esto evita inconsistencias con huérfanos sin madre.
+        if hasattr(pending, "births"):
+            pending.births = [
+                birth
+                for birth in pending.births
+                if birth.get("mother_id") not in muertos_set
+            ]
+
+        # 10. Cancelar actualizaciones emocionales
         if hasattr(pending, "emotion_updates"):
             pending.emotion_updates = {
                 e_id: updates
@@ -95,7 +119,7 @@ class DeathResolver:
                 if e_id not in muertos_set
             }
 
-        # 10. Cancelar actualizaciones de memoria
+        # 11. Cancelar actualizaciones de memoria
         if hasattr(pending, "memory_updates"):
             pending.memory_updates = {
                 e_id: updates
@@ -103,11 +127,27 @@ class DeathResolver:
                 if e_id not in muertos_set
             }
 
-        # 11. NUEVO: Cancelar actualizaciones de libre albedrío
+        # 12. Cancelar actualizaciones de libre albedrío
         if hasattr(pending, "free_will_flags_updates"):
             pending.free_will_flags_updates = {
                 e_id: flags
                 for e_id, flags in pending.free_will_flags_updates.items()
+                if e_id not in muertos_set
+            }
+
+        # 13. Cancelar actualizaciones de motivaciones continuas
+        if hasattr(pending, "motivation_updates"):
+            pending.motivation_updates = {
+                e_id: updates
+                for e_id, updates in pending.motivation_updates.items()
+                if e_id not in muertos_set
+            }
+
+        # 14. Cancelar objetivos de migración
+        if hasattr(pending, "migration_targets"):
+            pending.migration_targets = {
+                e_id: target
+                for e_id, target in pending.migration_targets.items()
                 if e_id not in muertos_set
             }
 

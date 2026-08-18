@@ -40,3 +40,7 @@ simulation_metrics.json
 data_historica.json
 logs/
 *.log
+
+# Godot
+godot/.godot/
+godot/export_presets.cfg

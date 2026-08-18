@@ -182,16 +182,14 @@ class ConceptionSystem:
         repro_cfg: Any,
     ) -> float:
         """Calcula la probabilidad de concepción con fertilidad multiplicativa.
-        
-        CORRECCIÓN 3: Usa producto en lugar de promedio para que
-        la esterilidad de un progenitor reduzca realmente la concepción.
         """
         # Fertilidad genética base
-        mother_fertility = person.genome.fertility
+        # GENÉTICA UNIVERSAL: API genérica agnóstica a especie
+        mother_fertility = person.genome.get_trait_value("fertility")
         
         if partner is not None:
             # CORRECCIÓN 3: Producto de fertilidades (no promedio)
-            father_fertility = partner.genome.fertility
+            father_fertility = partner.genome.get_trait_value("fertility")
             fertility_modifier = mother_fertility * father_fertility
         else:
             # Partenogénesis: solo fertilidad de la madre
@@ -207,10 +205,14 @@ class ConceptionSystem:
             energy_multiplier = person.emotions.get("energy", 1.0)
 
         # CORRECCIÓN 5: Penalización por longevidad con clamp de seguridad
+        # GENÉTICA UNIVERSAL: API genérica agnóstica a especie
         if partner is not None:
-            avg_longevity = (person.genome.longevity + partner.genome.longevity) / 2.0
+            avg_longevity = (
+                person.genome.get_trait_value("longevity") + 
+                partner.genome.get_trait_value("longevity")
+            ) / 2.0
         else:
-            avg_longevity = person.genome.longevity
+            avg_longevity = person.genome.get_trait_value("longevity")
         
         # Clamp: evitar división por valores cercanos a cero
         avg_longevity = max(0.3, avg_longevity)
@@ -228,51 +230,52 @@ class ConceptionSystem:
         return max(0.0, min(0.5, final_chance))  # Cap máximo del 50% por tick
 
     def _determine_litter_size(self, species: str, repro_cfg: Any) -> int:
-        """Determina el tamaño de camada según la especie."""
+        """Determina el tamaño de camada según la especie.
+        
+        GENÉTICA UNIVERSAL: Usa litter_size_min y litter_size_max del perfil.
+        """
         species_traits = self._get_species_traits(species)
-        base_litter = species_traits.get("litter_size", 1)
+        min_size = species_traits.get("litter_size_min", 1)
+        max_size = species_traits.get("litter_size_max", min_size)
         
-        # Variación aleatoria pequeña
-        variation = random.randint(-1, 1)
-        litter_size = max(1, base_litter + variation)
+        # Variación aleatoria dentro del rango
+        if min_size == max_size:
+            litter_size = min_size
+        else:
+            litter_size = random.randint(min_size, max_size)
         
-        # Cap configurable
+        # Cap configurable global
         max_litter = getattr(repro_cfg, 'max_litter_size', 8)
         return min(litter_size, max_litter)
 
     def _get_species_traits(self, species: str) -> Dict[str, Any]:
         """Obtiene rasgos reproductivos de la especie.
         
-        CORRECCIÓN 7: Centralizado en un único punto.
+        GENÉTICA UNIVERSAL: Usa species_profiles de ReproductionConfig
+        como fuente única de verdad. Fallback a valores por defecto.
         """
-        # CORRECCIÓN: Usar configuración centralizada si existe
-        species_config = getattr(self.config, 'species', None)
-        if species_config and hasattr(species_config, species):
-            return getattr(species_config, species).__dict__
+        repro_cfg = self.config.reproduction
+        species_profiles = getattr(repro_cfg, 'species_profiles', {})
         
-        # Fallback: rasgos por defecto
-        traits = {
-            "human": {
-                "gestation_days": 270.0,
-                "litter_size": 1,
-                "can_gestate_female_only": True,
-                "fertility_window_start": 5475.0,   # ~15 años
-                "fertility_window_end": 14600.0,    # ~40 años
-            },
-            "goblin": {
-                "gestation_days": 120.0,
-                "litter_size": 3,
-                "can_gestate_female_only": True,
-                "fertility_window_start": 2190.0,   # ~6 años
-                "fertility_window_end": 7300.0,     # ~20 años
-            },
-            "default": {
-                "gestation_days": 180.0,
-                "litter_size": 2,
-                "can_gestate_female_only": True,
-                "fertility_window_start": 3650.0,
-                "fertility_window_end": 10950.0,
-            },
+        # Perfil específico de especie
+        profile = species_profiles.get(species, {})
+        
+        # Valores por defecto universales
+        defaults = {
+            "gestation_days": 180.0,
+            "litter_size_min": 1,
+            "litter_size_max": 2,
+            "parthenogenesis_chance": 0.0,
+            "can_gestate_female_only": True,
+            "fertility_window_start": 3650.0,
+            "fertility_window_end": 10950.0,
         }
         
-        return traits.get(species, traits["default"])
+        # Combinar con defaults
+        traits = {**defaults, **profile}
+        
+        # Calcular litter_size promedio para compatibilidad con código legacy
+        if "litter_size" not in traits:
+            traits["litter_size"] = (traits["litter_size_min"] + traits["litter_size_max"]) // 2
+        
+        return traits

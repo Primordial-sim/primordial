@@ -61,7 +61,8 @@ class TemporalSystem:
             # =================================================================
             
             # 1. COSTE INMUNOLÓGICO (trade-off evolutivo)
-            immunity = person.genome.immunity
+            # GENÉTICA UNIVERSAL: API genérica agnóstica a especie
+            immunity = person.genome.get_trait_value("immunity")
             immune_cost = immunity * immune_cost_per_point
             
             # CORRECCIÓN: El coste inmunológico se dispara cuando hay infección activa
@@ -75,7 +76,8 @@ class TemporalSystem:
                 immune_cost *= sickness_multiplier
 
             # 2. COSTE POR TEMPERAMENTO (hiperactividad metabólica)
-            temperament = person.genome.temperament
+            # GENÉTICA UNIVERSAL: API genérica agnóstica a especie
+            temperament = person.genome.get_trait_value("temperament")
             temperament_cost = temperament * temperament_cost_per_point
 
             # 3. COSTE POR EDAD (metabolismo basal variable)

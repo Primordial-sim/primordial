@@ -7,12 +7,9 @@ En su lugar:
 - La etiqueta "Amante" emerge naturalmente de memorias INTIMACY acumuladas
 - La monogamia se verifica mediante etiquetas activas
 
-Flujo:
-1. Agente busca pareja → encuentra candidato compatible
-2. Se genera evento INTIMACY entre ambos
-3. RelationshipExperienceEngine crea memorias
-4. Si memorias INTIMACY acumulan suficiente peso → etiqueta "Amante" emerge
-5. BehaviorInfluence usa la etiqueta para decisiones futuras
+OPTIMIZACIÓN DE RENDIMIENTO:
+- Caché de _has_romantic_partner por tick (reduce llamadas a get_labels)
+- Limpieza de caché al inicio de cada tick
 """
 
 from __future__ import annotations
@@ -20,7 +17,7 @@ from __future__ import annotations
 import logging
 import math
 import random
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from core.config.simulation_config import SimulationConfig
 from core.state.pending_changes import PendingChanges
@@ -49,6 +46,9 @@ class MarriageSystem:
         self.search_radius = getattr(config.reproduction, 'partner_search_radius', 20.0)
         self.widowhood_duration = getattr(config.reproduction, 'widowhood_duration_days', 365.0)
         self.intimacy_cooldown = getattr(config.reproduction, 'intimacy_cooldown_days', 30.0)
+        
+        # OPTIMIZACIÓN: Caché de parejas románticas por tick
+        self._romantic_partner_cache: Dict[int, bool] = {}
 
     def process(
         self,
@@ -60,6 +60,9 @@ class MarriageSystem:
         """Procesa intentos de intimidad entre agentes compatibles."""
         current_day = getattr(state, 'world_days_elapsed', 0.0)
         all_persons = state.get_all_persons()
+
+        # OPTIMIZACIÓN: Limpiar caché al inicio de cada tick
+        self._romantic_partner_cache.clear()
 
         for person in all_persons:
             if person.entity_id in pending.deaths:
@@ -96,17 +99,32 @@ class MarriageSystem:
         return getattr(person, 'marital_status', 'soltero') == 'viudo'
 
     def _has_romantic_partner(self, person: Any, current_day: float) -> bool:
-        """Verifica monogamia usando etiquetas emergentes."""
-        if not hasattr(person, '_relationships'):
-            return False
-        romantic_labels = {"Amante", "Interés Romántico"}
-        for rel in person._relationships:
-            if not hasattr(rel, 'get_labels'):
-                continue
-            labels = rel.get_labels(current_day)
-            if romantic_labels.intersection(labels):
-                return True
-        return False
+        """Verifica monogamia usando etiquetas emergentes.
+    
+        OPTIMIZACIÓN: Usa caché por tick para evitar llamadas repetidas
+        a get_labels() para el mismo agente.
+    
+        CORRECCIÓN: _relationships es ahora Dict[int, Relationship],
+        hay que usar .values() para iterar sobre los objetos Relationship.
+        """
+        cache_key = person.entity_id
+        if cache_key in self._romantic_partner_cache:
+            return self._romantic_partner_cache[cache_key]
+    
+        result = False
+        if hasattr(person, '_relationships') and person._relationships:
+            romantic_labels = {"Amante", "Interés Romántico"}
+            # CORRECCIÓN CRÍTICA: usar .values() porque _relationships es ahora un Dict
+            for rel in person._relationships.values():
+                if not hasattr(rel, 'get_labels'):
+                    continue
+                labels = rel.get_labels(current_day)
+                if romantic_labels.intersection(labels):
+                    result = True
+                    break
+    
+        self._romantic_partner_cache[cache_key] = result
+        return result
 
     # ------------------------------------------------------------------
     # BÚSQUEDA
@@ -223,6 +241,8 @@ class MarriageSystem:
 class _IntimacyEvent:
     """Evento ligero compatible con RelationshipExperienceEngine."""
     event_type = RelationshipEventType.INTIMACY
+
+    __slots__ = ('intensity', 'context')
 
     def __init__(self, intensity: float):
         self.intensity = intensity

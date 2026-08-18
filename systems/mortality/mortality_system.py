@@ -69,7 +69,9 @@ class MortalitySystem:
         time_cfg = self.config.time
         
         # 1. RIESGO BASE POR SENESCENCIA (Gompertz)
-        adjusted_beta_years = mortality_cfg.beta_base / max(mortality_cfg.genome_clamping, person.genome.longevity)
+                # 1. RIESGO BASE POR SENESCENCIA (Gompertz)
+        # GENÉTICA UNIVERSAL: API genérica agnóstica a especie
+        adjusted_beta_years = mortality_cfg.beta_base / max(mortality_cfg.genome_clamping, person.genome.get_trait_value("longevity"))
         adjusted_beta_days = adjusted_beta_years / time_cfg.days_per_year
         base_hazard = (mortality_cfg.alpha_base * math.exp(adjusted_beta_days * person.age)) / time_cfg.days_per_year
         
@@ -191,23 +193,24 @@ class MortalitySystem:
         if not self.relationship_engine:
             return
 
-        for rel in deceased._relationships:
+        # CORRECCIÓN: usar .values() en lugar de iterar directamente
+        for rel in deceased._relationships.values():
             if getattr(rel, 'status', None) != RelationshipStatus.EX_PARTNER:
                 survivor = state.get_person_by_id(rel.partner_id)
                 if survivor and survivor.entity_id not in pending.deaths:
                     rel_strength = sum(m.current_weight(current_day) for m in rel.memories)
-                    
+                
                     base_intensity = 0.5
                     relationship_bonus = min(0.5, rel_strength * 0.002)
                     intensity = min(1.0, base_intensity + relationship_bonus)
-                    
+                
                     if rel_strength > 200:
                         context = "perdida_de_ser_querido"
                     elif rel_strength > 100:
                         context = "duelo_profundo"
                     else:
                         context = "fallecimiento"
-                    
+                
                     event_death = _MortalityRelationalEvent(
                         event_type=RelationshipEventType.PARTNER_DEATH,
                         intensity=intensity,
@@ -231,7 +234,8 @@ class MortalitySystem:
                 continue
             
             # 1. SELECCIÓN NATURAL ESTRICTA (Límite Biológico Determinista)
-            adjusted_cap = mortality_cfg.hard_cap_age_days * person.genome.longevity
+            # GENÉTICA UNIVERSAL: API genérica agnóstica a especie
+            adjusted_cap = mortality_cfg.hard_cap_age_days * person.genome.get_trait_value("longevity")
             if person.age >= adjusted_cap:
                 pending.register_death(person.entity_id, reason="Degradación telomérica total (Límite biológico)")
                 self.logger.debug(f"Muerte natural absoluta (Límite): Agente {person.entity_id}")

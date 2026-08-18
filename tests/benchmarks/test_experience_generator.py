@@ -64,8 +64,6 @@ def test_experience_generation() -> float:
     rel = Relationship(owner_id=1, partner_id=2, start_day=0.0)
     
     # Añadir recuerdos para generar etiqueta "Amigo"
-    # Necesitamos cooperation_weight > 400 y conflict_weight < 100
-    # Usamos current_day=15 para que los recuerdos estén recientes y no tengan decaimiento
     current_day = 15.0
     for i in range(15):
         mem = _create_cooperation_memory(1, 2, float(i), i)
@@ -79,7 +77,9 @@ def test_experience_generation() -> float:
         print("           ❌ FAIL  No se generó la etiqueta 'Amigo'")
         return 1.0
     
-    agent._relationships = [rel]
+    # CORRECCIÓN CRÍTICA: _relationships es ahora Dict[int, Relationship]
+    # La clave es partner_id, el valor es el objeto Relationship
+    agent._relationships = {rel.partner_id: rel}
     
     # Mock state y pending
     state = Mock()
@@ -132,7 +132,8 @@ def benchmark_experience_performance() -> float:
             mem = _create_cooperation_memory(i, (i + 1) % 100, float(j), j)
             rel.add_memory(mem, current_day=current_day)
         
-        agent._relationships = [rel]
+        # CORRECCIÓN CRÍTICA: _relationships es ahora Dict[int, Relationship]
+        agent._relationships = {rel.partner_id: rel}
         agents.append(agent)
     
     # Mock state

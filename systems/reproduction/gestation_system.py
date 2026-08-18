@@ -347,9 +347,21 @@ class GestationSystem:
         pending: PendingChanges,
         current_day: float,
     ) -> None:
-        """Ejecuta el nacimiento de un individuo con recombinación genética."""
-        # Recombinación genética
-        child_genome = mother.genome.combine(father_genome)
+        """Ejecuta el nacimiento de un individuo con recombinación genética.
+        
+        GENÉTICA UNIVERSAL:
+        - Si hay padre: reproducción sexual con combine()
+        - Si no hay padre: reproducción asexual con replicate()
+        """
+        from core.config.simulation_config import MutationConfig
+        mutation_config = MutationConfig()
+        
+        if father_genome is not None:
+            # REPRODUCCIÓN SEXUAL
+            child_genome = mother.genome.combine(father_genome, mutation_config)
+        else:
+            # REPRODUCCIÓN ASEXUAL (partenogénesis/clonación)
+            child_genome = mother.genome.replicate(mutation_config)
         
         # Determinar posición (cerca de la madre)
         spawn_x = mother.x + random.randint(-2, 2)
@@ -408,35 +420,31 @@ class GestationSystem:
     def _get_species_traits(self, species: str) -> Dict[str, Any]:
         """Configuración de especies centralizada.
         
-        Usa la misma fuente que ConceptionSystem para evitar inconsistencias.
+        GENÉTICA UNIVERSAL: Usa species_profiles de ReproductionConfig
+        como fuente única de verdad.
         """
-        species_config = getattr(self.config, 'species', None)
-        if species_config and hasattr(species_config, species):
-            return getattr(species_config, species).__dict__
+        repro_cfg = self.config.reproduction
+        species_profiles = getattr(repro_cfg, 'species_profiles', {})
         
-        # Fallback: rasgos por defecto (DEBE coincidir con ConceptionSystem)
-        traits = {
-            "human": {
-                "gestation_days": 270.0,
-                "litter_size": 1,
-                "can_gestate_female_only": True,
-                "fertility_window_start": 5475.0,
-                "fertility_window_end": 14600.0,
-            },
-            "goblin": {
-                "gestation_days": 120.0,
-                "litter_size": 3,
-                "can_gestate_female_only": True,
-                "fertility_window_start": 2190.0,
-                "fertility_window_end": 7300.0,
-            },
-            "default": {
-                "gestation_days": 180.0,
-                "litter_size": 2,
-                "can_gestate_female_only": True,
-                "fertility_window_start": 3650.0,
-                "fertility_window_end": 10950.0,
-            },
+        # Perfil específico de especie
+        profile = species_profiles.get(species, {})
+        
+        # Valores por defecto universales
+        defaults = {
+            "gestation_days": 180.0,
+            "litter_size_min": 1,
+            "litter_size_max": 2,
+            "parthenogenesis_chance": 0.0,
+            "can_gestate_female_only": True,
+            "fertility_window_start": 3650.0,
+            "fertility_window_end": 10950.0,
         }
         
-        return traits.get(species, traits["default"])
+        # Combinar con defaults
+        traits = {**defaults, **profile}
+        
+        # Calcular litter_size promedio para compatibilidad con código legacy
+        if "litter_size" not in traits:
+            traits["litter_size"] = (traits["litter_size_min"] + traits["litter_size_max"]) // 2
+        
+        return traits

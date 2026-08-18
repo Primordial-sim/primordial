@@ -153,15 +153,18 @@ class FreeWillSystem:
     # =================================================================
 
     def _calculate_genetic_motivations(self, person: Any, fw_cfg: Any) -> Dict[str, float]:
-        """Calcula la base genética de cada motivación usando rasgos del genoma."""
-        genome = person.genome
-        impulsivity = min(1.0, genome.impulsivity / 2.0)
-        curiosity = min(1.0, genome.curiosity / 2.0)
-        obedience = min(1.0, genome.obedience / 2.0)
-        aggressiveness = min(1.0, genome.aggressiveness / 2.0)
-        temperament = min(1.0, genome.temperament / 2.0)
-        sociability = min(1.0, genome.sociability / 2.0)
+        """Calcula la base genética de cada motivación usando rasgos del genoma.
         
+        GENÉTICA UNIVERSAL: API genérica agnóstica a especie.
+        """
+        genome = person.genome
+        impulsivity = min(1.0, genome.get_trait_value("impulsivity") / 2.0)
+        curiosity = min(1.0, genome.get_trait_value("curiosity") / 2.0)
+        obedience = min(1.0, genome.get_trait_value("obedience") / 2.0)
+        aggressiveness = min(1.0, genome.get_trait_value("aggressiveness") / 2.0)
+        temperament = min(1.0, genome.get_trait_value("temperament") / 2.0)
+        sociability = min(1.0, genome.get_trait_value("sociability") / 2.0)
+       
         return {
             "independence": impulsivity * fw_cfg.impulsivity_weight + aggressiveness * fw_cfg.aggressiveness_weight * 0.5 + (1.0 - obedience) * fw_cfg.obedience_weight * 0.5,
             "exploration": curiosity * fw_cfg.curiosity_weight + impulsivity * fw_cfg.impulsivity_weight * 0.3,

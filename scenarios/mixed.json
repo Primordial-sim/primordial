@@ -1,0 +1,21 @@
+{
+  "name": "Ecosistema mixto",
+  "description": "Humanos, aves e insectos coexistiendo en un territorio.",
+  "species": [
+    {"id": "human", "count": 20},
+    {"id": "bird", "count": 15},
+    {"id": "insect", "count": 100}
+  ],
+  "world": {
+    "width": 120,
+    "height": 120
+  },
+  "simulation": {
+    "max_ticks": 600,
+    "delta_days": 1.0,
+    "total_days": 2190
+  },
+  "environment": {
+    "sector_size": 10
+  }
+}

@@ -70,7 +70,8 @@ def make_relationship():
         )
         if memories:
             for mem in memories:
-                rel.memories.append(mem)
+                # CORRECCIÓN: Usar add_memory() para actualizar contadores incrementales
+                rel.add_memory(mem, current_day=start_day)
         return rel
     return _make
 

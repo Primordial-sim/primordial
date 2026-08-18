@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://bjfcek6l66nif"]
+
+[ext_resource type="Script" uid="uid://d2by4wyvf0nib" path="res://scripts/websocket_client.gd" id="1_ig7tw"]
+[ext_resource type="Script" uid="uid://bcd6p12mwy66c" path="res://scripts/world_renderer.gd" id="2_0xm2m"]
+[ext_resource type="Script" uid="uid://cprl63j6jk6jv" path="res://scripts/camera_controller.gd" id="3_h2yge"]
+[ext_resource type="Script" uid="uid://up7bvcasvcht" path="res://scripts/ui_renderer.gd" id="4_1bvp3"]
+
+[node name="Node2D" type="Node2D" unique_id=1554940637]
+script = ExtResource("1_ig7tw")
+
+[node name="World" type="Node2D" parent="." unique_id=607188551]
+script = ExtResource("2_0xm2m")
+
+[node name="Camera2D" type="Camera2D" parent="World" unique_id=193168515]
+script = ExtResource("3_h2yge")
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=515958807]
+
+[node name="UIRenderer" type="Control" parent="UI" unique_id=665660088]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4_1bvp3")

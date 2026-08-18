@@ -1,0 +1,19 @@
+{
+  "name": "Cultivo bacteriano",
+  "description": "Crecimiento exponencial con resistencia a antibióticos.",
+  "species": [
+    {"id": "bacteria", "count": 300}
+  ],
+  "world": {
+    "width": 60,
+    "height": 60
+  },
+  "simulation": {
+    "max_ticks": 300,
+    "delta_days": 0.1,
+    "total_days": 30
+  },
+  "environment": {
+    "sector_size": 6
+  }
+}

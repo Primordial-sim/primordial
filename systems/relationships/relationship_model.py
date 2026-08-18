@@ -3,6 +3,14 @@
 La memoria es la única fuente de verdad. Las variables emocionales se calculan 
 bajo demanda. Se implementan narrativas asimétricas, sesgos cognitivos y 
 evaluaciones contextuales.
+
+OPTIMIZACIÓN DE RENDIMIENTO:
+- Caché de etiquetas separada de la caché de métricas
+- get_labels() ahora retorna la caché si ya se calculó para el día actual
+- add_memory() invalida la caché de etiquetas
+- Contadores incrementales por categoría eliminan los sum() en LabelGenerator
+- Uso de strings en lugar de enums para claves de dict (evita enum.__hash__)
+- Eliminada la lógica automática de landmark en add_memory()
 """
 
 from __future__ import annotations
@@ -86,7 +94,7 @@ class MemoryRole(Enum):
 # ESTRUCTURAS DE DATOS DE MEMORIA Y COGNICIÓN (Fase 1)
 # =============================================================================
 
-@dataclass
+@dataclass(slots=True)
 class WorldEvent:
     event_id: int
     event_type: str
@@ -100,7 +108,7 @@ class WorldEvent:
     location: Optional[Tuple[int, int]] = None
 
 
-@dataclass
+@dataclass(slots=True)
 class PersonalMemory:
     world_event_id: int
     owner_id: int
@@ -133,7 +141,6 @@ class PersonalMemory:
             weight = self.personal_weight
         else:
             days_ago = current_day - self.day
-            # Fórmula correcta de vida media
             decay = math.exp(-days_ago * math.log(2) / self.half_life_days)
             weight = self.personal_weight * decay
         
@@ -142,22 +149,21 @@ class PersonalMemory:
         return weight
 
 
-@dataclass
+@dataclass(slots=True)
 class Narrative:
     """Narrativa que envejece (Fase 1, Punto 6)."""
     pattern: str
     strength: float
     last_confirmed: float
-    half_life_days: float = 1825.0  # 5 años por defecto
+    half_life_days: float = 1825.0
 
     def current_strength(self, current_day: float) -> float:
         days_since_confirmation = current_day - self.last_confirmed
-        # Fórmula correcta de vida media: decae al 50% exacto en half_life_days
         decay = math.exp(-days_since_confirmation * math.log(2) / self.half_life_days)
         return max(0.0, self.strength * decay)
 
 
-@dataclass
+@dataclass(slots=True)
 class RelationshipKnowledge:
     owner_id: int
     partner_id: int
@@ -165,7 +171,6 @@ class RelationshipKnowledge:
     promises_kept: int = 0
     promises_broken: int = 0
     last_updated: float = 0.0
-    # FASE 1: Objetivos del propietario que actúan como lentes
     owner_goals: List[str] = field(default_factory=list)
 
 
@@ -187,25 +192,30 @@ class Relationship:
         self._idx_type: Dict[str, List[int]] = {}
         self._idx_role: Dict[MemoryRole, List[int]] = {}
         
+        # OPTIMIZACIÓN: Caché de métricas (trust, attraction, familiarity)
         self._cache_valid: bool = False
         self._cached_metrics: Dict[str, float] = {}
-        self._cached_labels: List[str] = []  # FASE 1: Etiquetas como vistas
+        
+        # OPTIMIZACIÓN: Caché de etiquetas SEPARADA de la caché de métricas
+        self._labels_cache_valid: bool = False
+        self._cached_labels: List[str] = []
+        self._labels_cache_day: float = -1.0
+        
+        # OPTIMIZACIÓN CRÍTICA: Contadores incrementales por categoría
+        # CORRECCIÓN: Usar strings en lugar de enums para evitar enum.__hash__
+        self._category_weights: Dict[str, float] = {cat.value: 0.0 for cat in MemoryCategory}
+        self._category_weights_day: float = start_day
         
         self._dominant_memories: List[int] = []
         self._trauma_memories: List[int] = []
         self._anchor_memories: List[int] = []
 
-        # FASE 1: Narrativas asimétricas (Punto 4)
         self.my_narratives: List[Narrative] = []
-        
-        # FASE 1: Estado para idealización post-mortem (Punto 7.5)
         self.partner_is_deceased: bool = False
 
-        # ARCHIVADO
         self.archived_memories: List[PersonalMemory] = []
         self._last_archive_day: float = 0.0
 
-        # LEGACY
         self.status: RelationshipStatus = RelationshipStatus.UNKNOWN
         self.affinity: float = 0.5
         self.relationship_type: RelationshipType = RelationshipType.EXCLUSIVE
@@ -220,7 +230,17 @@ class Relationship:
         self._idx_role.setdefault(memory.role, []).append(idx)
         
         self.last_interaction_day = max(self.last_interaction_day, memory.day)
+        
+        # OPTIMIZACIÓN: Invalidar AMBAS cachés cuando cambia una memoria
         self._cache_valid = False
+        self._labels_cache_valid = False
+        
+        # OPTIMIZACIÓN CRÍTICA: Actualizar contador de categoría en O(1)
+        # CORRECCIÓN: Usar string en lugar de enum para evitar enum.__hash__
+        day = current_day if current_day is not None else memory.day
+        weight = memory.current_weight(day)
+        self._category_weights[memory.category.value] += weight
+        self._category_weights_day = day
         
         if memory.role == MemoryRole.DOMINANT:
             self._dominant_memories.append(idx)
@@ -229,12 +249,12 @@ class Relationship:
             self._trauma_memories.append(idx)
         elif memory.role == MemoryRole.ANCHOR:
             self._anchor_memories.append(idx)
-            
-        if memory.personal_weight > 70 or memory.category == MemoryCategory.LEGAL:
-            memory.is_landmark = True
+        
+        # CORRECCIÓN CRÍTICA: Eliminar la lógica automática de landmark.
+        # La decisión de si una memoria es landmark debe tomarla el código que
+        # crea la memoria, no el método que la añade.
 
         # FASE 2: Actualización robusta e incremental de narrativas
-        # Usamos memory.day como current_day si no se proporciona, para mantener la coherencia temporal
         confirmation_day = current_day if current_day is not None else memory.day
         NarrativeEngine.update_narratives(self, memory, confirmation_day)
 
@@ -249,7 +269,6 @@ class Relationship:
 
     def _update_narratives_incremental(self, new_memory: PersonalMemory) -> None:
         """Actualiza narrativas de forma O(1) cuando llega un nuevo recuerdo."""
-        # Ejemplo simplificado: detectar patrones de conflicto o cooperación
         if new_memory.category == MemoryCategory.CONFLICT and new_memory.emotional_valence < 0:
             self._strengthen_or_create_narrative("Siempre me falla", new_memory.day, 0.2)
         elif new_memory.category == MemoryCategory.COOPERATION and new_memory.emotional_valence > 0:
@@ -262,16 +281,12 @@ class Relationship:
                 narrative.last_confirmed = current_day
                 return
         
-        # Si no existe, crearla
         self.my_narratives.append(Narrative(
             pattern=pattern,
             strength=strength_increment,
             last_confirmed=current_day
         ))
 
-    # =========================================================================
-    # ARCHIVADO DE RECUERDOS (Fase 0.1)
-    # =========================================================================
     def archive_old_memories(self, current_day: float, archive_age_days: float = 3650.0, min_weight_threshold: float = 5.0, archive_interval_days: float = 365.0) -> int:
         if current_day - self._last_archive_day < archive_interval_days:
             return 0
@@ -292,6 +307,8 @@ class Relationship:
         
         self._rebuild_indices()
         self._cache_valid = False
+        self._labels_cache_valid = False
+        self._rebuild_category_weights(current_day)
         return len(to_archive)
 
     def _rebuild_indices(self) -> None:
@@ -310,19 +327,26 @@ class Relationship:
             elif mem.role == MemoryRole.TRAUMA: self._trauma_memories.append(i)
             elif mem.role == MemoryRole.ANCHOR: self._anchor_memories.append(i)
 
-    # =========================================================================
-    # FASE 1: EVALUACIONES CONTEXTUALES Y ETIQUETAS
-    # =========================================================================
+    def _rebuild_category_weights(self, current_day: float) -> None:
+        """Reconstruye los contadores de categoría desde cero.
+        
+        CORRECCIÓN: Usar strings en lugar de enums para evitar enum.__hash__
+        """
+        for cat in MemoryCategory:
+            self._category_weights[cat.value] = 0.0
+        
+        for mem in self.memories:
+            weight = mem.current_weight(current_day)
+            self._category_weights[mem.category.value] += weight
+        
+        self._category_weights_day = current_day
 
     def _rebuild_cache(self, current_day: float) -> None:
         self._cached_metrics = {
             'familiarity': self._calc_familiarity(current_day),
-            # Las demás métricas ahora son contextuales, pero mantenemos estas para compatibilidad legacy
             'trust': self._calc_trust(current_day),
             'attraction': self._calc_attraction(current_day),
         }
-        # FASE 1: Etiquetas como vistas (Punto 2)
-        self._cached_labels = LabelGenerator.generate(self, current_day)
         self._cache_valid = True
 
     def _ensure_cache(self, current_day: float) -> None:
@@ -330,7 +354,22 @@ class Relationship:
             self._rebuild_cache(current_day)
 
     def get_labels(self, current_day: float) -> List[str]:
-        self._ensure_cache(current_day)
+        """Retorna las etiquetas de la relación.
+        
+        OPTIMIZACIÓN: Si las etiquetas ya se calcularon para el día actual,
+        retorna la caché sin recalcular. Usa contadores incrementales para
+        evitar los 4 sum() en LabelGenerator.generate().
+        """
+        if self._labels_cache_valid and self._labels_cache_day == current_day:
+            return self._cached_labels
+        
+        # Actualizar contadores si han pasado más de 30 días
+        if current_day - self._category_weights_day > 30.0:
+            self._rebuild_category_weights(current_day)
+        
+        self._cached_labels = LabelGenerator.generate(self, current_day)
+        self._labels_cache_valid = True
+        self._labels_cache_day = current_day
         return self._cached_labels
 
     def get_familiarity(self, current_day: float) -> float:
@@ -343,7 +382,6 @@ class Relationship:
         return min(100.0, count_score + time_score)
 
     def _calc_trust(self, current_day: float) -> float:
-        # Legacy: suma simple para compatibilidad
         total = 0.0
         for mem in self.memories:
             w = mem.current_weight(current_day)
@@ -386,46 +424,44 @@ class Relationship:
 class BiasEngine:
     """Aplica sesgos cognitivos al peso de un recuerdo (Fase 1 + Fase 4: Contextos)."""
     
+    _CONFIRMATION_KEYWORDS = frozenset(["traicion", "sabotaje", "noche_romantica", "apoyo_incondicional", "confesion"])
+    _NEGATIVITY_KEYWORDS = frozenset(["traicion", "sabotaje", "ataque_directo", "hostilidad"])
+    _POSITIVE_NARRATIVE_KEYWORDS = frozenset(["ayuda", "confía", "conexión", "roca"])
+    _NEGATIVE_NARRATIVE_KEYWORDS = frozenset(["falla", "traición", "tensión", "discutiendo"])
+    
     @staticmethod
     def apply_biases(memory: PersonalMemory, agent: Any, rel: Relationship, current_day: float) -> float:
         weight = memory.personal_weight
         context_lower = memory.context.lower()
         
-        # 1. Sesgo de confirmación
         dominant_valence = 0.0
         if rel.my_narratives:
-            pos_strength = sum(n.current_strength(current_day) for n in rel.my_narratives if any(w in n.pattern.lower() for w in ["ayuda", "confía", "conexión", "roca"]))
-            neg_strength = sum(n.current_strength(current_day) for n in rel.my_narratives if any(w in n.pattern.lower() for w in ["falla", "traición", "tensión", "discutiendo"]))
+            pos_strength = sum(n.current_strength(current_day) for n in rel.my_narratives if any(w in n.pattern.lower() for w in BiasEngine._POSITIVE_NARRATIVE_KEYWORDS))
+            neg_strength = sum(n.current_strength(current_day) for n in rel.my_narratives if any(w in n.pattern.lower() for w in BiasEngine._NEGATIVE_NARRATIVE_KEYWORDS))
             dominant_valence = 1.0 if pos_strength > neg_strength else -1.0
         
         if (memory.emotional_valence > 0 and dominant_valence > 0) or (memory.emotional_valence < 0 and dominant_valence < 0):
             confirmation_multiplier = 1.5
-            # FASE 4: Contextos de alto impacto amplifican el sesgo de confirmación
-            if any(word in context_lower for word in ["traicion", "sabotaje", "noche_romantica", "apoyo_incondicional", "confesion"]):
+            if any(word in context_lower for word in BiasEngine._CONFIRMATION_KEYWORDS):
                 confirmation_multiplier = 2.0
             weight *= confirmation_multiplier
             
-        # 2. Efecto halo
         overall_impression = rel.get_familiarity(current_day) / 100.0
         if overall_impression > 0.7:
             weight *= 1.3 if memory.emotional_valence > 0 else 0.7
             
-        # 3. Recencia
         days_ago = current_day - memory.day
         recency = math.exp(-days_ago / 365.0)
         weight *= (0.5 + recency * 0.5)
         
-        # 4. Idealización post-mortem
         post_mortem_applied = False
         if rel.partner_is_deceased and memory.emotional_valence < 0:
             weight *= 0.3
             post_mortem_applied = True
         
-        # 5. Negatividad
         if not post_mortem_applied and memory.emotional_valence < 0:
             negativity_multiplier = 1.8
-            # FASE 4: Las traiciones en contextos específicos duelen significativamente más
-            if any(word in context_lower for word in ["traicion", "sabotaje", "ataque_directo", "hostilidad"]):
+            if any(word in context_lower for word in BiasEngine._NEGATIVITY_KEYWORDS):
                 negativity_multiplier = 2.5
             weight *= negativity_multiplier
             
@@ -438,13 +474,11 @@ class GoalFilter:
     def relevance(goal: str, memory: PersonalMemory) -> float:
         goal_lower = goal.lower()
         
-        # Ejemplos del documento de diseño
         if goal_lower == "proteger_hija" and memory.category in (MemoryCategory.FAMILY, MemoryCategory.SURVIVAL):
             return 3.0
         if goal_lower == "ser_independiente" and memory.category in (MemoryCategory.FAMILY, MemoryCategory.COOPERATION):
             return 0.5
             
-        # Regla general: si el contexto del recuerdo menciona el objetivo, es relevante
         if goal_lower in memory.context.lower():
             return 2.0
             
@@ -456,14 +490,13 @@ class RelationshipEvaluator:
     
     @staticmethod
     def evaluate_reliability(rel: Relationship, context: str, current_day: float) -> float:
-        # Activación parcial: solo evaluamos recuerdos relevantes para el contexto
         if context == "pedir_ayuda":
             target_categories = [MemoryCategory.COOPERATION, MemoryCategory.SURVIVAL, MemoryCategory.FAMILY]
             penalty_categories = [MemoryCategory.CONFLICT, MemoryCategory.TRAUMA]
             penalty_multiplier = 1.5
         elif context == "juego":
             target_categories = [MemoryCategory.SOCIAL, MemoryCategory.COOPERATION]
-            penalty_categories = []  # Las traiciones son esperadas
+            penalty_categories = []
             penalty_multiplier = 0.5
         else:
             target_categories = [MemoryCategory.COOPERATION, MemoryCategory.SOCIAL]
@@ -484,45 +517,43 @@ class RelationshipEvaluator:
 class LabelGenerator:
     """Etiquetas como vistas, no estado. Basado en pesos, no conteos (Puntos 2 y 3).
     
-    VALORES DE PRODUCCIÓN: Ajustados para que las etiquetas se alcancen 
-    de forma orgánica tras varios meses/años de interacción consistente.
+    OPTIMIZACIÓN CRÍTICA: Usa contadores incrementales precalculados en Relationship
+    en lugar de hacer 4 sum() sobre todas las memorias.
+    Reduce complejidad de O(N) a O(1) donde N es el número de memorias.
+    
+    CORRECCIÓN: Usar strings en lugar de enums para evitar enum.__hash__
     """
     
     @staticmethod
     def generate(rel: Relationship, current_day: float) -> List[str]:
         labels = []
         
-        # Calcular pesos totales por categoría
-        romantic_weight = sum(mem.current_weight(current_day) for mem in rel.memories if mem.category == MemoryCategory.ROMANTIC)
-        conflict_weight = sum(mem.current_weight(current_day) for mem in rel.memories if mem.category == MemoryCategory.CONFLICT)
-        cooperation_weight = sum(mem.current_weight(current_day) for mem in rel.memories if mem.category == MemoryCategory.COOPERATION)
-        family_weight = sum(mem.current_weight(current_day) for mem in rel.memories if mem.category == MemoryCategory.FAMILY)
+        # OPTIMIZACIÓN CRÍTICA: Leer contadores precalculados en O(1)
+        romantic_weight = rel._category_weights["romantic"]
+        conflict_weight = rel._category_weights["conflict"]
+        cooperation_weight = rel._category_weights["cooperation"]
+        family_weight = rel._category_weights["family"]
 
         # --- UMBRALES DE PRODUCCIÓN ---
         
-        # Relaciones Románticas
-        if romantic_weight > 250:  # ~5-6 eventos románticos significativos
+        if romantic_weight > 250:
             labels.append("Amante")
-        elif romantic_weight > 80:   # ~2 eventos románticos
+        elif romantic_weight > 80:
             labels.append("Interés Romántico")
             
-        # Relaciones de Conflicto
-        if conflict_weight > 150:    # ~4-5 eventos de conflicto graves
+        if conflict_weight > 150:
             labels.append("Rival")
-        if conflict_weight > 60 and cooperation_weight > 60:  # Relación compleja/competitiva
+        if conflict_weight > 60 and cooperation_weight > 60:
             labels.append("Rival Respetado")
             
-        # Relaciones Positivas
-        if cooperation_weight > 200 and conflict_weight < 100:  # ~4-5 eventos positivos, pocos negativos
+        if cooperation_weight > 200 and conflict_weight < 100:
             labels.append("Amigo")
-        elif cooperation_weight > 80:  # ~2 eventos positivos sólidos
+        elif cooperation_weight > 80:
             labels.append("Aliado")
             
-        # Relaciones Familiares
-        if family_weight > 150:  # Lazos familiares fuertes
+        if family_weight > 150:
             labels.append("Familia Elegida")
             
-        # Fallback
         if not labels:
             if len(rel.memories) > 0:
                 labels.append("Conocido")

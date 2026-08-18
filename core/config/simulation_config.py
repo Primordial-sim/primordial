@@ -111,6 +111,32 @@ class CognitionConfig:
         # Límite máximo de estrés cognitivo
         self.max_cognitive_stress: float = 0.8
 
+class MutationConfig:
+    """Configuración global de mutación genética.
+    
+    Según GENETICS_CORE_SPEC.md (sección 4.2):
+    - probability: Probabilidad de que un alelo mute (¿OCURRE mutación?)
+    - magnitude_std: Desviación estándar del cambio (¿CUÁNTO cambia?)
+    - mutate_dominance: Si la dominancia también muta
+    - dominance_std: Desviación estándar de mutación de dominancia
+    
+    Es GLOBAL para la simulación, no por rasgo, para poder cambiar
+    la tasa de mutación por escenario sin modificar los 36 Traits.
+    """
+    
+    def __init__(self) -> None:
+        # Probabilidad de que un alelo mute durante la reproducción
+        self.probability: float = 0.05
+        
+        # Desviación estándar del cambio gaussiano en el valor
+        self.magnitude_std: float = 0.1
+        
+        # Si la dominancia también muta
+        self.mutate_dominance: bool = False
+        
+        # Desviación estándar de mutación de dominancia
+        self.dominance_std: float = 0.05
+
 
 class ReproductionConfig:
     """Límites, ventanas de fertilidad y probabilidades de reproducción."""

@@ -67,8 +67,8 @@ class CognitiveMemorySystem:
             # PARTE A: MEMORIA IMPLÍCITA (Traumas y Preferencias)
             # =================================================================
             
-            # OPTIMIZACIÓN: Acceso directo a propiedades garantizadas
-            temperament = person.genome.temperament
+            # GENÉTICA UNIVERSAL: API genérica agnóstica a especie
+            temperament = person.genome.get_trait_value("temperament")
             adjusted_lambda = cog_cfg.base_forgetting_rate * (temperament + cog_cfg.temperament_modifier)
             decay_factor = math.exp(-adjusted_lambda * delta_days)
 

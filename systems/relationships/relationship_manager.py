@@ -2,6 +2,10 @@
 
 Orquesta la detección de nuevos encuentros y la evaluación de etiquetas
 emergentes. Las variables emocionales se derivan automáticamente de la memoria.
+
+OPTIMIZACIÓN DE RENDIMIENTO:
+- Uso de SpatialGrid para reducir búsquedas de vecinos de O(N²) a O(N)
+- Reemplazo de math.sqrt por comparaciones al cuadrado
 """
 
 from __future__ import annotations
@@ -26,6 +30,7 @@ from systems.relationships.relationship_model import (
     PersonalMemory,
     WorldEvent,
 )
+from systems.spatial.spatial_grid import SpatialGrid
 
 
 class RelationshipManager:
@@ -41,6 +46,9 @@ class RelationshipManager:
         self.compatibility = compatibility_engine
         self.logger = logging.getLogger(self.__class__.__name__)
         self._relationships_created_this_tick: Set[tuple] = set()
+        
+        # OPTIMIZACIÓN: Grid espacial para búsquedas de vecinos O(N)
+        self.spatial_grid = SpatialGrid(cell_size=35.0)
 
     def process(
         self,
@@ -53,42 +61,40 @@ class RelationshipManager:
         current_day = getattr(state, 'world_days_elapsed', 0.0)
         self._relationships_created_this_tick.clear()
         
-        persons = list(state.get_all_persons()) # Convertir a lista una vez para evitar overhead de vistas múltiples
+        # OPTIMIZACIÓN: Poblar el grid espacial una vez por tick
+        self.spatial_grid.populate_from_state(state)
         
-        for i, person in enumerate(persons):
+        persons = list(state.get_all_persons())
+        
+        for person in persons:
             if person.entity_id in pending.deaths:
                 continue
             
-            self._detect_new_relationships(person, persons[i+1:], pending, current_day, context)
+            self._detect_new_relationships(person, pending, current_day, context)
 
     def _detect_new_relationships(
         self,
         person: Any,
-        other_persons: list, # Solo recibe agentes que aún no han sido procesados con este
         pending: PendingChanges,
         current_day: float,
         context: EnvironmentContext,
     ) -> None:
-        """Detecta agentes cercanos para iniciar relaciones."""
+        """Detecta agentes cercanos para iniciar relaciones.
+        
+        OPTIMIZACIÓN: Usa SpatialGrid para limitar la búsqueda a vecinos
+        cercanos, reduciendo la complejidad de O(N²) a O(N).
+        """
         detection_radius = 35.0
-        detection_radius_sq = detection_radius * detection_radius
         
-        px, py = person.x, person.y
+        # OPTIMIZACIÓN: Usar el grid espacial para obtener solo vecinos cercanos
+        nearby_agents = self.spatial_grid.get_nearby_agents(person, detection_radius)
         
-        for other in other_persons:
+        for other in nearby_agents:
             if other.entity_id in pending.deaths:
                 continue
             
-            # Optimización: Bounding box antes de calcular distancia real
-            dx = abs(px - other.x)
-            if dx > detection_radius:
-                continue
-            dy = abs(py - other.y)
-            if dy > detection_radius:
-                continue
-            
-            dist_sq = dx * dx + dy * dy
-            if dist_sq > detection_radius_sq:
+            # OPTIMIZACIÓN: Evitar procesar el mismo par dos veces
+            if other.entity_id <= person.entity_id:
                 continue
             
             # Verificar compatibilidad de orientaciones
@@ -96,50 +102,59 @@ class RelationshipManager:
                 continue
             
             # CORRECCIÓN: get_relationship_with ya crea la relación si no existe.
-            # Solo necesitamos verificar si ya tiene recuerdos (ya se conocieron).
             rel_person = person.get_relationship_with(other.entity_id, current_day)
             if len(rel_person.memories) > 0:
                 continue
             
-            relationship_key = tuple(sorted([person.entity_id, other.entity_id]))
+            relationship_key = (person.entity_id, other.entity_id) if person.entity_id < other.entity_id else (other.entity_id, person.entity_id)
             if relationship_key in self._relationships_created_this_tick:
                 continue
             
-            distance = math.sqrt(dist_sq)
-            base_chance = 0.15 * (1.0 - distance / detection_radius)
+            # OPTIMIZACIÓN: Calcular distancia real solo si el random pasa el primer filtro
+            if random.random() >= 0.15:
+                continue
             
-            if random.random() < base_chance:
-                # CORRECCIÓN: ID determinista basado en entidades y día
-                event_id_str = f"{person.entity_id}_{other.entity_id}_{int(current_day)}"
-                event_id = int(hashlib.md5(event_id_str.encode()).hexdigest()[:8], 16)
-                
-                world_event = WorldEvent(
-                    event_id=event_id,
-                    event_type="met",
-                    category=MemoryCategory.SOCIAL,
-                    day=current_day,
-                    context="proximidad_inicial",
-                    source_system="RelationshipManager",
-                    initiator_id=person.entity_id,
-                    target_id=other.entity_id,
-                    objective_intensity=0.5,
-                )
-                
-                mem_for_person = self._create_first_impression_memory(world_event, person, other, current_day)
-                mem_for_other = self._create_first_impression_memory(world_event, other, person, current_day)
-                
-                # Añadir recuerdos a las relaciones (que ya existen gracias a get_relationship_with)
-                rel_person.add_memory(mem_for_person)
-                rel_other = other.get_relationship_with(person.entity_id, current_day)
-                rel_other.add_memory(mem_for_other)
-                
-                self._relationships_created_this_tick.add(relationship_key)
-                
-                affinity = self.compatibility.calculate_compatibility(person, other, current_day)
-                self.logger.info(
-                    "👋 Día %.0f: Agente %s conoce a %s (distancia: %.1f, afinidad: %.2f)",
-                    current_day, person.entity_id, other.entity_id, distance, affinity
-                )
+            # Ahora sí calcular la distancia real para ajustar la probabilidad
+            dx = person.x - other.x
+            dy = person.y - other.y
+            distance = math.sqrt(dx * dx + dy * dy)
+            
+            # Ajustar probabilidad según distancia
+            adjusted_chance = 1.0 - (distance / detection_radius)
+            if random.random() >= adjusted_chance:
+                continue
+            
+            # CORRECCIÓN: ID determinista basado en entidades y día
+            event_id_str = f"{person.entity_id}_{other.entity_id}_{int(current_day)}"
+            event_id = int(hashlib.md5(event_id_str.encode()).hexdigest()[:8], 16)
+            
+            world_event = WorldEvent(
+                event_id=event_id,
+                event_type="met",
+                category=MemoryCategory.SOCIAL,
+                day=current_day,
+                context="proximidad_inicial",
+                source_system="RelationshipManager",
+                initiator_id=person.entity_id,
+                target_id=other.entity_id,
+                objective_intensity=0.5,
+            )
+            
+            mem_for_person = self._create_first_impression_memory(world_event, person, other, current_day)
+            mem_for_other = self._create_first_impression_memory(world_event, other, person, current_day)
+            
+            # Añadir recuerdos a las relaciones (que ya existen gracias a get_relationship_with)
+            rel_person.add_memory(mem_for_person, current_day)
+            rel_other = other.get_relationship_with(person.entity_id, current_day)
+            rel_other.add_memory(mem_for_other, current_day)
+            
+            self._relationships_created_this_tick.add(relationship_key)
+            
+            affinity = self.compatibility.calculate_compatibility(person, other, current_day)
+            self.logger.info(
+                "👋 Día %.0f: Agente %s conoce a %s (distancia: %.1f, afinidad: %.2f)",
+                current_day, person.entity_id, other.entity_id, distance, affinity
+            )
 
     def _are_orientations_compatible(self, o1: SexualOrientation, o2: SexualOrientation) -> bool:
         """Verifica si dos orientaciones sexuales son compatibles."""

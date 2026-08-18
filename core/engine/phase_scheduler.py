@@ -74,7 +74,7 @@ from systems.diseases.disease_system import DiseaseSystem
 from systems.environment.density_system import DensitySystem
 from systems.environment.environment_system import EnvironmentSystem
 from systems.environment.epidemiological_system import EpidemiologicalSystem
-from systems.environment.social_pressure_system import SocialPressureSystem
+from systems.social.social_pressure import SocialPressureCalculator
 from systems.evolution.evolution_engine import EvolutionEngine
 from systems.free_will.free_will_system import FreeWillSystem
 from systems.genealogy.ancestry_queries import AncestryQueries
@@ -125,7 +125,7 @@ class PhaseScheduler:
         
         BLOQUE 4: Reordenamiento para establecer jerarquía social clara:
         - relationships va ANTES de behavior_and_movement (adopción antes que migración)
-        - Se añade SocialPressureSystem en environment para feedback social
+        - Se añade SocialPressureCalculator en environment para feedback social
         
         BLOQUE B: Integración de MarriageSystem y RelationshipSystem
         - MarriageSystem gestiona formación de relaciones (búsqueda bidireccional)
@@ -170,8 +170,9 @@ class PhaseScheduler:
             relationship_engine=self.relationship_engine,
         )
 
-        # BLOQUE 4: Sistema de presión social
-        social_pressure_system = SocialPressureSystem(self.config)
+        # BLOQUE 4: Sistema de presión social unificado
+        # CORRECCIÓN: Se usa una sola instancia (antes se creaban dos)
+        social_pressure_system = SocialPressureCalculator(self.config)
 
         # Definición estructurada del ciclo biológico y físico
         phases = [
@@ -195,7 +196,7 @@ class PhaseScheduler:
                     EnvironmentSystem(self.config),
                     density_system,
                     EpidemiologicalSystem(self.config),
-                    social_pressure_system,  # BLOQUE 4: Feedback social al entorno
+                    social_pressure_system,  # CORRECCIÓN: usar la variable existente
                     CognitiveMemorySystem(self.config),
                 ],
             ),

@@ -1,0 +1,19 @@
+{
+  "name": "Bandada de aves",
+  "description": "Simulación de aves con vuelo y alta territorialidad.",
+  "species": [
+    {"id": "bird", "count": 30}
+  ],
+  "world": {
+    "width": 150,
+    "height": 150
+  },
+  "simulation": {
+    "max_ticks": 800,
+    "delta_days": 1.0,
+    "total_days": 2920
+  },
+  "environment": {
+    "sector_size": 15
+  }
+}

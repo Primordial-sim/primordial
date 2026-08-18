@@ -1,7 +1,7 @@
 """Generador de experiencias relacionales. Fase 4 Avanzada: Contextos Ricos.
 
-Provoca nuevas experiencias basadas en etiquetas relacionales con contextos 
-específicos que influyen en el peso del recuerdo y las narrativas.
+OPTIMIZACIONES APLICADAS:
+- Corrección de iteración sobre _relationships.values() (Dict en lugar de List)
 """
 
 from __future__ import annotations
@@ -129,7 +129,9 @@ class ExperienceGenerator:
         
         should_log = self._tick_counter % self._log_interval == 0
         
-        for rel in agent._relationships:
+        # CORRECCIÓN CRÍTICA: _relationships es ahora Dict[int, Relationship]
+        # Hay que usar .values() para obtener los objetos Relationship
+        for rel in agent._relationships.values():
             if rel.partner_id in pending.deaths:
                 continue
             
@@ -145,7 +147,6 @@ class ExperienceGenerator:
                 experiences = self.experience_probabilities[label]
                 for experience_type, probability in experiences.items():
                     if random.random() < probability:
-                        # FASE 4: Pasamos la 'label' para generar el contexto rico
                         self._trigger_experience(agent, rel.partner_id, experience_type, label, current_day, state)
 
     def _trigger_experience(self, agent: Any, partner_id: int, experience_type: str, label: str, current_day: float, state: WorldState) -> None:
@@ -160,7 +161,6 @@ class ExperienceGenerator:
         if distance > 20.0:
             return
         
-        # FASE 4: Mapeo de eventos con contexto dinámico
         event_mapping = {
             "cooperation": RelationshipEventType.COOPERATION,
             "care": RelationshipEventType.CARE,
@@ -174,7 +174,7 @@ class ExperienceGenerator:
             return
         
         event_type = event_mapping[experience_type]
-        intensity = 0.7  # Valor base, puede ajustarse por etiqueta si se desea
+        intensity = 0.7
         context_str = self._get_rich_context(label, experience_type)
         
         try:

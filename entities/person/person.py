@@ -1,19 +1,10 @@
 """Módulo de la entidad biológica y social principal.
 
-FASE 0: Actualizado para ser compatible con el nuevo modelo de Relationship 
-basado en memoria, manteniendo compatibilidad legacy para atributos de estado.
-
-BLOQUE 1 AÑADIDO: Social Memory Layer
-- adoption_history: historial completo de eventos de adopción
-- parental_status: estado parental dinámico
-- reputation_score: reputación social basada en historial parental
-
 OPTIMIZACIONES APLICADAS:
-- get_specific_immunity() unificado (eliminada duplicación de lógica)
-- _get_active_relationships() con caché para evitar O(N) repetido
-- Eliminada add_relationship_days() (código muerto)
-- Uso consistente de getattr para atributos de Relationship
-- infect() ahora reemplaza cepas de la misma familia (evita acumulación infinita)
+- entity_id, x, y son ahora atributos directos (no properties)
+- _relationships es ahora Dict[int, Relationship] para búsqueda O(1)
+- _get_active_relationships() con caché
+- Property 'relationships' retorna lista bajo demanda para compatibilidad
 """
 
 from __future__ import annotations
@@ -46,11 +37,11 @@ class Person:
         species: str = "human",
     ) -> None:
         self._config = config
-        self._entity_id = entity_id
+        self.entity_id = entity_id
         self._species = species
 
-        self._x = x
-        self._y = y
+        self.x = x
+        self.y = y
         self._age = age
         self._gender = gender if gender else random.choice(["M", "F"])
         self._genome = genome if genome else Genome(species_baseline=species)
@@ -77,11 +68,8 @@ class Person:
         self._parents: List[int] = []
         self._adoptive_parents: List[int] = []
 
-        # ==========================================
-        # BLOQUE 1: SOCIAL MEMORY LAYER
-        # ==========================================
         self._adoption_history: List[Dict[str, Any]] = []
-        self._reputation_score: float = 0.5  # Reputación inicial neutral (0.0 = terrible, 1.0 = excelente)
+        self._reputation_score: float = 0.5
 
         self._memory: Dict[str, Any] = {
             "trauma_overcrowding": 0.0,
@@ -108,12 +96,17 @@ class Person:
         }
 
         self._sexual_orientation: SexualOrientation = self._generate_orientation()
-        self._relationships: List[Relationship] = []
+        
+        # OPTIMIZACIÓN CRÍTICA: Dict en lugar de List para búsqueda O(1)
+        # La clave es partner_id, el valor es el Relationship
+        self._relationships: Dict[int, Relationship] = {}
         
         self._partner_id: Optional[int] = None
         self._marital_status: str = "soltero"
+        
+        # NUEVO: Núcleo residencial al que pertenece el agente
+        self.nucleus_id: Optional[int] = None
 
-        # CORRECCIÓN: Sistema de caché para relaciones activas
         self._active_relationships_cache: Optional[List[Relationship]] = None
         self._relationships_cache_dirty: bool = True
 
@@ -133,15 +126,9 @@ class Person:
     # PROPERTIES BÁSICAS
     # ==========================================
     @property
-    def entity_id(self) -> int: return self._entity_id
-    @property
     def species(self) -> str: return self._species
     @property
     def age(self) -> float: return self._age
-    @property
-    def x(self) -> int: return self._x
-    @property
-    def y(self) -> int: return self._y
     @property
     def gender(self) -> str: return self._gender
     @property
@@ -199,12 +186,12 @@ class Person:
         return max(0.1, min(2.0, base - (trauma * 0.5)))
     @property
     def sexual_orientation(self) -> SexualOrientation: return self._sexual_orientation
+    
+    # OPTIMIZACIÓN: Property que retorna lista para compatibilidad hacia atrás
     @property
-    def relationships(self) -> List[Relationship]: return self._relationships
+    def relationships(self) -> List[Relationship]:
+        return list(self._relationships.values())
 
-    # ==========================================
-    # BLOQUE 1: PROPERTIES DE SOCIAL MEMORY LAYER
-    # ==========================================
     @property
     def adoption_history(self) -> List[Dict[str, Any]]:
         return self._adoption_history
@@ -225,9 +212,6 @@ class Person:
     def adopted_children_count(self) -> int:
         return max(0, self._children_count - self._biological_children_count)
 
-    # ==========================================
-    # PROPERTIES DE RELACIONES (CON CACHÉ)
-    # ==========================================
     @property
     def partner_id(self) -> Optional[int]:
         active = self._get_active_relationships()
@@ -249,7 +233,7 @@ class Person:
         for status in priority:
             for rel in active:
                 if getattr(rel, 'status', None) == status: return "casado"
-        for rel in self._relationships:
+        for rel in self._relationships.values():
             if getattr(rel, 'status', None) == RelationshipStatus.EX_PARTNER: return "divorciado"
         return "soltero"
 
@@ -264,10 +248,15 @@ class Person:
                     return getattr(rel, 'last_interaction_day', 0.0) - getattr(rel, 'start_day', 0.0)
         return 0.0
 
+    @property
+    def has_nucleus(self) -> bool:
+        """Verifica si el agente pertenece a un núcleo residencial."""
+        return self.nucleus_id is not None
+
     def _get_active_relationships(self) -> List[Relationship]:
         if self._relationships_cache_dirty or self._active_relationships_cache is None:
             self._active_relationships_cache = [
-                r for r in self._relationships 
+                r for r in self._relationships.values()
                 if getattr(r, 'status', RelationshipStatus.UNKNOWN) 
                 not in (RelationshipStatus.UNKNOWN, RelationshipStatus.EX_PARTNER)
             ]
@@ -278,18 +267,20 @@ class Person:
         self._relationships_cache_dirty = True
 
     # ==========================================
-    # GESTIÓN DE RELACIONES
+    # GESTIÓN DE RELACIONES (OPTIMIZADA)
     # ==========================================
     def get_relationship_with(self, partner_id: int, current_day: float = 0.0) -> Relationship:
-        for r in self._relationships:
-            if r.partner_id == partner_id: return r
-    
+        """OPTIMIZACIÓN: Búsqueda O(1) usando dict en lugar de O(N) en lista."""
+        rel = self._relationships.get(partner_id)
+        if rel is not None:
+            return rel
+        
         new_rel = Relationship(owner_id=self.entity_id, partner_id=partner_id, start_day=current_day)
         new_rel.status = RelationshipStatus.UNKNOWN
         new_rel.affinity = 0.5
         new_rel.relationship_type = RelationshipType.EXCLUSIVE
         new_rel.shared_children = 0
-        self._relationships.append(new_rel)
+        self._relationships[partner_id] = new_rel
         self._invalidate_relationships_cache()
         return new_rel
 
@@ -311,7 +302,7 @@ class Person:
             self._invalidate_relationships_cache()
 
     # ==========================================
-    # BLOQUE 1: MÉTODOS DE SOCIAL MEMORY LAYER
+    # MÉTODOS DE SOCIAL MEMORY LAYER
     # ==========================================
     def register_adoption_event(self, event_type: str, entity_id: int, day: float, context: str = "adopcion") -> None:
         event = {"type": event_type, "entity_id": entity_id, "day": day, "context": context}
@@ -378,8 +369,6 @@ class Person:
     # ENFERMEDADES
     # ==========================================
     def infect(self, pathogen: Pathogen) -> None:
-        """Infecta al agente, reemplazando cepas previas de la misma familia (Prioridad 3)."""
-        # 1. Eliminar cepas anteriores de la misma familia para evitar acumulación infinita
         pathogens_to_remove = [
             pid for pid, state in self._active_infections.items() 
             if state.pathogen.family == pathogen.family
@@ -387,11 +376,9 @@ class Person:
         for pid in pathogens_to_remove:
             del self._active_infections[pid]
             
-        # 2. Añadir la nueva infección
         infection_state = InfectionState(pathogen)
         self._active_infections[pathogen.pathogen_id] = infection_state
         
-        # 3. Actualizar estado de salud solo si NO es asintomático
         if not infection_state.is_asymptomatic:
             self._health_state = "enfermo"
             self.update_emotion("stress", 0.3)
@@ -443,7 +430,7 @@ class Person:
             self._health_state = "sano"
 
     # ==========================================
-    # MOTIVACIONES, POSICIÓN, EDAD, MATRIMONIO, EMBARAZO, ETC.
+    # OTROS MÉTODOS
     # ==========================================
     def get_motivation(self, motivation_name: str) -> float: return self._motivations.get(motivation_name, 0.0)
     def update_motivation(self, motivation_name: str, amount: float) -> None:
@@ -458,7 +445,7 @@ class Person:
         for motivation_name in list(self._motivations.keys()):
             self._motivations[motivation_name] = max(0.05, self._motivations[motivation_name] * decay_factor)
 
-    def set_position(self, x: int, y: int) -> None: self._x, self._y = x, y
+    def set_position(self, x: int, y: int) -> None: self.x, self.y = x, y
     def add_age(self, increment_days: float) -> None:
         self._age += increment_days
         self._check_milestones()

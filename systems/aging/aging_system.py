@@ -85,7 +85,8 @@ class AgingSystem:
                 extreme_state_penalty = 1.10  # 10% por agotamiento extremo (inanición)
             
             # 6. FACTOR GENÉTICO (Longevidad)
-            genetic_longevity = person.genome.longevity
+            # GENÉTICA UNIVERSAL: API genérica agnóstica a especie
+            genetic_longevity = person.genome.get_trait_value("longevity")
             genetic_factor = aging_cfg.longevity_genetic_factor / max(0.1, genetic_longevity)
             
             # =================================================================

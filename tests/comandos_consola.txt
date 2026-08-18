@@ -1,0 +1,433 @@
+================================================================================
+                    GUÍA COMPLETA DE TESTS DEL PROYECTO
+                    Simulador de Vida Evolutiva
+================================================================================
+
+Última actualización: 2025
+Framework: pytest 9.1.1+
+Python: 3.13+
+
+================================================================================
+1. ESTRUCTURA DE TESTS
+================================================================================
+
+tests/
+├── __init__.py
+├── conftest.py                          # Fixtures compartidas
+├── unit/                                # Tests unitarios (componentes puros)
+│   ├── __init__.py
+│   ├── test_genome_combine.py           # Genética mendeliana (21 tests)
+│   ├── test_memroy_decay.py             # Decaimiento de memorias (12 tests)
+│   ├── test_label_generator.py          # Etiquetas emergentes (12 tests)
+│   ├── test_narrative_decay.py          # Narrativas (7 tests)
+│   ├── test_orientation.py              # Orientación sexual Kinsey (10 tests)
+│   ├── test_bias_engine.py              # Sesgos cognitivos (8 tests)
+│   ├── test_behavior_influence.py       # Influencia conductual (11 tests)
+│   ├── test_compatibility_engine.py     # Compatibilidad (6 tests)
+│   ├── test_pathogen.py                 # Patógenos y mutación (11 tests)
+│   ├── test_disease_system.py           # Propagación de enfermedades (3 tests)
+│   └── test_mortality_system.py         # Mortalidad Gompertz (4 tests)
+└── integration/                         # Tests de integración
+    ├── __init__.py
+    ├── test_regression_bugs.py          # Protección contra bugs críticos (9 tests)
+    └── test_statistical.py              # Simulaciones estadísticas (3 tests)
+
+TOTAL: ~117 tests
+
+================================================================================
+2. COMANDOS GENERALES
+================================================================================
+
+--- Ejecutar TODOS los tests ---
+
+    python -m pytest tests/ -v
+
+--- Ejecutar solo tests unitarios ---
+
+    python -m pytest tests/unit/ -v
+
+--- Ejecutar solo tests de integración ---
+
+    python -m pytest tests/integration/ -v
+
+--- Ejecutar todo y parar al primer error (ideal para depurar) ---
+
+    python -m pytest tests/ -v -x
+
+--- Ejecutar solo los tests que fallaron la última vez ---
+
+    python -m pytest tests/ -v --lf
+
+--- Ver cuántos tests hay sin ejecutarlos ---
+
+    python -m pytest tests/ --collect-only -q
+
+================================================================================
+3. COMANDOS POR ARCHIVO (TESTS UNITARIOS)
+================================================================================
+
+--- Genética mendeliana (Allele, Gene, Genome.combine) ---
+
+    python -m pytest tests/unit/test_genome_combine.py -v
+
+--- Decaimiento temporal de memorias ---
+
+    python -m pytest tests/unit/test_memroy_decay.py -v
+
+--- Generador de etiquetas emergentes ---
+
+    python -m pytest tests/unit/test_label_generator.py -v
+
+--- Decaimiento de narrativas ---
+
+    python -m pytest tests/unit/test_narrative_decay.py -v
+
+--- Orientación sexual (escala Kinsey) ---
+
+    python -m pytest tests/unit/test_orientation.py -v
+
+--- Sesgos cognitivos ---
+
+    python -m pytest tests/unit/test_bias_engine.py -v
+
+--- Influencia conductual por etiquetas ---
+
+    python -m pytest tests/unit/test_behavior_influence.py -v
+
+--- Motor de compatibilidad ---
+
+    python -m pytest tests/unit/test_compatibility_engine.py -v
+
+--- Modelo de patógenos ---
+
+    python -m pytest tests/unit/test_pathogen.py -v
+
+--- Sistema de enfermedades (propagación) ---
+
+    python -m pytest tests/unit/test_disease_system.py -v
+
+--- Sistema de mortalidad ---
+
+    python -m pytest tests/unit/test_mortality_system.py -v
+
+================================================================================
+4. COMANDOS POR ARCHIVO (TESTS DE INTEGRACIÓN)
+================================================================================
+
+--- Tests de regresión (protegen contra 5 bugs críticos) ---
+
+    python -m pytest tests/integration/test_regression_bugs.py -v
+
+--- Tests estadísticos (simulaciones cortas) ---
+
+    python -m pytest tests/integration/test_statistical.py -v
+
+================================================================================
+5. COMANDOS POR CLASE O TEST ESPECÍFICO
+================================================================================
+
+--- Ejecutar una clase de tests ---
+
+    python -m pytest tests/unit/test_genome_combine.py::TestAllele -v
+    python -m pytest tests/unit/test_genome_combine.py::TestGene -v
+    python -m pytest tests/unit/test_genome_combine.py::TestGenomeCombine -v
+
+--- Ejecutar un solo test ---
+
+    python -m pytest tests/unit/test_genome_combine.py::TestAllele::test_create_random_in_range -v
+
+--- Filtrar por palabra clave ---
+
+    python -m pytest tests/ -v -k "genome"
+    python -m pytest tests/ -v -k "memory"
+    python -m pytest tests/ -v -k "label"
+    python -m pytest tests/ -v -k "pathogen"
+    python -m pytest tests/ -v -k "mortality"
+
+================================================================================
+6. OPCIONES ÚTILES DE PYTEST
+================================================================================
+
+Opción          | Descripción
+----------------|-----------------------------------------------------------
+-v              | Output detallado (muestra cada test)
+-vv             | Output muy detallado
+-s              | Muestra los print() (pytest los oculta por defecto)
+-x              | Para en el primer test que falle
+--lf            | Re-ejecuta solo los que fallaron la última vez
+-k "nombre"     | Filtra tests que contengan "nombre"
+-q              | Output compacto
+--tb=short      | Traceback corto en errores
+--tb=long       | Traceback completo en errores
+--tb=no         | Sin traceback
+
+--- Combinaciones útiles ---
+
+    # Ver prints durante la ejecución
+    python -m pytest tests/integration/test_statistical.py -v -s
+
+    # Parar al primer error con traceback corto
+    python -m pytest tests/ -x --tb=short
+
+================================================================================
+7. COBERTURA DE CÓDIGO
+================================================================================
+
+--- Instalar plugin de cobertura (solo la primera vez) ---
+
+    pip install pytest-cov
+
+--- Ejecutar con cobertura ---
+
+    python -m pytest tests/ --cov=systems.relationships --cov=entities.person --cov-report=term-missing
+
+--- Cobertura de todos los sistemas ---
+
+    python -m pytest tests/ --cov=systems --cov=entities --cov=core --cov-report=term-missing
+
+--- Generar reporte HTML de cobertura ---
+
+    python -m pytest tests/ --cov=systems --cov-report=html
+
+================================================================================
+8. QUÉ VERIFICA CADA GRUPO DE TESTS
+================================================================================
+
+A) TESTS UNITARIOS DE RELACIONES (70 tests)
+--------------------------------------------------------------------------------
+
+test_genome_combine.py (21 tests):
+  - Allele.create_random() produce valores en [0.1, 3.0]
+  - La dominancia está en [0.0, 1.0]
+  - El clamping funciona correctamente
+  - Los alelos son inmutables (frozen dataclass)
+  - Gene.express() usa dominancia mendeliana (no promedio)
+  - Gene.meiosis() segrega alelos al 50%
+  - Genome.combine() produce recombinación correcta
+  - Partenogénesis (combine con None) funciona
+  - Los hijos heredan la especie de la madre
+
+test_memroy_decay.py (12 tests):
+  - El peso no decae en el mismo día
+  - Tras half_life_days, el peso es exactamente la mitad
+  - Tras 2 half_lives, el peso es 1/4
+  - Memorias landmark, TRAUMA y ANCHOR no decaen
+  - El peso nunca es negativo
+  - El caché funciona correctamente
+
+test_label_generator.py (12 tests):
+  - Relación vacía → "Desconocido"
+  - romantic_weight > 250 → "Amante"
+  - romantic_weight > 80 → "Interés Romántico"
+  - conflict_weight > 150 → "Rival"
+  - conflict + cooperation → "Rival Respetado"
+  - cooperation > 200 → "Amigo"
+  - cooperation > 80 → "Aliado"
+  - family_weight > 150 → "Familia Elegida"
+  - El decaimiento afecta las etiquetas
+
+test_narrative_decay.py (7 tests):
+  - La fuerza no decae en el día de confirmación
+  - Tras half_life_days, la fuerza es la mitad
+  - La fuerza nunca es negativa
+
+test_orientation.py (10 tests):
+  - Hetero + Hetero = compatible
+  - Hetero + Homo = incompatible (score 0)
+  - Bisexual es compatible con todos
+  - La compatibilidad es simétrica
+  - El score está en [0.0, 1.0]
+
+test_bias_engine.py (8 tests):
+  - Sesgo de confirmación amplifica memorias
+  - Sesgo de negatividad amplifica memorias negativas
+  - Idealización post-mortem reduce negatividad
+  - Recencia: memorias recientes pesan más
+
+test_behavior_influence.py (11 tests):
+  - Sin relación → prioridad 0.5
+  - "Amante" → máxima prioridad (2.0)
+  - "Enemigo" → mínima prioridad (0.3)
+  - Atracción social: Amante=10, Enemigo=-5
+
+test_compatibility_engine.py (6 tests):
+  - La compatibilidad está en [0.0, 1.0]
+  - Orientaciones incompatibles → 0.0
+  - Misma edad → mayor compatibilidad
+  - Distancia corta → mayor compatibilidad
+
+B) TESTS UNITARIOS DE ENFERMEDADES Y MORTALIDAD (18 tests)
+--------------------------------------------------------------------------------
+
+test_pathogen.py (11 tests):
+  - create_random_variant() genera propiedades válidas
+  - Cada patógeno tiene ID único
+  - mutate() incrementa generación y establece ancestro
+  - Inmunidad cruzada entre familias
+  - Estado de infección progresa correctamente
+
+test_disease_system.py (3 tests):
+  - REGRESIÓN: Brotes evaluados UNA VEZ por tick
+  - Sin carga viral no hay contagio
+  - Con alta carga viral hay probabilidad de contagio
+
+test_mortality_system.py (4 tests):
+  - Riesgo base > 0 incluso para agentes sanos
+  - Estar enfermo aumenta el riesgo
+  - Baja energía aumenta el riesgo
+  - Hard cap de edad dispara muerte determinista
+
+C) TESTS DE REGRESIÓN (9 tests)
+--------------------------------------------------------------------------------
+
+test_regression_bugs.py:
+  - BUG 1: RelationshipSystem no tiene _check_breakup ni _update_affinity
+  - BUG 2: DiseaseSystem no genera ~100 infecciones por tick
+  - BUG 3: register_birth no acepta parámetro 'species'
+  - BUG 4: DeathResolver filtra tuplas (entity_id, pathogen) correctamente
+  - BUG 5: base_outbreak_chance >= 1.0
+
+D) TESTS ESTADÍSTICOS (3 tests)
+--------------------------------------------------------------------------------
+
+test_statistical.py:
+  - Una simulación de 100 ticks produce un mundo vivo
+  - Las epidemias no colapsan la población en 200 ticks
+  - La mortalidad es realista en 365 ticks (1 año)
+
+================================================================================
+9. FLUJO DE TRABAJO RECOMENDADO
+================================================================================
+
+DURANTE DESARROLLO:
+
+    python -m pytest tests/unit/test_pathogen.py -v
+
+VALIDACIÓN RÁPIDA:
+
+    python -m pytest tests/ -x --tb=short
+
+VALIDACIÓN COMPLETA (antes de commit):
+
+    python -m pytest tests/ -v
+
+ANÁLISIS DE COBERTURA:
+
+    python -m pytest tests/ --cov=systems --cov-report=term-missing
+
+DESPUÉS DE UN FALLO:
+
+    python -m pytest tests/ -v --lf
+
+================================================================================
+10. SOLUCIÓN DE PROBLEMAS COMUNES
+================================================================================
+
+PROBLEMA: "ModuleNotFoundError: No module named 'pytest'"
+SOLUCIÓN:
+    pip install pytest
+
+PROBLEMA: "ModuleNotFoundError: No module named 'systems'"
+SOLUCIÓN: Ejecutar desde la raíz del proyecto:
+    cd C:\Users\K3605\Documents\Programación\Python\Proyectos\Simulador de vida
+    python -m pytest tests/ -v
+
+PROBLEMA: Pylance marca error en "allele.value = 2.0"
+SOLUCIÓN: Es intencional (test de inmutabilidad). Añadir al final:
+    allele.value = 2.0  # type: ignore[misc]
+
+PROBLEMA: Pylance marca error en "memories: list = None"
+SOLUCIÓN: Usar Optional:
+    from typing import Optional
+    memories: Optional[list] = None
+
+================================================================================
+11. HISTORIAL DE BUGS PROTEGIDOS POR TESTS DE REGRESIÓN
+================================================================================
+
+BUG 1: 7.908 rupturas masivas
+  - Causa: RelationshipSystem con affinity lineal
+  - Solución: Vaciar RelationshipSystem (stub)
+  - Test: TestBug1_MassiveBreakups
+
+BUG 2: Brotes dentro del bucle de agentes
+  - Causa: Código de brotes dentro de "for person"
+  - Solución: Mover brotes fuera del bucle
+  - Test: TestBug2_OutbreaksOutsideLoop
+
+BUG 3: register_birth con parámetro 'species'
+  - Causa: GestationSystem pasaba 'species' inexistente
+  - Solución: Eliminar el parámetro
+  - Test: TestBug3_RegisterBirthSignature
+
+BUG 4: Tuplas mal filtradas en DeathResolver
+  - Causa: Se filtraba e_id sobre tuplas
+  - Solución: Filtrar entity_id de la tupla
+  - Test: TestBug4_DeathResolverInfectionsFilter
+
+BUG 5: base_outbreak_chance = 0.02
+  - Causa: Probabilidad demasiado baja
+  - Solución: Cambiar a 1.5
+  - Test: TestBug5_OutbreakChanceTooLow
+
+================================================================================
+12. COMANDOS RÁPIDOS (COPIAR Y PEGAR)
+================================================================================
+
+# Todos los tests
+python -m pytest tests/ -v
+
+# Solo unitarios
+python -m pytest tests/unit/ -v
+
+# Solo integración
+python -m pytest tests/integration/ -v
+
+# Parar al primer error
+python -m pytest tests/ -v -x
+
+# Genética
+python -m pytest tests/unit/test_genome_combine.py -v
+
+# Memorias
+python -m pytest tests/unit/test_memroy_decay.py -v
+
+# Etiquetas
+python -m pytest tests/unit/test_label_generator.py -v
+
+# Narrativas
+python -m pytest tests/unit/test_narrative_decay.py -v
+
+# Orientación
+python -m pytest tests/unit/test_orientation.py -v
+
+# Sesgos
+python -m pytest tests/unit/test_bias_engine.py -v
+
+# Influencia conductual
+python -m pytest tests/unit/test_behavior_influence.py -v
+
+# Compatibilidad
+python -m pytest tests/unit/test_compatibility_engine.py -v
+
+# Patógenos
+python -m pytest tests/unit/test_pathogen.py -v
+
+# Enfermedades
+python -m pytest tests/unit/test_disease_system.py -v
+
+# Mortalidad
+python -m pytest tests/unit/test_mortality_system.py -v
+
+# Regresión (bugs críticos)
+python -m pytest tests/integration/test_regression_bugs.py -v
+
+# Estadísticos
+python -m pytest tests/integration/test_statistical.py -v
+
+# Cobertura
+python -m pytest tests/ --cov=systems --cov=entities --cov-report=term-missing
+
+================================================================================
+FIN DE LA GUÍA
+================================================================================

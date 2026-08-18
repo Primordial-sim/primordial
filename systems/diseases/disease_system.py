@@ -181,10 +181,10 @@ class DiseaseSystem:
             if viral_load <= 0.0:
                 continue
             
-            # Inmunidad innate base como defensa general
+            # Inmunidad innate base como defensa general (API genérica del Genome)
             base_innate_immunity = max(
                 0.1, 
-                person.genome.immunity - ((1.0 - person.emotions.get("energy", 1.0)) * 0.2)
+                person.genome.get_trait_value("immunity") - ((1.0 - person.emotions.get("energy", 1.0)) * 0.2)
             )
             crowding_pressure = context.get_local_pressure(person.x, person.y)
             immunity_factor = min(1.0, base_innate_immunity / 2.0)
@@ -272,7 +272,7 @@ class DiseaseSystem:
         if not self.relationship_engine:
             return
 
-        for rel in patient._relationships:
+        for rel in patient._relationships.values():
             if getattr(rel, 'status', None) in (
                 RelationshipStatus.DATING, 
                 RelationshipStatus.COHABITATION, 
@@ -309,7 +309,7 @@ class DiseaseSystem:
         if not self.relationship_engine:
             return
 
-        for rel in deceased._relationships:
+        for rel in deceased._relationships.values():
             if getattr(rel, 'status', None) != RelationshipStatus.EX_PARTNER:
                 survivor = state.get_person_by_id(rel.partner_id)
                 if survivor and survivor.entity_id not in pending.deaths:

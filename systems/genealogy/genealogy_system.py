@@ -176,9 +176,11 @@ class GenealogySystem:
         )
         
         if hasattr(person, 'genome'):
-            node.longevity = getattr(person.genome, 'longevity', 1.0)
-            node.sociability = getattr(person.genome, 'sociability', 0.5)
-            node.temperament = getattr(person.genome, 'temperament', 0.5)
+            # GENÉTICA UNIVERSAL: API genérica agnóstica a especie
+            # Si el rasgo no existe en la especie, retorna 0.0, por lo que usamos fallback
+            node.longevity = person.genome.get_trait_value("longevity") or 1.0
+            node.sociability = person.genome.get_trait_value("sociability") or 0.5
+            node.temperament = person.genome.get_trait_value("temperament") or 0.5
         
         father_id = getattr(person, 'father_id', None)
         mother_id = getattr(person, 'mother_id', None)

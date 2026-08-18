@@ -1,0 +1,19 @@
+{
+  "name": "Colonia de insectos",
+  "description": "Alta reproducción y vida breve.",
+  "species": [
+    {"id": "insect", "count": 200}
+  ],
+  "world": {
+    "width": 80,
+    "height": 80
+  },
+  "simulation": {
+    "max_ticks": 500,
+    "delta_days": 0.5,
+    "total_days": 250
+  },
+  "environment": {
+    "sector_size": 8
+  }
+}

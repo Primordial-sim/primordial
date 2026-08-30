@@ -776,11 +776,70 @@ config.mutation.mutate_dominance = True  # ¿Mutar dominancia?
 
 ## 🧪 Tests del sistema
 
-| Archivo | Cobertura |
-|---------|-----------|
-| `tests/unit/test_genetics_universal.py` | Trait, TraitLibrary, SpeciesDefinition, BiologicalValidator, RealismIndex |
-| `tests/unit/test_genome_combine.py` | Genome.combine(), Allele, Gene |
-| `tests/unit/test_mutation.py` | Mutación de alelos, replicación |
+**Total: 181 tests pasando**
+
+| Archivo | Tests | Cobertura |
+|---------|-------|-----------|
+| `tests/unit/test_genetics_universal.py` | 40 | Trait, TraitLibrary, SpeciesDefinition, BiologicalValidator, RealismIndex |
+| `tests/unit/test_mutation.py` | 22 | Mutación de alelos, replicación |
+| `tests/unit/test_genome_combine.py` | 21 | Genome.combine(), Allele, Gene |
+| `tests/integration/test_regression_bugs.py` | 10 | Regresiones |
+| `tests/integration/test_statistical.py` | 3 | Estadística |
+| Otros tests de sistemas | 85 | Integración con otros sistemas |
+
+---
+
+## 🔒 Estado del núcleo genético
+
+**Estado: CONGELADO** (Agosto 2026)
+
+El núcleo genético está cerrado. No se modificará salvo que una necesidad real de otro sistema lo requiera. Todo lo demás debe construirse encima del núcleo, nunca dentro de él.
+
+### Lo que está cerrado ✅
+- Trait (definición de rasgos)
+- TraitLibrary (biblioteca de rasgos)
+- SpeciesDefinition (plantillas y especies)
+- SpeciesRegistry (registro de especies)
+- Genome (genotipo de un individuo)
+- Gene / Allele
+- ExpressionModel (7 modelos)
+- MutationConfig
+- BiologicalValidator
+- RealismIndex
+- Herencia mendeliana (combine, meiosis)
+- Reproducción asexual (replicate)
+- Mutación con clampeo
+- Rangos definidos
+
+### Lo que está pendiente ⏸
+- Taxonomía y compatibilidad reproductiva
+- Biomas y terrenos
+- Movimiento por rasgos (flight, swimming)
+- Interacciones entre especies
+- Conceptos humanos opcionales
+
+**Nota**: Para la especificación conceptual detallada, ver `docs/specs/GENETICS_CORE_SPEC.md`.
+
+---
+
+## 🔄 Sistemas migrados a API genérica
+
+Todos los sistemas de simulación han sido migrados para usar `get_trait_value()` en lugar de propiedades legacy.
+
+| Sistema | Propiedades migradas |
+|---------|---------------------|
+| `systems/diseases/disease_system.py` | immunity |
+| `systems/temporal/temporal_system.py` | temperament, immunity |
+| `systems/mortality/mortality_system.py` | longevity |
+| `systems/behavior/cognitive_memory_system.py` | temperament |
+| `systems/genealogy/genealogy_system.py` | longevity, sociability, temperament |
+| `systems/free_will/free_will_system.py` | impulsivity, curiosity, obedience, aggressiveness, temperament, sociability |
+| `systems/aging/aging_system.py` | longevity |
+| `systems/movement/movement_system.py` | curiosity |
+| `systems/reproduction/conception_system.py` | fertility, longevity |
+| `systems/reproduction/gestation_system.py` | Soporte para asexual con replicate() |
+
+**Nota**: Las propiedades legacy (`.longevity`, `.fertility`, etc.) se mantienen por retrocompatibilidad pero internamente llaman a `get_trait_value()`.
 
 ---
 
@@ -931,19 +990,26 @@ Cada rasgo elige el modelo que mejor lo representa.
 | Especies predefinidas | 15 |
 | Plantillas base | 9 |
 | Reglas de validación | 13 |
-| Tests cubriendo genética | ~60 |
+| Tests cubriendo genética | ~181 |
 
 ---
 
 ## 🔮 Futuras extensiones
 
-### Planificadas
+### Planificadas (corto plazo)
+- [ ] Taxonomía y compatibilidad reproductiva (evitar cruces imposibles)
+- [ ] Diseño de sistema de biomas/terrenos
+- [ ] Movimiento por rasgos (flight, swimming, burrowing)
+- [ ] Interacciones entre especies (depredación, parasitismo)
+- [ ] Conceptos humanos opcionales (marriage, pregnancy según especie)
+
+### Planificadas (medio plazo)
 - [ ] Epigenética (marcadores que afectan expresión sin cambiar ADN)
 - [ ] Epistasis (interacciones entre genes)
 - [ ] Ligamiento genético (genes cercanos se heredan juntos)
 - [ ] Recombinación cromosómica (crossing-over)
 
-### Posibles
+### Posibles (largo plazo)
 - [ ] Mutación dirigida por estrés ambiental
 - [ ] Transferencia horizontal de genes (bacterias)
 - [ ] Hibridación entre especies
@@ -952,4 +1018,5 @@ Cada rasgo elige el modelo que mejor lo representa.
 ---
 
 *Documento: 03_GENETICA.md*
-*Versión: 1.0*
+*Versión: 2.0 (integrado con GENETICS_IMPLEMENTATION.md)*
+*Última actualización: Agosto 2026*

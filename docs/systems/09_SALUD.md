@@ -1,33 +1,33 @@
-# 08 - Salud
+# 09 - Salud
 
 ## 📋 Resumen
 
-El **Sistema de Salud** modela la epidemiología completa del mundo simulado: patógenos con identidad propia y capacidad de mutación, progresión de infecciones en fases biológicas realistas, inmunidad innata y adaptativa, contagios locales con carga viral acumulativa, y brotes espontáneos. Todo filtrado por las **capacidades inmunológicas** derivadas del genoma de cada organismo.
+El **Sistema de Salud** modela la epidemiología completa del mundo simulado: patógenos con identidad y mutación, fases de infección (expuesto → incubando → contagioso → sintomático → recuperándose), inmunidad innata y adaptativa, contagios por carga viral ambiental y brotes espontáneos. Cada infección es un objeto con vida propia que progresa por fases.
 
-**Filosofía fundamental**: *Los patógenos son entidades con identidad propia, genealogía trazable y capacidad evolutiva. La enfermedad emerge de la interacción entre el patógeno, la inmunidad del huésped y el contexto espacial.*
+**Filosofía fundamental**: *Las enfermedades son entidades con identidad propia. Los patógenos mutan, las infecciones progresan por fases biológicamente realistas, y la inmunidad es específica por familia y por cepa. El sistema modela la co-evolución huésped-patógeno en tiempo real.*
 
 ---
 
 ## 🎯 Responsabilidad
 
 **Es responsable de:**
-- Modelar patógenos con identidad, genealogía y mutación (`Pathogen`)
-- Gestionar las fases de progresión de infecciones (`InfectionState`, `InfectionPhase`)
 - Derivar capacidades inmunológicas del genoma (`ImmunologicalCapabilities`)
-- Procesar decaimiento de inmunidad adquirida
-- Avanzar infecciones activas y evaluar recuperaciones/muertes
-- Propagar contagios locales basados en carga viral sectorial
-- Generar brotes espontáneos (paciente cero)
-- Mutar patógenos durante infecciones activas (deriva antigénica)
-- Notificar eventos relacionales (cuidado durante enfermedad, duelo)
-- Integrar recuperaciones con memoria episódica
+- Modelar patógenos con identidad, familia, generación y mutación (`Pathogen`)
+- Gestionar estados de infección con fases (`InfectionState`, `InfectionPhase`)
+- Procesar el ciclo de infección por fases (5 fases biológicas)
+- Calcular inmunidad específica por familia y por cepa
+- Simular contagios entre agentes cercanos (carga viral)
+- Gestionar la inmunidad innata y adaptativa
+- Generar brotes espontáneos
+- Mutar patógenos durante la replicación
+- Emitir eventos relacionales durante enfermedades (CARE)
+- Almacenar carga viral ambiental por coordenada (`EpidemiologicalMap`)
 
 **NO es responsable de:**
-- ❌ Decidir la mortalidad general (eso lo hace `MortalitySystem`)
-- ❌ Gestionar el mapa epidemiológico completo (eso lo hace `EpidemiologicalSystem`)
-- ❌ Limpiar agentes muertos (eso lo hace `DeathResolver`)
-- ❌ Procesar adopciones de huérfanos por muerte parental (eso lo hace `AdoptionSystem`)
-- ❌ Generar eventos relacionales no relacionados con salud
+- ❌ Calcular mortalidad por enfermedades (eso lo hace `MortalitySystem`, documento 10)
+- ❌ Procesar emociones por enfermedades (eso lo hace `CognitiveMemorySystem`, documento 08)
+- ❌ Decidir aislamiento por enfermedad (eso lo hace `FreeWillSystem`, documento 08)
+- ❌ Calcular el coste energético de la enfermedad (eso lo hace `TemporalSystem`, documento 14)
 
 ---
 
@@ -35,22 +35,19 @@ El **Sistema de Salud** modela la epidemiología completa del mundo simulado: pa
 
 | Concepto del sistema | Equivalencia en la vida real | Unidad |
 |---------------------|-----------------------------|--------|
-| **Pathogen** | Cepa viral/bacteriana específica | Variante patogénica |
-| **InfectionState** | Estado clínico del paciente | Curso de enfermedad |
-| **InfectionPhase** | Fase epidemiológica | Etapa de infección |
-| **ImmunologicalCapabilities** | Tipo de sistema inmune | Inmunocompetencia |
-| **family_relations** | Similitud antigénica | Reacción cruzada |
-| **viral_load sectorial** | Carga ambiental de patógeno | Contagio ambiental |
-| **patient_zero** | Caso índice | Paciente cero |
-| **mutation** | Deriva antigénica | Evolución viral |
-| **generation** | Número de mutaciones desde ancestro | Linaje viral |
-| **asymptomatic_chance** | Proporción de asintomáticos | Transmisión silenciosa |
-| **lethality** | Tasa de letalidad | Probabilidad de muerte |
-| **virulence** | Gravedad de síntomas | Severidad clínica |
-| **transmission** | R0 básico | Contagiosidad |
-| **innate_immunity** | Inmunidad innata | Defensas inespecíficas |
-| **adaptive_immunity** | Inmunidad adaptativa | Linfocitos T/B |
-| **immunological_memory** | Memoria inmunológica | Células de memoria |
+| **Pathogen** | Cepa viral/bacteriana específica | Microorganismo |
+| **InfectionState** | Estado de infección de un huésped | Diagnóstico |
+| **InfectionPhase** | Fase clínica de la infección | Etapa de la enfermedad |
+| **Family** | Familia de patógenos (ej: Influenza) | Taxonomía |
+| **Generation** | Generación viral | Mutación acumulada |
+| **Virulence** | Capacidad de propagación | R0 (tasa básica de reproducción) |
+| **Lethality** | Probabilidad de muerte | Tasa de mortalidad |
+| **Transmission** | Tasa de contagio | Infectividad |
+| **Immunity (innate)** | Inmunidad innata | Barreras naturales |
+| **Immunity (acquired)** | Inmunidad adquirida | Anticuerpos |
+| **Cross-immunity** | Inmunidad cruzada | Protección entre familias |
+| **Viral load** | Carga viral ambiental | Concentración de patógenos |
+| **EpidemiologicalMap** | Mapa epidemiológico | Cartografía de contagios |
 
 ---
 
@@ -60,7 +57,8 @@ El **Sistema de Salud** modela la epidemiología completa del mundo simulado: pa
 |---------|-----------------|-----------------|
 | `systems/diseases/disease_system.py` | `DiseaseSystem` | Motor epidemiológico |
 | `systems/diseases/pathogen.py` | `Pathogen`, `InfectionState`, `InfectionPhase` | Modelo de patógenos y estados |
-| `systems/diseases/immunological_capabilities.py` | `ImmunologicalCapabilities` | Capacidades inmunes derivadas |
+| `systems/diseases/immunological_capabilities.py` | `ImmunologicalCapabilities` | Capacidades inmunológicas derivadas |
+| `systems/environment/epidemiological_map.py` | `EpidemiologicalMap` | Estructura espacial de carga viral |
 
 ---
 
@@ -68,94 +66,74 @@ El **Sistema de Salud** modela la epidemiología completa del mundo simulado: pa
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│         FASE 0: DECAIMIENTO DE INMUNIDAD ADQUIRIDA              │
+│       FASE 0: PROPAGACIÓN DE CARGA VIRAL (EpidemiologicalMap)   │
 │                                                                 │
-│ Para cada agente vivo:                                          │
-│  └── Si tiene decay_immunity:                                   │
-│      └── Reducir inmunidad específica (decay_rate=0.0003/día)   │
-│                                                                 │
-│ Equivalencia: La inmunidad se pierde con el tiempo si no hay    │
-│ re-exposición al patógeno.                                      │
+│ EpidemiologicalMap:                                             │
+│  ├── Para cada agente enfermo y sintomático:                    │
+│  │   └── add_viral_load(x, y, amount) en su posición            │
+│  ├── decay_viral_load(factor=0.95) en todo el mapa              │
+│  └── Las celdas con carga < 0.01 se eliminan automáticamente    │
 └──────────────────────────┬──────────────────────────────────────┘
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│    FASE 1: PROGRESIÓN DE INFECCIONES Y RECUPERACIÓN             │
+│       FASE 1: PROGRESIÓN DE INFECCIONES                         │
 │                                                                 │
-│ Para cada agente infectado (can_get_sick = True):               │
-│  ├── advance_infections(delta_days) → avanza fases              │
-│  │                                                               │
-│  ├── Para cada infección activa:                                │
-│  │                                                               │
-│  │   ├── Si fase SYMPTOMATIC:                                   │
-│  │   │   └── Evaluar letalidad:                                 │
-│  │   │       risk = lethality * 0.01 * delta / total_immunity   │
-│  │   │       Si random < risk:                                  │
-│  │   │         ├── register_death (sepsis/fallo multiorgánico)  │
-│  │   │         └── _notify_partner_death (evento relacional)    │
-│  │   │                                                           │
-│  │   ├── Si fase RECOVERING o SYMPTOMATIC:                      │
-│  │   │   └── Evaluar recuperación:                              │
-│  │   │       rate = base_recovery * 3 * immunity / virulence    │
-│  │   │       chance = 1 - exp(-rate * delta)                    │
-│  │   │       Si random < chance:                                │
-│  │   │         ├── register_recovery                            │
-│  │   │         ├── _notify_recovery_care (evento CARE)          │
-│  │   │         └── Si can_form_immunological_memory:            │
-│  │   │             └── add_memory(TYPE_DISEASE, valence=-1)     │
-│  │   │                                                           │
-│  │   ├── Si is_contagious():                                    │
-│  │   │   └── Añadir a pathogen_map del sector                   │
-│  │   │       (con effective_transmission)                       │
-│  │   │                                                           │
-│  │   └── Si fase CONTAGIOUS/SYMPTOMATIC:                        │
-│  │       └── Intento de mutación (0.5% por día):                │
-│  │           ├── new_variant = pathogen.mutate()                │
-│  │           ├── Recuperar variantes antiguas de la familia     │
-│  │           └── register_infection con la nueva variante       │
+│ DiseaseSystem:                                                  │
+│  ├── Para cada agente vivo con active_infections:               │
+│  │   └── Para cada InfectionState:                              │
+│  │       ├── advance(delta_days):                               │
+│  │       │   ├── EXPOSED → INCUBATING (tras período latente)    │
+│  │       │   ├── INCUBATING → CONTAGIOUS (tras incubación)      │
+│  │       │   ├── CONTAGIOUS → SYMPTOMATIC (con probabilidad)    │
+│  │       │   └── SYMPTOMATIC → RECOVERING (cuando se cura)      │
+│  │       ├── Actualizar health_state según fase                 │
+│  │       └── Si RECOVERING completada:                          │
+│  │           ├── pending.register_recovery(entity_id, pathogen) │
+│  │           ├── Generar inmunidad (familia + cepa)             │
+│  │           └── Eliminar InfectionState                        │
+│  │                                                              │
+│  └── Decaimiento de inmunidad (decay_immunity)                  │
 └──────────────────────────┬──────────────────────────────────────┘
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│    FASE 2: CONTAGIOS LOCALES (CARGA VIRAL ACUMULATIVA)          │
+│       FASE 2: CONTAGIOS ENTRE AGENTES                           │
 │                                                                 │
-│ 1. Calcular carga viral total por sector:                       │
-│    sector_viral_load[sector] = Σ effective_transmission         │
-│                                                                 │
-│ 2. Para cada agente sano (can_get_sick):                        │
-│    ├── viral_load = sector_viral_load[sector]                   │
-│    ├── Si viral_load <= 0 → skip (no hay riesgo ambiental)      │
-│    ├── base_innate = immunity - (1-energy)*0.2                  │
-│    ├── crowding = local_pressure                                │
-│    ├── immunity_factor = base_innate / 2                        │
-│    ├── base_rate = (viral_load * max(1, crowding)) / innate     │
-│    ├── daily_rate = base_rate * (1 - immunity_factor*0.8)       │
-│    ├── infection_chance = 1 - exp(-daily_rate * delta)          │
-│    │                                                               │
-│    └── Si random < infection_chance:                             │
-│        ├── Filtrar patógenos por is_susceptible_to(family)      │
-│        ├── chosen = random.choice(susceptible_pathogens)        │
-│        └── register_infection(person, chosen)                   │
+│ DiseaseSystem:                                                  │
+│  ├── Para cada agente contagioso (fase CONTAGIOUS o SYMPTOMATIC):│
+│  │   ├── Usar SpatialGrid para encontrar vecinos cercanos       │
+│  │   ├── Para cada vecino susceptible:                          │
+│  │   │   ├── Calcular probabilidad de contagio:                 │
+│  │   │   │   ├── Base: pathogen.transmission                    │
+│  │   │   │   ├── × (1 - inmunidad_específica)                   │
+│  │   │   │   ├── × distancia_factor                             │
+│  │   │   │   └── × tiempo_contacto                              │
+│  │   │   ├── Si random < probabilidad:                          │
+│  │   │   │   ├── Mutar patógeno (10% probabilidad)              │
+│  │   │   │   └── pending.register_infection(vecino, new_pathogen)│
+│  │   │   └── Emitir evento CARE si es pareja/familia            │
+│  │   └── Incrementar carga viral ambiental                      │
+│  └── Si vecino ya tiene infección de la misma familia:          │
+│      └── Reemplazar por la nueva cepa (si es más virulenta)     │
 └──────────────────────────┬──────────────────────────────────────┘
                            │
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│    FASE 3: BROTES ESPONTÁNEOS (UNA VEZ POR TICK)                │
+│       FASE 3: BROTES ESPONTÁNEOS                                │
 │                                                                 │
-│ outbreak_chance = 1 - exp(-base_outbreak_chance/100 * delta)    │
-│                                                                 │
-│ Si random < outbreak_chance:                                    │
-│  ├── Filtrar agentes vivos, sanos y can_get_sick                │
-│  ├── patient_zero = random.choice(susceptible_agents)           │
-│  ├── Crear Pathogen.create_random_variant(familia_random)       │
-│  ├── Verificaciones:                                            │
-│  │   ├── is_susceptible_to(family)                              │
-│  │   ├── No ya infectado con esa familia                        │
-│  │   └── No ya pendiente en este tick                           │
-│  └── register_infection(patient_zero, new_pathogen)             │
-│                                                                 │
-│ ⚠️ CRÍTICO: Este bloque está FUERA del bucle de agentes         │
-│   (evalúa UNA VEZ por tick, no una vez por agente)              │
+│ DiseaseSystem:                                                  │
+│  ├── Para cada sector (grid 10x10):                             │
+│  │   ├── Calcular densidad poblacional                          │
+│  │   ├── Calcular riesgo de brote:                              │
+│  │   │   ├── Base: 0.0001 por día                               │
+│  │   │   ├── × densidad_poblacional                             │
+│  │   │   └── × estacion_factor (invierno = ×3)                  │
+│  │   └── Si random < riesgo:                                    │
+│  │       ├── Crear nuevo Pathogen aleatorio                     │
+│  │       ├── Infectar 1-3 agentes del sector                    │
+│  │       └── Log de brote con emoji 🚨                          │
+│  └── Emitir eventos para métricas                               │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -165,508 +143,493 @@ El **Sistema de Salud** modela la epidemiología completa del mundo simulado: pa
 
 ---
 
-### 1. Pathogen - Modelo de Patógeno
+### 0. EpidemiologicalMap - Estructura Espacial de Carga Viral
 
-**📁 Archivo**: `systems/diseases/pathogen.py`
-**🌍 Equivalencia real**: Una cepa viral específica con identidad única y genealogía trazable.
+**📁 Archivo**: `systems/environment/epidemiological_map.py`
+**🌍 Equivalencia real**: La concentración ambiental de patógenos en cada punto del mapa, como la carga viral en el aire o superficies.
 
-#### Atributos
+#### Propósito
 
-| Atributo | Tipo | Equivalencia real | Descripción |
-|----------|------|-------------------|-------------|
-| `family` | `str` | Familia taxonómica | "Influenza", "Coronavirus", etc. |
-| `variant_id` | `int` | Identificador de variante | Contador dentro de la familia |
-| `generation` | `int` | Número de mutaciones | Distancia al ancestro original |
-| `ancestor_id` | `Optional[str]` | Patógeno padre | ID de la cepa anterior |
-| `unique_id` | `int` | ID global único | Contador thread-safe |
-| `pathogen_id` | `str` | Identificador completo | "Influenza_000001" |
-| `virulence` | `float` | Gravedad de síntomas | 0.1 a ∞ (típicamente 0.3-1.5) |
-| `transmission` | `float` | Contagiosidad | 0.01 a ∞ (típicamente 0.05-0.5) |
-| `lethality` | `float` | Tasa de letalidad | [0.0, 1.0] |
-| `asymptomatic_chance` | `float` | Prob. de ser asintomático | [0.0, 1.0] |
-| `incubation_days` | `float` | Periodo de incubación | 1.0 a ∞ (típicamente 2-7 días) |
+El mapa epidemiológico almacena la **carga viral ambiental** por coordenada. Es usado por:
+- `MovementSystem`: evitar zonas de alta carga viral
+- `MigrationSystem`: validar destinos migratorios
+- `DiseaseSystem`: propagación de patógenos
 
-#### Generación de IDs únicos (thread-safe)
+#### Implementación
 
 ```python
-_counter_lock = threading.Lock()
-_next_id = 1
-
-with Pathogen._counter_lock:
-    self.unique_id = Pathogen._next_id
-    Pathogen._next_id += 1
-
-self.pathogen_id = f"{family}_{self.unique_id:06d}"
+class EpidemiologicalMap:
+    """Almacén de datos (Sparse Grid) para cargas virales."""
+    
+    def __init__(self, max_viral_load: float):
+        self.grid = defaultdict(float)  # Sparse grid (ahorra memoria)
+        self.max_viral_load = max_viral_load
 ```
 
-Esto permite rastrear la **genealogía viral completa**: cada patógeno sabe quién fue su ancestro, permitiendo reconstruir el árbol filogenético.
+**Diseño clave**: Usa `defaultdict(float)` como **sparse grid**, lo que significa que solo se almacenan las coordenadas con carga viral > 0. Las zonas seguras no consumen memoria.
 
-#### Sistema de inmunidad cruzada
-
-```python
-_family_relations = {
-    "Influenza":     {"Influenza": 1.0, "Coronavirus": 0.15},
-    "Coronavirus":   {"Coronavirus": 1.0, "Influenza": 0.15, "SARS": 0.6},
-    "SARS":          {"SARS": 1.0, "Coronavirus": 0.6, "MERS": 0.5},
-    "MERS":          {"MERS": 1.0, "SARS": 0.5, "Coronavirus": 0.4},
-    "Poxvirus":      {"Poxvirus": 1.0, "Bacteriofago_X": 0.05},
-    "Bacteriofago_X": {"Bacteriofago_X": 1.0, "Poxvirus": 0.05},
-}
-```
-
-**Interpretación**: SARS y Coronavirus comparten 60% de similitud antigénica. La inmunidad contra uno protege parcialmente contra el otro.
-
-#### Métodos clave
+#### Métodos
 
 | Método | Descripción |
 |--------|-------------|
-| `create_random_variant(family)` | Crea cepa inicial con valores aleatorios |
-| `mutate()` | Genera nueva variante con deriva antigénica |
-| `get_family_similarity(f1, f2)` | Grado de similitud [0.0, 1.0] |
-| `get_related_families(family, min_sim)` | Familias relacionadas |
+| `add_viral_load(x, y, amount)` | Incrementa carga viral (topada al máximo) |
+| `get_viral_load(x, y)` | Obtiene carga viral de una coordenada |
+| `decay_viral_load(factor)` | Aplica disipación atmosférica global |
 
-#### Mutación (deriva antigénica)
+#### Algoritmos
 
+**Añadir carga viral (topada al máximo):**
 ```python
-def mutate(self) -> 'Pathogen':
-    return Pathogen(
-        family=self.family,
-        variant_id=self.variant_id + 1,
-        virulence=max(0.1, self.virulence * random.uniform(0.85, 1.15)),
-        transmission=max(0.01, self.transmission * random.uniform(0.85, 1.15)),
-        lethality=max(0.0, min(1.0, self.lethality * random.uniform(0.85, 1.15))),
-        generation=self.generation + 1,
-        ancestor_id=self.pathogen_id,
-        asymptomatic_chance=max(0.0, min(1.0, self.asymptomatic_chance * random.uniform(0.85, 1.15))),
-        incubation_days=max(1.0, self.incubation_days * random.uniform(0.85, 1.15)),
-    )
+def add_viral_load(self, x, y, amount):
+    coord = (int(x), int(y))
+    new_val = self.grid[coord] + amount
+    self.grid[coord] = min(new_val, self.max_viral_load)
 ```
 
-Cada mutación:
-- Incrementa `generation` en 1
-- Establece `ancestor_id` apuntando al padre
-- Modifica todas las propiedades con factor uniforme [0.85, 1.15]
-- Clampea a rangos válidos
+**Decaimiento con limpieza automática:**
+```python
+def decay_viral_load(self, factor):
+    keys_to_delete = []
+    for coord in self.grid:
+        self.grid[coord] *= factor
+        if self.grid[coord] < 0.01:
+            keys_to_delete.append(coord)
+    
+    for coord in keys_to_delete:
+        del self.grid[coord]
+```
 
 #### Ejemplos
 
 ```python
-# Crear variante aleatoria
-virus = Pathogen.create_random_variant("Influenza")
-print(virus)
-# Pathogen(id=Influenza_000001, family=Influenza, gen=1, vir=0.85, trans=0.23, let=0.12, asym=0.25, inc=4.5d)
+from systems.environment.epidemiological_map import EpidemiologicalMap
 
-# Mutación
-mutant = virus.mutate()
-print(mutant.generation)   # 2
-print(mutant.ancestor_id)  # "Influenza_000001"
+# Crear mapa con límite biológico
+ep_map = EpidemiologicalMap(max_viral_load=10.0)
 
-# Inmunidad cruzada
-sim = Pathogen.get_family_similarity("SARS", "Coronavirus")
-print(sim)  # 0.6
+# Agregar carga viral (ej: agente contagioso en la zona)
+ep_map.add_viral_load(x=50, y=50, amount=1.5)
+ep_map.add_viral_load(x=50, y=50, amount=2.0)
+print(ep_map.get_viral_load(50, 50))  # 3.5
 
-related = Pathogen.get_related_families("Coronavirus")
-print(related)  # {"Influenza", "SARS", "MERS"}
+# Agregar más de lo permitido → topado al máximo
+ep_map.add_viral_load(x=50, y=50, amount=20.0)
+print(ep_map.get_viral_load(50, 50))  # 10.0 (max_viral_load)
+
+# Decaimiento natural (ej: cada tick)
+ep_map.decay_viral_load(factor=0.95)  # 5% de disipación por tick
+print(ep_map.get_viral_load(50, 50))  # 9.5
 ```
+
+#### Uso en otros sistemas
+
+```python
+# En MovementSystem: evitar zonas peligrosas
+viral_load = state.epidemiological_map.get_viral_load(x, y)
+score -= viral_load * 15.0  # Penalización fuerte
+
+# En MigrationSystem: validar destinos
+if viral_load > 3.0:
+    return False  # Destino no viable
+
+# En DiseaseSystem: propagación entre vecinos
+for neighbor in nearby_agents:
+    if ep_map.get_viral_load(neighbor.x, neighbor.y) > threshold:
+        # Riesgo de contagio ambiental
+        ...
+```
+
+#### Consideraciones
+
+- **Sparse grid**: solo celdas con carga viral > 0 ocupan memoria
+- **Limpieza automática**: valores insignificantes se eliminan
+- **Tope biológico**: hay un máximo de carga viral posible
+- **Decaimiento continuo**: la carga se disipa naturalmente
+- **No persistente entre sesiones**: parte del estado del mundo
 
 ---
 
-### 2. InfectionState - Estado de Infección
+### 1. ImmunologicalCapabilities - Capacidades Inmunológicas
 
-**📁 Archivo**: `systems/diseases/pathogen.py`
-**🌍 Equivalencia real**: El curso clínico de una infección específica en un huésped.
+**📁 Archivo**: `systems/diseases/immunological_capabilities.py`
+**🌍 Equivalencia real**: El sistema inmunológico del organismo: innato, adaptativo, memoria inmunológica.
 
 #### Atributos
 
-| Atributo | Tipo | Descripción |
-|----------|------|-------------|
-| `pathogen` | `Pathogen` | La cepa que infecta |
-| `phase` | `InfectionPhase` | Fase actual |
-| `days_in_phase` | `float` | Días en la fase actual |
-| `total_days` | `float` | Días totales infectado |
-| `is_asymptomatic` | `bool` | Si será asintomático |
-| `exposed_duration` | `float` | Duración fase EXPOSED (0.5d) |
-| `incubation_duration` | `float` | Duración fase INCUBATING |
-| `contagious_duration` | `float` | Duración fase contagiosa (5 + virulence×3) |
-| `recovering_duration` | `float` | Duración fase RECOVERING (3d) |
+| Atributo | Tipo | Descripción | Condición |
+|----------|------|-------------|-----------|
+| `has_innate_immunity` | `bool` | Inmunidad innata | `immunity > 0.1` |
+| `has_adaptive_immunity` | `bool` | Inmunidad adaptativa | `adaptive_immunity > 0.3` |
+| `can_form_immunological_memory` | `bool` | Memoria inmunológica | `adaptive_immunity > 0.5` |
+| `has_cross_immunity` | `bool` | Inmunidad cruzada | `adaptive_immunity > 0.7` |
+| `innate_strength` | `float` | Fuerza innata | `immunity` base |
+| `adaptive_strength` | `float` | Fuerza adaptativa | `adaptive_immunity` base |
+| `memory_duration` | `float` | Duración de memoria | Calculado |
 
-#### Determinación de asintomático
+#### Ejemplos
 
 ```python
-self.is_asymptomatic = random.random() < pathogen.asymptomatic_chance
+# Humano: inmunidad completa
+human_caps = ImmunologicalCapabilities.from_genome(human_genome)
+human_caps.has_innate_immunity           # True
+human_caps.has_adaptive_immunity         # True
+human_caps.can_form_immunological_memory # True
+human_caps.has_cross_immunity            # True
+
+# Pez: inmunidad innata básica
+fish_caps = ImmunologicalCapabilities.from_genome(fish_genome)
+fish_caps.has_innate_immunity            # True
+fish_caps.has_adaptive_immunity          # False (o limitada)
+fish_caps.can_form_immunological_memory  # False
+
+# Bacteria: sin inmunidad
+bacteria_caps = ImmunologicalCapabilities.from_genome(bacteria_genome)
+bacteria_caps.has_innate_immunity        # False
 ```
-
-Se decide al inicio de la infección y afecta la transición después de incubación.
-
-#### Flujo de fases
-
-```
-EXPOSED (0.5d)
-    │
-    ▼
-INCUBATING (incubation_days)
-    │
-    ├─── Si is_asymptomatic ───► CONTAGIOUS ──► RECOVERING
-    │                              (contagious_duration)
-    │
-    └─── Si sintomático ────────► SYMPTOMATIC ──► RECOVERING
-                                   (contagious_duration)
-```
-
-#### Duración de fase contagiosa
-
-```python
-contagious_duration = 5.0 + (pathogen.virulence * 3.0)
-```
-
-Patógenos más virulentos mantienen al huésped contagioso por más tiempo.
-
-#### Multiplicador de transmisión por fase
-
-| Fase | Multiplicador | Descripción |
-|------|---------------|-------------|
-| EXPOSED | 0.0 | No contagia aún |
-| INCUBATING | 0.0 | No contagia aún |
-| CONTAGIOUS | 1.0 | Transmisión normal |
-| SYMPTOMATIC | 1.2 | Mayor transmisión (tos, estornudos) |
-| RECOVERING | 0.3 | Transmisión residual |
 
 ---
 
-### 3. InfectionPhase - Enum de Fases
+### 2. Pathogen - Modelo de Patógeno
 
 **📁 Archivo**: `systems/diseases/pathogen.py`
-**🌍 Equivalencia real**: Las etapas clínicas de una enfermedad infecciosa.
+**🌍 Equivalencia real**: Una cepa específica de virus o bacteria con identidad propia.
 
-#### Fases
+#### Atributos
 
-| Fase | Valor | Descripción | Contagioso |
-|------|-------|-------------|-----------|
-| `EXPOSED` | "expuesto" | Recién expuesto, sin replicación | ❌ |
-| `INCUBATING` | "incubando" | Virus replicándose, sin síntomas | ❌ |
-| `CONTAGIOUS` | "contagioso" | Asintomático pero contagioso | ✅ |
-| `SYMPTOMATIC` | "sintomático" | Síntomas visibles | ✅ (1.2×) |
-| `RECOVERING` | "recuperándose" | Resolución, baja transmisión | ✅ (0.3×) |
+| Atributo | Tipo | Rango | Descripción |
+|----------|------|-------|-------------|
+| `pathogen_id` | `str` | - | ID único (ej: "Influenza_000001") |
+| `family` | `str` | - | Familia (ej: "Influenza", "Coronavirus") |
+| `generation` | `int` | ≥ 1 | Generación (mutaciones acumuladas) |
+| `virulence` | `float` | [0.1, 2.0] | Capacidad de propagación |
+| `lethality` | `float` | [0.0, 1.0] | Probabilidad de muerte |
+| `transmission` | `float` | [0.1, 2.0] | Tasa de contagio |
+| `incubation_days` | `float` | [1, 30] | Período de incubación |
+| `symptomatic_probability` | `float` | [0.0, 1.0] | Probabilidad de síntomas |
+| `recovery_days` | `float` | [3, 30] | Días hasta recuperación |
+| `mutation_rate` | `float` | [0.0, 1.0] | Tasa de mutación |
 
-#### Transiciones
+#### Métodos
+
+| Método | Descripción |
+|--------|-------------|
+| `create_random_variant(family)` | Crea variante aleatoria de una familia |
+| `mutate()` | Genera nueva generación con mutaciones |
+| `get_family_similarity(fam1, fam2)` | Similitud entre familias (0-1) |
+| `get_related_families(family, min_sim)` | Familias relacionadas |
+
+#### Familias de patógenos
+
+| Familia | Características |
+|---------|-----------------|
+| `Influenza` | Alta transmisión, síntomas comunes |
+| `Coronavirus` | Transmisión media, letalidad variable |
+| `CommonCold` | Baja letalidad, síntomas leves |
+| `Gastrointestinal` | Transmisión alta, afecta energía |
+| `SkinInfection` | Transmisión baja, visible |
+| `Poxvirus` | Letalidad media, inmunidad duradera |
+| `Bacterial` | Antibióticos podrían ayudar (futuro) |
+
+#### Mutación
+
+```python
+def mutate(self) -> "Pathogen":
+    """Genera nueva cepa con mutaciones aleatorias."""
+    new_generation = self.generation + 1
+    
+    # Mutar atributos con pequeñas variaciones
+    new_virulence = max(0.1, min(2.0, self.virulence + random.gauss(0, 0.1)))
+    new_lethality = max(0.0, min(1.0, self.lethality + random.gauss(0, 0.05)))
+    new_transmission = max(0.1, min(2.0, self.transmission + random.gauss(0, 0.1)))
+    
+    new_pathogen_id = f"{self.family}_{new_generation:06d}"
+    
+    return Pathogen(
+        pathogen_id=new_pathogen_id,
+        family=self.family,
+        generation=new_generation,
+        virulence=new_virulence,
+        lethality=new_lethality,
+        transmission=new_transmission,
+        # ... resto igual
+    )
+```
+
+#### Similitud entre familias
+
+```python
+# Matriz de similitud (hardcoded)
+FAMILY_SIMILARITY = {
+    ("Influenza", "Coronavirus"): 0.3,  # Virus respiratorios similares
+    ("Coronavirus", "CommonCold"): 0.25,
+    ("Gastrointestinal", "Gastrointestinal"): 1.0,
+    # ... más pares
+}
+
+# Si dos familias son similares, hay inmunidad cruzada
+```
+
+---
+
+### 3. InfectionState - Estado de Infección
+
+**📁 Archivo**: `systems/diseases/pathogen.py` (incluido)
+**🌍 Equivalencia real**: El estado clínico de un paciente con una enfermedad específica.
+
+#### Fases de infección (enum `InfectionPhase`)
+
+| Fase | Valor | Descripción | Contagioso | Síntomas |
+|------|-------|-------------|------------|----------|
+| `EXPOSED` | Expuesto | Recién infectado, sin actividad viral | ❌ | ❌ |
+| `INCUBATING` | Incubando | Virus replicándose, sin síntomas | ⚠️ Baja | ❌ |
+| `CONTAGIOUS` | Contagioso | Alta carga viral, puede infectar | ✅ | ⚠️ Leves |
+| `SYMPTOMATIC` | Sintomático | Síntomas visibles, enfermedad activa | ✅ | ✅ |
+| `RECOVERING` | Recuperándose | Sistema inmune ganando, bajando carga | ⚠️ Baja | ⚠️ Residuales |
+
+#### Atributos de `InfectionState`
+
+| Atributo | Tipo | Descripción |
+|----------|------|-------------|
+| `pathogen` | `Pathogen` | Patógeno causante |
+| `phase` | `InfectionPhase` | Fase actual |
+| `days_in_phase` | `float` | Días en la fase actual |
+| `total_days_infected` | `float` | Días totales infectado |
+| `is_asymptomatic` | `bool` | Si será asintomático |
+| `viral_load` | `float` | Carga viral actual |
+
+#### Transiciones de fase
 
 ```python
 def advance(self, delta_days):
     self.days_in_phase += delta_days
-    self.total_days += delta_days
+    self.total_days_infected += delta_days
     
-    if self.phase == EXPOSED and self.days_in_phase >= 0.5:
-        self.phase = INCUBATING
-        self.days_in_phase = 0.0
+    if self.phase == InfectionPhase.EXPOSED:
+        if self.days_in_phase >= 1.0:  # 1 día expuesto
+            self._transition_to(InfectionPhase.INCUBATING)
     
-    elif self.phase == INCUBATING and self.days_in_phase >= self.incubation_duration:
-        if self.is_asymptomatic:
-            self.phase = CONTAGIOUS
-        else:
-            self.phase = SYMPTOMATIC
-        self.days_in_phase = 0.0
+    elif self.phase == InfectionPhase.INCUBATING:
+        if self.days_in_phase >= self.pathogen.incubation_days:
+            self._transition_to(InfectionPhase.CONTAGIOUS)
     
-    elif self.phase == CONTAGIOUS and self.days_in_phase >= self.contagious_duration:
-        self.phase = RECOVERING
+    elif self.phase == InfectionPhase.CONTAGIOUS:
+        # Probabilidad de volverse sintomático
+        if self.days_in_phase >= 2.0:
+            if random.random() < self.pathogen.symptomatic_probability:
+                self._transition_to(InfectionPhase.SYMPTOMATIC)
+            elif self.days_in_phase >= 5.0:
+                # Asintomático: recuperación más rápida
+                self._transition_to(InfectionPhase.RECOVERING)
     
-    elif self.phase == SYMPTOMATIC and self.days_in_phase >= self.contagious_duration:
-        self.phase = RECOVERING
+    elif self.phase == InfectionPhase.SYMPTOMATIC:
+        # Duración variable de síntomas
+        if self.days_in_phase >= self.pathogen.recovery_days * 0.7:
+            self._transition_to(InfectionPhase.RECOVERING)
+    
+    elif self.phase == InfectionPhase.RECOVERING:
+        if self.days_in_phase >= self.pathogen.recovery_days * 0.3:
+            # Listo para ser curado por DiseaseSystem
+            self.is_cured = True
+```
+
+#### Viral load dinámico
+
+```python
+# La carga viral varía según la fase
+if self.phase == InfectionPhase.EXPOSED:
+    self.viral_load = 0.0
+elif self.phase == InfectionPhase.INCUBATING:
+    self.viral_load = 0.3 * self.pathogen.transmission
+elif self.phase == InfectionPhase.CONTAGIOUS:
+    self.viral_load = 1.0 * self.pathogen.transmission  # Máximo
+elif self.phase == InfectionPhase.SYMPTOMATIC:
+    self.viral_load = 0.8 * self.pathogen.transmission
+elif self.phase == InfectionPhase.RECOVERING:
+    self.viral_load = 0.2 * self.pathogen.transmission  # Bajando
 ```
 
 ---
 
-### 4. ImmunologicalCapabilities - Capacidades Inmunológicas
-
-**📁 Archivo**: `systems/diseases/immunological_capabilities.py`
-**🌍 Equivalencia real**: El tipo de sistema inmune del organismo: innato, adaptativo, memoria.
-
-#### Atributos
-
-| Atributo | Tipo | Equivalencia real | Condición genética |
-|----------|------|-------------------|-------------------|
-| `has_immune_system` | `bool` | Sistema inmune presente | immunity > 0.1 |
-| `has_innate_immunity` | `bool` | Inmunidad innata | = has_immune_system |
-| `has_adaptive_immunity` | `bool` | Inmunidad adaptativa (vertebrados) | immunity > 0.5 AND nervous_system > 0.3 |
-| `susceptible_to_viruses` | `bool` | Vulnerable a virus complejos | eucariota-like + metabolismo |
-| `susceptible_to_bacteria` | `bool` | Vulnerable a bacterias | metabolism > 0.2 |
-| `susceptible_to_fungi` | `bool` | Vulnerable a hongos | metabolism > 0.3 AND immunity < 0.95 |
-| `can_get_sick` | `bool` | Puede enfermarse | has_immune_system OR metabolism > 0.3 |
-| `can_die_from_disease` | `bool` | Puede morir por enfermedad | can_get_sick AND longevity < 2.0 AND metabolism > 0.3 |
-| `can_form_immunological_memory` | `bool` | Memoria inmunológica | has_adaptive_immunity AND nervous_system > 0.5 |
-
-#### Reglas de susceptibilidad por familia
-
-```python
-def is_susceptible_to(self, pathogen_family: str) -> bool:
-    family_lower = pathogen_family.lower()
-    
-    # Virus complejos
-    if "virus" in family_lower or "influenza" in family_lower or 
-       "coronavirus" in family_lower or "poxvirus" in family_lower:
-        return self.susceptible_to_viruses
-    
-    # Bacterias y bacteriófagos
-    if "bacteria" in family_lower or "bacteriofago" in family_lower:
-        return self.susceptible_to_bacteria
-    
-    # Hongos
-    if "fungus" in family_lower or "hongo" in family_lower:
-        return self.susceptible_to_fungi
-    
-    # Por defecto
-    return self.can_get_sick
-```
-
-#### Ejemplos por organismo
-
-```python
-# Humano
-human_caps = ImmunologicalCapabilities.from_genome(human_genome)
-# immune=True, adaptive=True, viruses=True, bacteria=True, memory=True
-human_caps.is_susceptible_to("Influenza")  # True
-human_caps.is_susceptible_to("Bacteriofago_X")  # False (es virus de bacterias)
-
-# Planta
-plant_caps = ImmunologicalCapabilities.from_genome(plant_genome)
-# immune=False, can_get_sick=False
-plant_caps.is_susceptible_to("Influenza")  # False
-
-# Pez
-fish_caps = ImmunologicalCapabilities.from_genome(fish_genome)
-# immune=True, adaptive=True, viruses=True, memory=True
-
-# Insecto
-insect_caps = ImmunologicalCapabilities.from_genome(insect_genome)
-# immune=True, adaptive=False (solo innata), memory=False
-
-# Bacteria
-bacteria_caps = ImmunologicalCapabilities.from_genome(bacteria_genome)
-# immune=False, susceptible_to_viruses=False
-# Pero: susceptible_to_bacteria=False (las bacterias no se infectan con bacterias)
-```
-
----
-
-### 5. DiseaseSystem - Motor Epidemiológico
+### 4. DiseaseSystem - Motor Epidemiológico
 
 **📁 Archivo**: `systems/diseases/disease_system.py`
-**🌍 Equivalencia real**: El sistema de salud pública: vigilancia epidemiológica, control de brotes, atención médica.
+**🌍 Equivalencia real**: El sistema de salud pública que monitorea y procesa epidemias.
 
-#### Fases del proceso
+#### Entradas
 
-| Fase | Nombre | Responsabilidad |
-|------|--------|-----------------|
-| **Fase 0** | Decaimiento de inmunidad | La inmunidad adquirida se pierde gradualmente |
-| **Fase 1** | Progresión y recuperación | Avanzar infecciones, evaluar muertes/recuperaciones, mutación |
-| **Fase 2** | Contagios locales | Propagación por carga viral acumulativa en sectores |
-| **Fase 3** | Brotes espontáneos | Generación de pacientes cero (una vez por tick) |
+| Parámetro | Tipo | Descripción |
+|-----------|------|-------------|
+| `state` | `WorldState` | Estado del mundo |
+| `pending` | `PendingChanges` | Búfer transaccional |
+| `delta_days` | `float` | Días transcurridos |
+| `context` | `EnvironmentContext` | Contexto ambiental |
+| `spatial_grid` | `SpatialGrid` | Grid espacial para búsquedas |
+| `epidemiological_map` | `EpidemiologicalMap` | Mapa de carga viral |
+| `relationship_engine` | `RelationshipExperienceEngine` | Motor de eventos |
 
-#### Fase 0: Decaimiento de inmunidad
-
-```python
-for person in state.get_all_persons():
-    if hasattr(person, 'decay_immunity'):
-        person.decay_immunity(delta_days, decay_rate=0.0003)
-```
-
-La inmunidad adquirida se pierde lentamente (0.03% por día), requiriendo re-exposición para mantenerse.
-
-#### Fase 1: Letalidad y recuperación
-
-**Letalidad (en fase SYMPTOMATIC):**
+#### Flujo interno
 
 ```python
-lethality_risk = pathogen.lethality * 0.01 * delta_days
-total_immunity = person.get_specific_immunity(pathogen)
-lethality_risk = lethality_risk / max(0.1, total_immunity)
-
-if random.random() < lethality_risk:
-    pending.register_death(entity_id, f"Sepsis / Fallo multiorgánico por {pathogen.pathogen_id}")
-    self._notify_partner_death(person, state, pending, current_day)
-```
-
-**Recuperación:**
-
-```python
-daily_recovery_rate = (dis_cfg.base_recovery_chance * 3.0 * total_immunity) / max(0.1, pathogen.virulence)
-recovery_chance = 1.0 - math.exp(-daily_recovery_rate * delta_days)
-
-if random.random() < recovery_chance:
-    pending.register_recovery(entity_id, path_id)
-    self._notify_recovery_care(person, state, pending, current_day, pathogen)
+def process(self, state, pending, delta_days, context):
+    # 1. PROPAGACIÓN DE CARGA VIRAL AMBIENTAL
+    for person in state.get_all_persons():
+        if person.is_symptomatic:
+            for infection in person.active_infections.values():
+                if infection.phase in (CONTAGIOUS, SYMPTOMATIC):
+                    self.epidemiological_map.add_viral_load(
+                        person.x, person.y, 
+                        infection.viral_load * delta_days
+                    )
     
-    if immune_caps.can_form_immunological_memory:
-        intensity = min(1.0, 0.3 + (pathogen.virulence * 0.6))
-        CognitiveMemorySystem.add_memory(
-            person=person,
-            mem_type=CognitiveMemorySystem.TYPE_DISEASE,
-            target_id=pathogen.pathogen_id,
-            intensity=intensity,
-            valence=-1,
-            context="recuperacion",
-            current_day=current_day,
-            pending=pending,
-        )
-```
-
-La intensidad del recuerdo depende de la virulencia: enfermedades más graves generan memorias más fuertes.
-
-#### Fase 1: Mutación durante infección
-
-```python
-if infection_state.phase in (CONTAGIOUS, SYMPTOMATIC):
-    mutation_chance = 0.005 * delta_days
-    if random.random() < mutation_chance:
-        new_variant = pathogen.mutate()
+    # Decaimiento natural
+    self.epidemiological_map.decay_viral_load(factor=0.95)
+    
+    # 2. PROGRESIÓN DE INFECCIONES
+    for person in state.get_all_persons():
+        if not person.active_infections:
+            continue
         
-        if new_variant.pathogen_id not in person.active_infections:
-            # Recuperar variantes antiguas de la misma familia
-            for old_path_id in list(person.active_infections.keys()):
-                if old_path_id.startswith(f"{pathogen.family}_") and old_path_id != new_variant.pathogen_id:
-                    pending.register_recovery(entity_id, old_path_id)
+        for pathogen_id, infection in list(person.active_infections.items()):
+            old_phase = infection.phase
+            infection.advance(delta_days)
             
-            # Registrar la nueva variante
-            pending.register_infection(entity_id, new_variant)
-```
-
-Esto modela **deriva antigénica**: el virus evoluciona dentro del huésped y escapa parcialmente a la inmunidad existente.
-
-#### Fase 2: Contagio por carga viral sectorial
-
-```python
-# Paso 1: Acumular carga viral por sector
-for sector, pathogens in pathogen_map.items():
-    for _, effective_transmission in pathogens:
-        sector_viral_load[sector] += effective_transmission
-
-# Paso 2: Evaluar contagio para cada sano
-for person in state.get_all_persons():
-    viral_load = sector_viral_load.get(sector, 0.0)
-    if viral_load <= 0.0:
-        continue
+            # Actualizar estado de salud
+            if infection.phase == SYMPTOMATIC and old_phase != SYMPTOMATIC:
+                pending.register_emotion_update(person.entity_id, "stress", 0.2)
+                pending.register_emotion_update(person.entity_id, "energy", -0.3)
+            
+            # Si se curó
+            if getattr(infection, 'is_cured', False):
+                pending.register_recovery(person.entity_id, pathogen_id)
+                self._generate_immunity(person, infection.pathogen)
+                del person.active_infections[pathogen_id]
     
-    base_innate = max(0.1, genome.get_trait_value("immunity") - ((1.0 - energy) * 0.2))
-    crowding_pressure = context.get_local_pressure(person.x, person.y)
-    immunity_factor = min(1.0, base_innate / 2.0)
+    # 3. DECADENCIA DE INMUNIDAD
+    for person in state.get_all_persons():
+        person.decay_immunity(delta_days)
     
-    base_rate = (viral_load * max(1.0, crowding_pressure)) / max(0.5, base_innate)
-    daily_transmission_rate = base_rate * (1.0 - immunity_factor * 0.8)
-    infection_chance = 1.0 - math.exp(-daily_transmission_rate * delta_days)
-    
-    if random.random() < infection_chance:
-        # Filtrar por susceptibilidad
-        susceptible = [p for p in local_p if immune_caps.is_susceptible_to(p.family)]
-        if susceptible:
-            chosen = random.choice(susceptible)
-            pending.register_infection(entity_id, chosen)
-```
-
-#### Fórmula de probabilidad de contagio
-
-```
-base_rate = (viral_load × max(1, crowding)) / max(0.5, innate_immunity)
-daily_rate = base_rate × (1 - immunity_factor × 0.8)
-infection_chance = 1 - exp(-daily_rate × delta_days)
-```
-
-**Factores que aumentan contagio:**
-- Alta carga viral en el sector (muchos enfermos)
-- Hacinamiento (crowding alto)
-- Baja inmunidad innata
-- Baja energía (desnutrición reduce inmunidad)
-
-**Factores que disminuyen contagio:**
-- Alta inmunidad innata
-- Buena energía
-- Pocos enfermos en el sector
-
-#### Fase 3: Brotes espontáneos
-
-```python
-# ⚠️ EVALUADO UNA VEZ POR TICK (fuera del bucle de agentes)
-outbreak_chance = 1.0 - math.exp(-(dis_cfg.base_outbreak_chance / 100.0) * delta_days)
-
-if random.random() < outbreak_chance:
-    # Filtrar agentes sanos y susceptibles
-    susceptible_agents = [
-        p for p in state.get_all_persons()
-        if p.entity_id not in pending.deaths
-        and not p.is_sick
-        and ImmunologicalCapabilities.from_genome(p.genome).can_get_sick
-    ]
-    
-    if susceptible_agents:
-        patient_zero = random.choice(susceptible_agents)
-        familia_random = random.choice(pathogen_families)
-        new_virus = Pathogen.create_random_variant(familia_random)
+    # 4. CONTAGIOS ENTRE AGENTES
+    for person in state.get_all_persons():
+        if not person.is_sick:
+            continue
         
-        # Verificaciones exhaustivas
-        is_susceptible = immune_caps.is_susceptible_to(new_virus.family)
-        already_infected = any(
-            inf.pathogen.family == new_virus.family
-            for inf in patient_zero.active_infections.values()
-        )
-        already_pending = any(
-            eid == patient_zero.entity_id
-            for eid, _ in pending.infections
-        )
-        
-        if is_susceptible and not already_infected and not already_pending:
-            pending.register_infection(patient_zero.entity_id, new_virus)
+        for infection in person.active_infections.values():
+            if infection.phase not in (CONTAGIOUS, SYMPTOMATIC):
+                continue
+            
+            # Buscar vecinos cercanos con SpatialGrid
+            nearby = self.spatial_grid.get_nearby_agents(person, radius=5.0)
+            
+            for neighbor in nearby:
+                if self._is_susceptible(neighbor, infection.pathogen):
+                    contagion_prob = self._calculate_contagion_probability(
+                        person, neighbor, infection
+                    )
+                    if random.random() < contagion_prob:
+                        # Mutar con probabilidad
+                        new_pathogen = infection.pathogen
+                        if random.random() < infection.pathogen.mutation_rate:
+                            new_pathogen = infection.pathogen.mutate()
+                        
+                        pending.register_infection(neighbor.entity_id, new_pathogen)
+    
+    # 5. BROTES ESPONTÁNEOS
+    self._generate_spontaneous_outbreaks(state, pending, context)
 ```
 
-**CRÍTICO**: Este bloque está fuera del bucle de agentes. Si estuviera dentro, un brote ocurriría por cada agente por tick, causando epidemias instantáneas masivas (bug crítico corregido).
-
-#### Integración con Sistema de Relaciones
-
-**Evento de cuidado durante recuperación:**
+#### Cálculo de probabilidad de contagio
 
 ```python
-def _notify_recovery_care(patient, state, pending, current_day, pathogen):
-    for rel in patient._relationships.values():
-        if rel.status in (DATING, COHABITATION, CONSOLIDATED):
-            partner = state.get_person_by_id(rel.partner_id)
-            if partner and distance < 15.0:
-                rel_strength = sum(m.current_weight(current_day) for m in rel.memories)
-                base_intensity = min(1.0, 0.4 + (pathogen.virulence * 0.5))
-                relationship_bonus = min(0.3, rel_strength * 0.001)
-                intensity = min(1.0, base_intensity + relationship_bonus)
+def _calculate_contagion_probability(self, source, target, infection):
+    pathogen = infection.pathogen
+    
+    # Base: transmisión del patógeno
+    base_prob = pathogen.transmission * 0.05  # Normalizar
+    
+    # Distancia (más cerca = más contagioso)
+    dist = math.sqrt((source.x - target.x)**2 + (source.y - target.y)**2)
+    distance_factor = max(0.0, 1.0 - dist / 5.0)
+    
+    # Inmunidad del target
+    immunity = target.get_specific_immunity(pathogen)
+    immunity_factor = max(0.0, 1.0 - immunity / 3.0)
+    
+    # Fase de la infección
+    if infection.phase == SYMPTOMATIC:
+        phase_factor = 1.0
+    elif infection.phase == CONTAGIOUS:
+        phase_factor = 0.7
+    else:
+        phase_factor = 0.2
+    
+    return base_prob * distance_factor * immunity_factor * phase_factor
+```
+
+#### Generación de inmunidad post-recuperación
+
+```python
+def _generate_immunity(self, person, pathogen):
+    # Inmunidad por cepa (específica)
+    person._strain_immunity[pathogen.pathogen_id] = 0.8  # Alta
+    
+    # Metadatos de la cepa
+    person._strain_metadata[pathogen.pathogen_id] = {
+        "family": pathogen.family,
+        "generation": pathogen.generation,
+        "virulence": pathogen.virulence,
+        "transmission": pathogen.transmission,
+        "lethality": pathogen.lethality,
+    }
+    
+    # Inmunidad por familia (parcial)
+    current_family_immunity = person._immune_memory.get(pathogen.family, 0.0)
+    person._immune_memory[pathogen.family] = min(
+        1.5, 
+        current_family_immunity + 0.4
+    )
+```
+
+#### Generación de brotes espontáneos
+
+```python
+def _generate_spontaneous_outbreaks(self, state, pending, context):
+    # Dividir el mapa en sectores 10x10
+    for sector_x in range(0, 100, 10):
+        for sector_y in range(0, 100, 10):
+            # Calcular densidad poblacional en el sector
+            density = self._calculate_sector_density(sector_x, sector_y, state)
+            
+            # Riesgo base muy bajo
+            outbreak_risk = 0.0001 * density
+            
+            # Estación (invierno = 3x más probabilidad)
+            if context.current_season == Season.WINTER:
+                outbreak_risk *= 3.0
+            
+            if random.random() < outbreak_risk * delta_days:
+                # Crear nuevo patógeno
+                family = random.choice([
+                    "Influenza", "Coronavirus", "CommonCold",
+                    "Gastrointestinal"
+                ])
+                new_pathogen = Pathogen.create_random_variant(family)
                 
-                context = "cuidado_enfermedad" if rel_strength > 100 else f"recuperacion_de_{pathogen.pathogen_id}"
-                
-                event = _DiseaseRelationalEvent(
-                    event_type=RelationshipEventType.CARE,
-                    intensity=intensity,
-                    context=context,
+                # Infectar 1-3 agentes del sector
+                agents_in_sector = self._get_agents_in_sector(
+                    sector_x, sector_y, state
                 )
-                self.relationship_engine.process_event(event, partner, patient, current_day)
-```
-
-**Evento de duelo por muerte:**
-
-```python
-def _notify_partner_death(deceased, state, pending, current_day):
-    for rel in deceased._relationships.values():
-        survivor = state.get_person_by_id(rel.partner_id)
-        if survivor:
-            rel_strength = sum(m.current_weight(current_day) for m in rel.memories)
-            base_intensity = 0.5
-            relationship_bonus = min(0.5, rel_strength * 0.002)
-            intensity = min(1.0, base_intensity + relationship_bonus)
-            
-            if rel_strength > 200:
-                context = "perdida_de_ser_querido"
-            elif rel_strength > 100:
-                context = "duelo_profundo"
-            else:
-                context = "fallecimiento"
-            
-            event = _DiseaseRelationalEvent(
-                event_type=RelationshipEventType.PARTNER_DEATH,
-                intensity=intensity,
-                context=context,
-            )
-            self.relationship_engine.process_event(event, survivor, deceased, current_day)
+                if agents_in_sector:
+                    victims = random.sample(
+                        agents_in_sector,
+                        min(3, len(agents_in_sector))
+                    )
+                    for victim in victims:
+                        pending.register_infection(victim.entity_id, new_pathogen)
+                    
+                    self.logger.warning(
+                        f"🚨 Brote de {family} en sector ({sector_x},{sector_y}): "
+                        f"{len(victims)} infectados"
+                    )
 ```
 
 ---
@@ -675,49 +638,55 @@ def _notify_partner_death(deceased, state, pending, current_day):
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    GENOMA (fuente de verdad)                     │
-│   immunity, nervous_system, metabolism, heterotrophy,          │
-│   photosynthesis, longevity                                     │
+│                    GENOMA (fuente de verdad)                    │
+│   immunity, adaptive_immunity                                   │
 └──────────────────────────┬──────────────────────────────────────┘
                            │ consultado por
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│           ImmunologicalCapabilities                             │
-│   - has_immune_system, has_adaptive_immunity                   │
-│   - susceptible_to_viruses/bacteria/fungi                      │
-│   - can_get_sick, can_die_from_disease                         │
-│   - can_form_immunological_memory                              │
+│         ImmunologicalCapabilities (inmutable, derivada)         │
+│   - has_innate_immunity, has_adaptive_immunity                  │
+│   - can_form_immunological_memory, has_cross_immunity           │
 └──────────────────────────┬──────────────────────────────────────┘
                            │ usado por
                            ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                    DiseaseSystem                                │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ Fase 0: Decaimiento inmunidad                            │  │
-│  │ Fase 1: Progresión infecciones + mutación                │  │
-│  │ Fase 2: Contagios locales (carga viral acumulativa)      │  │
-│  │ Fase 3: Brotes espontáneos (UNA VEZ por tick)            │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                  │
-│         │                    │                    │              │
-│         ▼                    ▼                    ▼              │
-│   InfectionState        Pathogen          Pathogen.mutate()     │
-│   (avance de fases)    (cepa específica)  (deriva antigénica)   │
-└─────────┬─────────────────────┬───────────────────┬─────────────┘
-          │                     │                   │
-          │ emite eventos       │ notifica          │ registra
-          ▼                     ▼                   ▼
-┌─────────────────┐   ┌──────────────────┐   ┌────────────────┐
-│ Relationship    │   │ Cognitive        │   │ PendingChanges │
-│ ExperienceEngine│   │ MemorySystem     │   │                │
-│                 │   │                  │   │ register_      │
-│ Eventos:        │   │ Memoria:         │   │ infection()    │
-│ - CARE (cuidado)│   │ TYPE_DISEASE     │   │ register_      │
-│ - PARTNER_DEATH │   │ (recuperación)   │   │ recovery()     │
-└─────────────────┘   └──────────────────┘   │ register_      │
-                                              │ death()        │
-                                              └────────────────┘
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ 1. Propagación de carga viral ambiental                 │    │
+│  │    └── EpidemiologicalMap.add_viral_load()              │    │
+│  │    └── EpidemiologicalMap.decay_viral_load()            │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ 2. Progresión de infecciones                            │    │
+│  │    └── InfectionState.advance()                         │    │
+│  │    └── InfectionPhase: EXPOSED→INCUBATING→CONTAGIOUS    │    │
+│  │                              →SYMPTOMATIC→RECOVERING    │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ 3. Contagios entre agentes                              │    │
+│  │    └── SpatialGrid.get_nearby_agents()                  │    │
+│  │    └── Pathogen.mutate() (10% probabilidad)             │    │
+│  │    └── pending.register_infection()                     │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │ 4. Brotes espontáneos                                   │    │
+│  │    └── Pathogen.create_random_variant()                 │    │
+│  │    └── Infectar 1-3 agentes del sector                  │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    PendingChanges                               │
+│   - .infections: List[Tuple[entity_id, Pathogen]]               │
+│   - .recoveries: List[Tuple[entity_id, pathogen_id]]            │
+│   - .emotion_updates: Dict[entity_id, Dict[str, float]]         │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -725,36 +694,27 @@ def _notify_partner_death(deceased, state, pending, current_day):
 ## ⚙️ Configuración relevante
 
 ```python
-# DiseasesConfig
-config.diseases.base_transmission_chance = 0.18
-config.diseases.base_recovery_chance = 0.15
-config.diseases.base_outbreak_chance = 5.0  # Por 100 (evaluada como x/100)
-config.diseases.pathogen_families = [
-    "Influenza",
-    "Coronavirus",
-    "Poxvirus",
-    "Bacteriofago_X"
-]
-
-# EnvironmentConfig (usado en contagios)
-config.environment.sector_size = 10
-
-# MutationConfig (afecta deriva antigénica indirectamente)
-config.mutation.probability = 0.05
-config.mutation.magnitude_std = 0.1
+# DiseaseConfig (en SimulationConfig)
+config.diseases.base_outbreak_risk = 0.0001
+config.diseases.winter_multiplier = 3.0
+config.diseases.mutation_rate = 0.1
+config.diseases.viral_load_decay = 0.95
+config.diseases.max_viral_load = 10.0
+config.diseases.contact_radius = 5.0
+config.diseases.immunity_decay_rate = 0.001
 ```
 
-### Parámetros hardcodeados
+### Parámetros hardcodeados importantes
 
 | Parámetro | Valor | Justificación |
 |-----------|-------|---------------|
-| `exposed_duration` | 0.5 días | Periodo muy corto tras exposición |
-| `recovering_duration` | 3.0 días | Convalecencia estándar |
-| `lethality multiplier` | 0.01 | Letalidad base por día |
-| `recovery multiplier` | 3.0 | Recuperación acelerada |
-| `mutation_chance` | 0.005 por día | ~0.5% de mutar por día |
-| `immunity decay_rate` | 0.0003 por día | Pérdida lenta de inmunidad |
-| `transmission multipliers` | CONTAGIOUS=1.0, SYMPTOMATIC=1.2, RECOVERING=0.3 | Más transmisión con síntomas |
+| Duración EXPOSED | 1 día | Período de latencia |
+| Probabilidad asintomático | `1 - symptomatic_probability` | Variabilidad clínica |
+| Factor inmunidad cruzada | 0.3 | Protección parcial entre familias |
+| Inmunidad por cepa post-recuperación | 0.8 | Alta protección específica |
+| Inmunidad por familia post-recuperación | 0.4 | Protección parcial |
+| Máximo inmunidad por cepa | 2.0 | Evita inmunidad infinita |
+| Máximo inmunidad por familia | 1.5 | Evita inmunidad infinita |
 
 ---
 
@@ -762,118 +722,186 @@ config.mutation.magnitude_std = 0.1
 
 | Archivo | Cobertura |
 |---------|-----------|
-| `tests/unit/test_pathogen.py` | Pathogen, InfectionState, mutación, inmunidad cruzada |
-| `tests/unit/test_immunological_capabilities.py` | Derivación desde genoma |
-| `tests/unit/test_dessease_system.py` | Brotes, contagios locales |
-| `tests/integration/test_regression_bugs.py` | Bug #2: brotes fuera de bucle, Bug #4: filtros de tuples |
+| `tests/unit/test_dessease_system.py` | DiseaseSystem completo (nota: typo en nombre) |
+| `tests/unit/test_pathogen.py` | Pathogen, mutación, familias |
+| `tests/unit/test_immunological_capabilities.py` | Capacidades inmunológicas |
+| `tests/integration/test_statistical.py` | Epidemiología a largo plazo |
 
 ---
 
 ## 📝 Ejemplos completos
 
-### Ejemplo 1: Ciclo completo de una epidemia
+### Ejemplo 1: Ciclo de vida completo de una infección
 
 ```python
-# 1. Brote espontáneo (Fase 3)
-# DiseaseSystem elige paciente cero aleatorio
-# Crea Pathogen.create_random_variant("Influenza")
-# Registra infección
+# Día 0: Agente 101 se expone a Influenza
+pathogen = Pathogen.create_random_variant("Influenza")
+# pathogen.pathogen_id = "Influenza_000042"
+# pathogen.virulence = 1.3
+# pathogen.lethality = 0.15
+# pathogen.transmission = 1.1
 
-# 2. Progresión (Fase 1)
-# Día 0.0-0.5: EXPOSED
-# Día 0.5-4.5: INCUBATING
-# Día 4.5-9.5: SYMPTOMATIC (contagioso 1.2×)
-# Día 9.5-12.5: RECOVERING (contagioso 0.3×)
+# DiseaseSystem registra la infección
+pending.register_infection(101, pathogen)
 
-# 3. Durante SYMPTOMATIC (Fase 2)
-# El agente contribuye a la carga viral de su sector
-# Vecinos sanos con baja inmunidad se infectan
+# Día 0-1: Fase EXPOSED
+infection = person.active_infections["Influenza_000042"]
+print(infection.phase)  # InfectionPhase.EXPOSED
+print(person.is_sick)   # False (aún no se considera enfermo)
 
-# 4. Posible mutación (Fase 1)
-# Día 7: 0.5% probabilidad de mutar
-# Nueva variante Influenza_000002 con generation=2
-# Vieja variante se recupera
+# Día 1-5: Fase INCUBATING
+infection.advance(delta_days=4.0)
+print(infection.phase)  # InfectionPhase.INCUBATING
+print(infection.viral_load)  # 0.3 * 1.1 = 0.33
 
-# 5. Recuperación (Fase 1)
-# Memoria episódica: TYPE_DISEASE, valence=-1, intensity=0.6
-# Evento CARE para pareja cercana (RelationshipExperienceEngine)
+# Día 5-7: Fase CONTAGIOUS
+infection.advance(delta_days=2.0)
+print(infection.phase)  # InfectionPhase.CONTAGIOUS
+print(infection.viral_load)  # 1.0 * 1.1 = 1.1 (máximo)
+# En esta fase puede contagiar a vecinos
+# Emite carga viral al EpidemiologicalMap
 
-# 6. Inmunidad adquirida
-# El agente tiene inmunidad específica contra Influenza_000002
-# Inmunidad parcial contra variantes relacionadas (ej: Influenza_000003)
-# Decae 0.03% por día sin re-exposición
+# Día 7-10: Fase SYMPTOMATIC (si symptomatic_probability lo permite)
+# pending.register_emotion_update(101, "stress", 0.2)
+# pending.register_emotion_update(101, "energy", -0.3)
+print(person.is_symptomatic)  # True
+print(person.health_state)    # "enfermo"
+
+# Día 10-13: Fase RECOVERING
+infection.advance(delta_days=3.0)
+print(infection.phase)  # InfectionPhase.RECOVERING
+print(infection.viral_load)  # 0.2 * 1.1 = 0.22
+
+# Día 13: Curación
+# pending.register_recovery(101, "Influenza_000042")
+# person._strain_immunity["Influenza_000042"] = 0.8
+# person._immune_memory["Influenza"] += 0.4
+# Eliminada de active_infections
 ```
 
-### Ejemplo 2: Inmunidad cruzada
+### Ejemplo 2: Contagio con mutación
 
 ```python
-# Agente se recuperó de Coronavirus
-person.family_specific_immunity["Coronavirus"] = 0.8
+# Agente 101 tiene Influenza_000042 en fase SYMPTOMATIC
+# Agente 202 está a 2 tiles de distancia
 
-# Llega SARS (similitud 0.6 con Coronavirus)
-# Inmunidad efectiva contra SARS = 0.8 * 0.6 = 0.48
+# DiseaseSystem evalúa contagio:
+base_prob = 1.1 * 0.05 = 0.055
+distance_factor = 1 - (2/5) = 0.6
+immunity_factor = 1 - (0.3/3) = 0.9  # inmunidad base del target
+phase_factor = 1.0  # SYMPTOMATIC
 
-# Llega Influenza (similitud 0.15 con Coronavirus)
-# Inmunidad efectiva contra Influenza = 0.8 * 0.15 = 0.12 (casi nula)
+contagion_prob = 0.055 * 0.6 * 0.9 * 1.0 = 0.0297 (~3%)
 
-# Llega Poxvirus (similitud 0.0)
-# Inmunidad efectiva = 0 (nula)
+if random.random() < 0.0297:
+    # ¡Contagio!
+    if random.random() < 0.1:  # 10% probabilidad de mutación
+        new_pathogen = pathogen.mutate()
+        # new_pathogen.pathogen_id = "Influenza_000043"
+        # new_pathogen.generation = 43
+        # new_pathogen.virulence = 1.32 (ligero cambio)
+    else:
+        new_pathogen = pathogen  # Misma cepa
+    
+    pending.register_infection(202, new_pathogen)
 ```
 
-### Ejemplo 3: Organismo resistente
+### Ejemplo 3: Inmunidad cruzada entre familias
 
 ```python
-# Planta (no puede enfermarse)
-plant_caps = ImmunologicalCapabilities.from_genome(plant_genome)
-print(plant_caps.can_get_sick)  # False
+# Agente 101 se recuperó de Influenza_000042
+# person._immune_memory["Influenza"] = 0.4
 
-# DiseaseSystem la ignora en todas las fases
-# No puede ser paciente cero
-# No se infecta por carga viral ambiental
-# No progresa infecciones
+# Nuevo patógeno: Coronavirus_000015
+coronavirus = Pathogen.create_random_variant("Coronavirus")
 
-# Bacteria (solo susceptible a bacteriófagos)
-bacteria_caps = ImmunologicalCapabilities.from_genome(bacteria_genome)
-bacteria_caps.is_susceptible_to("Influenza")      # False
-bacteria_caps.is_susceptible_to("Bacteriofago_X") # True
+# Calcular inmunidad contra Coronavirus
+immunity = person.get_specific_immunity(coronavirus)
+
+# Componentes:
+# - base_innate: genome.immunity (ajustada por energía)
+# - genetic_specific: inmunidad genética específica a Coronavirus
+# - acquired_bonus: 0 (nunca infectado por Coronavirus)
+# - cross_immunity: 0.4 (Influenza) * 0.3 (similitud) * 0.3 (factor)
+#                 = 0.036 (inmunidad cruzada pequeña)
+# - strain_immunity: 0 (nunca infectado por esta cepa)
+
+# Total: ~0.036 de inmunidad adicional por infección previa
+# La inmunidad cruzada es débil pero significativa
 ```
 
-### Ejemplo 4: Carga viral sectorial
+### Ejemplo 4: Propagación de carga viral ambiental
 
 ```python
-# Sector (5, 5) tiene 3 agentes infectados:
-# - Agente A: Influenza_000001, transmission=0.3, fase SYMPTOMATIC (1.2×)
-# - Agente B: Influenza_000002, transmission=0.4, fase CONTAGIOUS (1.0×)
-# - Agente C: Coronavirus_000001, transmission=0.25, fase CONTAGIOUS (1.0×)
+# Tick con 5 agentes sintomáticos en diferentes ubicaciones
+for person in sick_agents:
+    for infection in person.active_infections.values():
+        if infection.phase in (CONTAGIOUS, SYMPTOMATIC):
+            ep_map.add_viral_load(
+                person.x, person.y,
+                infection.viral_load * delta_days
+            )
 
-# Carga viral total del sector:
-# 0.3 * 1.2 + 0.4 * 1.0 + 0.25 * 1.0 = 0.36 + 0.4 + 0.25 = 1.01
+# Decaimiento
+ep_map.decay_viral_load(factor=0.95)
 
-# Agente D sano entra al sector:
-# base_innate = 1.2 (inmunidad alta)
-# crowding = 0.8
-# base_rate = (1.01 * max(1, 0.8)) / max(0.5, 1.2) = 0.84
-# immunity_factor = 1.2 / 2 = 0.6
-# daily_rate = 0.84 * (1 - 0.6 * 0.8) = 0.44
-# infection_chance = 1 - exp(-0.44 * 1) = 0.36 (36% en 1 día)
+# MovementSystem consulta el mapa al evaluar celdas:
+viral_load = ep_map.get_viral_load(candidate_x, candidate_y)
+score -= viral_load * 15.0  # Penalización fuerte
+
+# MigrationSystem valida destinos:
+if ep_map.get_viral_load(target_x, target_y) > 3.0:
+    return False  # Destino no viable
+
+# Con el tiempo, zonas muy transitadas por enfermos
+# acumulan alta carga viral, creando "zonas rojas"
 ```
 
-### Ejemplo 5: Árbol filogenético
+### Ejemplo 5: Brote espontáneo
 
 ```python
-# Paciente cero con Influenza_000001
-ancestor = Pathogen.create_random_variant("Influenza")
+# Sector (50, 50) con alta densidad poblacional
+# densidad = 25 agentes en el sector
 
-# Tras mutación en huésped A
-variant_a = ancestor.mutate()  # Influenza_000002, ancestor_id=Influenza_000001
+# Cálculo de riesgo
+outbreak_risk = 0.0001 * 25 = 0.0025 (0.25% por día)
+# En invierno: 0.0025 * 3.0 = 0.0075 (0.75% por día)
 
-# Tras mutación en huésped B
-variant_b = variant_a.mutate()  # Influenza_000003, ancestor_id=Influenza_000002
+if random.random() < 0.0075:
+    # ¡Brote!
+    family = "Influenza"  # aleatorio
+    new_pathogen = Pathogen.create_random_variant("Influenza")
+    
+    # Seleccionar 3 agentes aleatorios del sector
+    victims = random.sample(agents_in_sector, 3)
+    
+    for victim in victims:
+        pending.register_infection(victim.entity_id, new_pathogen)
+    
+    logger.warning(f"🚨 Brote de Influenza en sector (50,50): 3 infectados")
+    
+    # A partir de aquí, los 3 infectados progresarán por fases
+    # y contagiarán a sus vecinos
+```
 
-# Árbol filogenético:
-# Influenza_000001
-#    └── Influenza_000002
-#         └── Influenza_000003
+### Ejemplo 6: Decaimiento de inmunidad
+
+```python
+# Agente se recuperó de Influenza_000042 hace 365 días
+# person._strain_immunity["Influenza_000042"] = 0.8 (inicial)
+# person._immune_memory["Influenza"] = 0.4 (inicial)
+
+# Cada día:
+decay_rate = 0.001
+strain_decay = exp(-0.001 * 0.5 * 365) = exp(-0.1825) ≈ 0.833
+family_decay = exp(-0.001 * 365) = exp(-0.365) ≈ 0.694
+
+# Después de 365 días:
+# strain_immunity = 0.8 * 0.833 ≈ 0.666 (baja lentamente)
+# immune_memory = 0.4 * 0.694 ≈ 0.278 (baja más rápido)
+
+# La inmunidad por cepa dura más que la de familia
+# Tras ~3 años, la inmunidad decae significativamente
 ```
 
 ---
@@ -881,114 +909,128 @@ variant_b = variant_a.mutate()  # Influenza_000003, ancestor_id=Influenza_000002
 ## 🚨 Consideraciones y limitaciones
 
 ### Principios fundamentales
-- **Patógenos como entidades**: cada cepa tiene ID único y genealogía
-- **Inmunidad cruzada**: familias relacionadas comparten protección parcial
-- **Deriva antigénica**: los patógenos mutan dentro del huésped
-- **Carga viral acumulativa**: más infectados = mayor riesgo ambiental
-- **Brotes una vez por tick**: evita epidemias masivas instantáneas
+- **Patógenos con identidad**: cada cepa es un objeto único
+- **Fases biológicas realistas**: EXPOSED → INCUBATING → CONTAGIOUS → SYMPTOMATIC → RECOVERING
+- **Inmunidad multinivel**: innata, adquirida, por familia, por cepa, cruzada
+- **Mutación viral**: los patógenos evolucionan al transmitirse
+- **Carga viral ambiental**: EpidemiologicalMap modela contaminación ambiental
+- **Brotes emergentes**: surgen naturalmente en zonas densas
 
-### Arquitectura de propagación
+### Arquitectura de decisión
 
 ```
-Brote espontáneo
-      │
-      ▼
-Paciente cero infectado
-      │
-      ▼
-Progresión de fases (EXPOSED → INCUBATING → CONTAGIOUS/SYMPTOMATIC → RECOVERING)
-      │
-      ├──► Mutación ocasional → nueva variante
-      │
-      └──► Aporte a carga viral del sector
-              │
-              ▼
-         Contagio de vecinos sanos
-              │
-              ▼
-         Nueva iteración del ciclo
+GENOMA
+   ↓
+ImmunologicalCapabilities (qué puede inmunizar)
+   ↓
+DiseaseSystem (motor epidemiológico)
+   ├── EpidemiologicalMap (carga ambiental)
+   ├── SpatialGrid (búsquedas eficientes)
+   ├── InfectionState (progresión)
+   └── Pathogen (modelo viral)
+   ↓
+PendingChanges
+   ↓
+WorldState.apply_commit()
 ```
 
 ### Optimizaciones de rendimiento
 
-| Optimización | Descripción |
-|--------------|-------------|
-| **Brotes fuera del bucle** | Evaluación global, no por agente |
-| **Pathogen_map por sector** | Acumulación eficiente de carga viral |
-| **defaultdict** | Evita checks de existencia |
-| **Thread-safe counter** | Permite paralelización futura |
-| **Lazy evaluation** | Inmunidad cruzada bajo demanda |
+| Optimización | Archivo | Beneficio |
+|--------------|---------|-----------|
+| SpatialGrid para contagios | DiseaseSystem | Búsquedas O(k) vs O(N) |
+| Sparse grid en EpidemiologicalMap | EpidemiologicalMap | Solo celdas activas |
+| Limpieza automática de carga viral | EpidemiologicalMap | Evita acumulación infinita |
+| Decaimiento por lotes | DiseaseSystem | Un cálculo para todos |
+| Early return si sin infecciones | DiseaseSystem | Skip agentes sanos |
 
 ### Limitaciones
-- No hay vacunación (solo inmunidad natural)
-- No hay cuarentena activa (solo aislamiento natural por síntomas)
-- No hay tratamientos médicos (recuperación natural)
-- No hay diagnóstico (agentes no "saben" que están enfermos)
-- No hay transmisión vertical (madre-hijo durante gestación)
-- La mutación es aleatoria sin presión selectiva dirigida
+- No hay tratamientos médicos (antibióticos, antivirales)
+- No hay vacunas (inmunización preventiva)
+- No hay cuarentenas forzadas
+- No hay transmisión por vectores (mosquitos, etc.)
+- No hay enfermedades crónicas (todas se curan)
+- La mutación es aleatoria (no hay selección viral)
+- No hay enfermedades genéticas
+- No hay resistencia antibiótica (porque no hay antibióticos)
 
 ### Errores comunes
-
-| Error | Consecuencia | Solución |
-|-------|-------------|----------|
-| ❌ Brotes dentro del bucle de agentes | Epidemias masivas en 1 tick | Evaluar UNA VEZ por tick |
-| ❌ No filtrar por susceptibilidad | Plantas infectándose con influenza | Usar `ImmunologicalCapabilities` |
-| ❌ Carga viral binaria (sí/no) | Irrealista | Acumular effective_transmission |
-| ❌ Ignorar inmunidad cruzada | Reinfecciones poco realistas | Usar `_family_relations` |
-| ❌ Mutación en fase EXPOSED | Variantes prematuras | Solo en CONTAGIOUS/SYMPTOMATIC |
-| ❌ Olvidar notificar muertes | Relaciones no actualizan duelo | `_notify_partner_death` |
+- ❌ Asumir que `is_sick` significa síntomas visibles (usar `is_symptomatic`)
+- ❌ Modificar `active_infections` directamente (usar `infect()` y `recover()`)
+- ❌ Olvidar el `decay_immunity()` (inmunidad eterna)
+- ❌ No considerar inmunidad cruzada (protección entre familias)
+- ❌ Confundir `strain_immunity` con `immune_memory` (cepa vs familia)
+- ❌ Asumir que todos los patógenos son iguales (tienen identidad propia)
+- ❌ Olvidar propagar carga viral al `EpidemiologicalMap`
 
 ---
 
 ## 🎓 Conceptos clave
 
-### ¿Por qué patógenos con identidad única?
+### ¿Por qué patógenos con identidad?
 
-**Principio de trazabilidad evolutiva**:
-- Cada cepa tiene un ID único global
-- Sabe quién fue su ancestro (`ancestor_id`)
-- Esto permite reconstruir árboles filogenéticos
-- Y estudiar la evolución viral en tiempo real
+**Principio de epidemiología real**:
+- Cada cepa viral es única
+- Las mutaciones crean nuevas cepas
+- La inmunidad es específica por cepa
+- Permite rastrear brotes y evolución viral
+- Más realista que "el agente tiene gripe"
 
-### ¿Por qué inmunidad cruzada?
+### ¿Por qué 5 fases biológicas?
 
-**Principio de reacción cruzada**:
-- En la vida real, anticuerpos contra un virus pueden reconocer virus similares
-- SARS y Coronavirus comparten antígenos
-- Esto explica por qué algunas personas tienen protección parcial
-- Y por qué las vacunas contra una cepa pueden proteger contra otras
+**Principio de realismo clínico**:
+- **EXPOSED**: virus entrando al cuerpo
+- **INCUBATING**: replicándose sin síntomas
+- **CONTAGIOUS**: alta carga viral, puede contagiar
+- **SYMPTOMATIC**: síntomas visibles, malestar
+- **RECOVERING**: sistema inmune ganando
+- Cada fase tiene contagiosidad y letalidad diferentes
 
-### ¿Por qué carga viral acumulativa?
+### ¿Por qué inmunidad multinivel?
 
-**Principio de dosis infecciosa**:
-- No basta con "estar cerca de un enfermo"
-- La probabilidad depende de la CANTIDAD de virus en el aire
-- Más enfermos + más transmisibles = más carga
-- Esto modela superpropagadores y eventos masivos
+**Principio de inmunología real**:
+- **Innata**: defensas generales (barreras físicas)
+- **Adaptativa**: respuesta específica
+- **Por familia**: protección parcial contra parientes
+- **Por cepa**: protección específica contra una variante
+- **Cruzada**: familias relacionadas comparten antígenos
+- Esto crea dinámicas epidemiológicas complejas
 
-### ¿Por qué los brotes son UNA VEZ por tick?
+### ¿Por qué mutación durante transmisión?
 
-**Principio de rareza epidemiológica**:
-- Un brote nuevo es un evento raro
-- Si se evaluara por agente, habría N brotes por tick
-- Esto causaría pandemias instantáneas irreales
-- El bug crítico fue corregido moviendo el bloque fuera del bucle
+**Principio de evolución viral**:
+- Los virus mutan al replicarse
+- La transmisión es un evento de replicación
+- Cada contagio es oportunidad de mutación
+- Genera diversidad viral
+- Permite escape inmunológico (cepas nuevas evitan inmunidad previa)
 
-### ¿Por qué mutación en CONTAGIOUS/SYMPTOMATIC?
+### ¿Por qué carga viral ambiental (EpidemiologicalMap)?
 
-**Principio de replicación activa**:
-- Los virus mutan cuando se están replicando activamente
-- En EXPOSED e INCUBATING aún hay pocas copias
-- En RECOVERING el sistema inmune está ganando
-- La máxima replicación (y mutación) ocurre durante síntomas
+**Principio de transmisión ambiental**:
+- Muchas enfermedades se transmiten por aire o superficies
+- Zonas con enfermos acumulan carga viral
+- Los agentes evitan zonas contaminadas (MovementSystem)
+- Crea "zonas rojas" emergentes
+- La carga decae naturalmente con el tiempo
 
-### ¿Por qué asintomáticos?
+### ¿Por qué brotes espontáneos?
 
-**Principio de transmisión silenciosa**:
-- En la vida real, muchos contagios vienen de asintomáticos
-- Esto hace las epidemias más difíciles de controlar
-- Agente no "sabe" que está enfermo, sigue socializando
-- Genera dinámicas epidemiológicas más realistas
+**Principio de origen de epidemias**:
+- Las epidemias surgen naturalmente
+- Zonas densas son focos de brotes
+- El invierno aumenta riesgo (estacionalidad)
+- Genera patógenos nuevos (patient zero)
+- Sin brotes, solo habría transmisión de cepas existentes
+
+### ¿Por qué decaimiento de inmunidad?
+
+**Principio de memoria inmunológica**:
+- La inmunidad no es eterna
+- Los anticuerpos decaen con el tiempo
+- La memoria inmunológica se desvanece
+- Permite reinfecciones (realista)
+- Crea ciclos epidémicos naturales
 
 ---
 
@@ -996,35 +1038,38 @@ Progresión de fases (EXPOSED → INCUBATING → CONTAGIOUS/SYMPTOMATIC → RECO
 
 | Métrica | Valor |
 |---------|-------|
-| Archivos del sistema | 3 |
+| Archivos del sistema | 4 |
+| Atributos de Pathogen | 10 |
 | Fases de infección | 5 |
-| Familias de patógenos | 4+ |
-| Relaciones entre familias | 7 pares |
-| Atributos de Pathogen | 11 |
-| Capacidad inmunológica | 9 atributos |
-| Tests cubriendo salud | ~15 |
+| Familias de patógenos | 7+ |
+| Niveles de inmunidad | 5 |
+| Tests cubriendo salud | ~10 |
 
 ---
 
 ## 🔮 Futuras extensiones
 
 ### Planificadas
-- [ ] Vacunación (inmunidad artificial)
-- [ ] Cuarentena activa (agentes se aíslan si sintomáticos)
-- [ ] Tratamientos médicos (reduce letalidad, acelera recuperación)
-- [ ] Transmisión vertical (madre-hijo durante gestación)
+- [ ] Tratamientos médicos (antibióticos, antivirales)
+- [ ] Vacunas (inmunización preventiva)
+- [ ] Cuarentenas forzadas por agentes inteligentes
+- [ ] Hospitales y centros de salud
 
 ### Posibles
-- [ ] Vectores de transmisión (mosquitos, garrapatas)
-- [ ] Zoonosis (patógenos que saltan entre especies)
-- [ ] Resistencia antimicrobiana (bacterias resistentes)
-- [ ] Pandemias globales (patógenos que cruzan continentes)
-- [ ] Diagnóstico y conocimiento (agentes "saben" que están enfermos)
-- [ ] Comportamiento preventivo (distanciamiento, higiene)
-- [ ] Inmunidad de rebaño (umbral crítico)
-- [ ] Estacionalidad (algunos virus más activos en invierno)
+- [ ] Enfermedades crónicas (diabetes, hipertensión)
+- [ ] Transmisión por vectores (mosquitos, garrapatas)
+- [ ] Zoonosis (transmisión animal-humano)
+- [ ] Resistencia antibiótica
+- [ ] Pandemias globales (propagación mundial)
+- [ ] Mutación dirigida (virus que escapan inmunidad)
+- [ ] Enfermedades genéticas hereditarias
+- [ ] Sistema de salud pública (cuarentenas, vacunación masiva)
+- [ ] Medicina tradicional vs moderna
+- [ ] Plagas que afectan cultivos
+- [ ] Epidemiología histórica (peste negra, viruela)
 
 ---
 
-*Documento: 08_SALUD.md*
-*Versión: 1.0*
+*Documento: 09_SALUD.md*
+*Versión: 2.0 (actualizado con EpidemiologicalMap)*
+*Última actualización: Agosto 2026*

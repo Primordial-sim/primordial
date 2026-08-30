@@ -101,4 +101,3 @@ class DensitySystem:
         DensitySystem es un sistema de consulta, no modifica estado.
         Su propósito es proveer métodos de utilidad a otros sistemas.
         """
-        pass

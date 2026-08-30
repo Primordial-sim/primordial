@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import random
 import logging
-from typing import Optional, Dict, Set, List, TYPE_CHECKING, Union
+from typing import Optional, Dict, Set, List, TYPE_CHECKING
 
 from .allele import Allele, Gene
 

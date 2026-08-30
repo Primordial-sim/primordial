@@ -221,7 +221,7 @@ class TestBug2_OutbreaksOutsideLoop:
         
         system = DiseaseSystem(config)
         
-        # Crear estado con 100 agentes sanos
+                # Crear estado con 100 agentes sanos
         state = MagicMock()
         persons = []
         for i in range(100):
@@ -231,6 +231,12 @@ class TestBug2_OutbreaksOutsideLoop:
             p.active_infections = {}
             p.x = 50.0
             p.y = 50.0
+            
+            # GENÉTICA UNIVERSAL: Configurar mocks del genoma para ImmunologicalCapabilities
+            p.genome = MagicMock()
+            p.genome.has_trait.return_value = True
+            p.genome.get_trait_value.return_value = 0.5  # Inmunidad normal
+            
             persons.append(p)
             
         state.get_all_persons.return_value = persons

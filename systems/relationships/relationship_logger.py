@@ -7,7 +7,7 @@ patrones detectados para análisis y debugging.
 from __future__ import annotations
 
 import logging
-from typing import Any, List, Set
+from typing import List, Set
 
 
 class RelationshipLogger:

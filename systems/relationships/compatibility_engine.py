@@ -33,7 +33,6 @@ class CompatibilityEngine:
         context: EnvironmentContext,
     ) -> None:
         """Fase de precalculación. Se mantiene vacío para cumplir el protocolo del PhaseScheduler."""
-        pass
 
     def calculate_compatibility(
         self,

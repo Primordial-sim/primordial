@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 import math
 import random
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from core.config.simulation_config import SimulationConfig
 from core.state.pending_changes import PendingChanges
@@ -67,6 +67,13 @@ class MarriageSystem:
         for person in all_persons:
             if person.entity_id in pending.deaths:
                 continue
+            
+            # GENÉTICA UNIVERSAL: Solo procesar si puede formar vínculos románticos
+            from systems.relationships.social_capabilities import SocialCapabilities
+            social_caps = SocialCapabilities.from_genome(person.genome)
+            if not social_caps.can_have_romantic_bonds:
+                continue
+            
             if not getattr(person, 'is_adult', False):
                 continue
             if getattr(person, 'is_pregnant', False):

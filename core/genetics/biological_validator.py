@@ -20,7 +20,7 @@ El validador utiliza un sistema de reglas declarativas:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional
 from enum import Enum, auto
 import logging
 

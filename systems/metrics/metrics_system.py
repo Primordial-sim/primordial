@@ -18,7 +18,7 @@ INTEGRACIÓN: Requiere inyección opcional de GenealogySystem para métricas de 
 import json
 import logging
 from collections import defaultdict
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 from core.state.world_state import WorldState
 from core.state.pending_changes import PendingChanges

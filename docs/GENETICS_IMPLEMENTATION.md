@@ -9,6 +9,14 @@ Para la especificación conceptual, ver GENETICS_CORE_SPEC.md
 
 ---
 
+**ESTADO: CONGELADO**
+
+El núcleo genético está cerrado. No se modificará salvo necesidad
+real de otro sistema. Este documento describe el estado actual
+de la implementación.
+
+Fecha de congelación: Agosto 2026
+
 ## 1. ESTRUCTURA DE ARCHIVOS
 
 core/genetics/

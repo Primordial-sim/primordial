@@ -45,6 +45,8 @@ class PendingChanges:
         
         # Colecciones de Motivaciones Continuas
         self.motivation_updates: Dict[int, Dict[str, float]] = {}
+
+        self.new_eggs: List[Any] = []
         
     # ==========================================
     # SALUD Y EPIDEMIOLOGÍA
@@ -245,3 +247,4 @@ class PendingChanges:
         self.motivation_updates.clear() 
         if hasattr(self, 'migration_targets'):
             self.migration_targets.clear()
+        self.new_eggs = []

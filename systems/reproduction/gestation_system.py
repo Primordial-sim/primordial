@@ -10,6 +10,8 @@ Implementa un modelo de gestación biológicamente realista con:
 - Soporte para camadas con recombinación independiente
 - Registro de nacimientos en PendingChanges
 
+GENÉTICA UNIVERSAL: Filtra gestación según ReproductiveCapabilities del organismo.
+
 CORRECCIONES APLICADAS (Auditoría):
 - Abortos espontáneos por estado fisiológico adverso
 - Mortalidad fetal durante la gestación
@@ -24,13 +26,15 @@ from __future__ import annotations
 
 import logging
 import random
-from typing import Any, Optional, Dict, List
+from typing import Any, Optional, Dict
 
 from core.config.simulation_config import SimulationConfig
 from core.state.pending_changes import PendingChanges
 from core.state.world_state import WorldState
 from systems.environment.environment_context import EnvironmentContext
 from systems.behavior.cognitive_memory_system import CognitiveMemorySystem
+from systems.behavior.cognitive_capabilities import CognitiveCapabilities
+from systems.reproduction.reproductive_capabilities import ReproductiveCapabilities
 
 
 class GestationSystem:
@@ -64,8 +68,23 @@ class GestationSystem:
             if not getattr(person, 'is_pregnant', False):
                 continue
 
-            species_traits = self._get_species_traits(person.species)
-            gestation_duration = species_traits.get("gestation_days", 270.0)
+            # GENÉTICA UNIVERSAL: Consultar capacidades reproductivas
+            repro_caps = ReproductiveCapabilities.from_genome(person.genome)
+            
+            # Solo procesar si puede gestar
+            if not repro_caps.can_gestate:
+                continue
+            
+            # OPCIÓN B.2: Solo procesar vivíparos (los ovíparos usan EggSystem)
+            if not repro_caps.is_viviparous():
+                continue
+            
+            # Usar duración de gestación de las capacidades
+            gestation_duration = repro_caps.gestation_days
+            
+            # Si no hay gestación definida, usar valor por defecto
+            if gestation_duration <= 0:
+                gestation_duration = 270.0
             
             # Avanzar el embarazo
             new_pregnancy_days = person.pregnancy_days + delta_days
@@ -88,17 +107,20 @@ class GestationSystem:
                     litter_size=1,
                 )
                 
-                # Registrar memoria traumática
-                CognitiveMemorySystem.add_memory(
-                    person=person,
-                    mem_type=CognitiveMemorySystem.TYPE_DISEASE,
-                    target_id="miscarriage",
-                    intensity=0.6,
-                    valence=-1,
-                    context="aborto_espontaneo",
-                    current_day=current_day,
-                    pending=pending,
-                )
+                # GENÉTICA UNIVERSAL: Solo registrar memoria si tiene capacidades cognitivas
+                cognitive_caps = CognitiveCapabilities.from_genome(person.genome)
+                
+                if cognitive_caps.can_have_memory_type("disease"):
+                    CognitiveMemorySystem.add_memory(
+                        person=person,
+                        mem_type=CognitiveMemorySystem.TYPE_DISEASE,
+                        target_id="miscarriage",
+                        intensity=0.6,
+                        valence=-1,
+                        context="aborto_espontaneo",
+                        current_day=current_day,
+                        pending=pending,
+                    )
                 
                 self.logger.debug(
                     "⚠️ Agente %s sufrió aborto espontáneo (día %.0f de gestación)",
@@ -143,12 +165,18 @@ class GestationSystem:
     ) -> str:
         """Verifica complicaciones durante la gestación.
         
+        GENÉTICA UNIVERSAL: Solo aplica factores emocionales si tiene capacidades cognitivas.
+        
         Returns:
             "normal" - El embarazo continúa normalmente
             "miscarriage" - Aborto espontáneo
             "premature_birth" - Parto prematuro
         """
         repro_cfg = self.config.reproduction
+        
+        # GENÉTICA UNIVERSAL: Solo aplicar factores emocionales si tiene emociones
+        cognitive_caps = CognitiveCapabilities.from_genome(person.genome)
+        has_emotions = cognitive_caps.has_emotions
         
         # No verificar complicaciones en el primer trimestre (25% de la gestación)
         first_trimester_end = gestation_duration * 0.25
@@ -160,21 +188,23 @@ class GestationSystem:
         # --- FACTORES DE RIESGO DE ABORTO ---
         miscarriage_risk = base_miscarriage_risk
         
-        # Desnutrición severa
-        energy = person.emotions.get("energy", 1.0)
-        if energy < 0.2:
-            miscarriage_risk *= 5.0
+        # GENÉTICA UNIVERSAL: Solo aplicar factores emocionales si tiene emociones
+        if has_emotions:
+            # Desnutrición severa
+            energy = person.emotions.get("energy", 1.0)
+            if energy < 0.2:
+                miscarriage_risk *= 5.0
+            
+            # Estrés extremo
+            stress = person.emotions.get("stress", 0.0)
+            if stress > 0.8:
+                miscarriage_risk *= 2.5
         
-        # Enfermedad activa
+        # Enfermedad activa (aplica a todos)
         if getattr(person, 'is_sick', False):
             miscarriage_risk *= 3.0
             if len(getattr(person, 'active_infections', {})) > 2:
                 miscarriage_risk *= 2.0
-        
-        # Estrés extremo
-        stress = person.emotions.get("stress", 0.0)
-        if stress > 0.8:
-            miscarriage_risk *= 2.5
         
         # Edad avanzada (complicaciones)
         age = getattr(person, 'age', 0.0)
@@ -192,8 +222,11 @@ class GestationSystem:
         if pregnancy_days >= premature_threshold:
             premature_risk = 0.0
             
-            if stress > 0.9:
-                premature_risk += 0.001
+            # GENÉTICA UNIVERSAL: Solo aplicar estrés si tiene emociones
+            if has_emotions:
+                stress = person.emotions.get("stress", 0.0)
+                if stress > 0.9:
+                    premature_risk += 0.001
             
             if person.is_sick and len(person.active_infections) > 1:
                 premature_risk += 0.0005
@@ -213,7 +246,12 @@ class GestationSystem:
     ) -> None:
         """Ejecuta un parto a término completo con riesgo de mortalidad materna."""
         repro_cfg = self.config.reproduction
-        litter_size = mother.litter_size_gestating
+        
+        # GENÉTICA UNIVERSAL: Obtener tamaño de camada de las capacidades
+        repro_caps = ReproductiveCapabilities.from_genome(mother.genome)
+        litter_size = getattr(mother, 'litter_size_gestating', None)
+        if litter_size is None:
+            litter_size = repro_caps.litter_size_min  # Usar mínimo si no está definido
         
         # Riesgo de mortalidad materna durante el parto
         maternal_mortality_risk = self._calculate_maternal_mortality_risk(mother, repro_cfg)
@@ -256,17 +294,20 @@ class GestationSystem:
             litter_size=1,
         )
         
-        # Registrar memoria del nacimiento
-        CognitiveMemorySystem.add_memory(
-            person=mother,
-            mem_type=CognitiveMemorySystem.TYPE_CHILD,
-            target_id="birth",
-            intensity=0.9,
-            valence=1,
-            context="nacimiento",
-            current_day=current_day,
-            pending=pending,
-        )
+        # GENÉTICA UNIVERSAL: Solo registrar memoria si tiene capacidades cognitivas
+        cognitive_caps = CognitiveCapabilities.from_genome(mother.genome)
+        
+        if cognitive_caps.can_have_memory_type("child"):
+            CognitiveMemorySystem.add_memory(
+                person=mother,
+                mem_type=CognitiveMemorySystem.TYPE_CHILD,
+                target_id="birth",
+                intensity=0.9,
+                valence=1,
+                context="nacimiento",
+                current_day=current_day,
+                pending=pending,
+            )
         
         # Registrar día del parto para cooldown posparto
         pending.register_memory_update(
@@ -284,7 +325,12 @@ class GestationSystem:
     ) -> None:
         """Ejecuta un parto prematuro con mayor riesgo de mortalidad."""
         repro_cfg = self.config.reproduction
-        litter_size = mother.litter_size_gestating
+        
+        # GENÉTICA UNIVERSAL: Obtener tamaño de camada de las capacidades
+        repro_caps = ReproductiveCapabilities.from_genome(mother.genome)
+        litter_size = getattr(mother, 'litter_size_gestating', None)
+        if litter_size is None:
+            litter_size = repro_caps.litter_size_min  # Usar mínimo si no está definido
         
         # Riesgo aumentado en parto prematuro
         maternal_mortality_risk = self._calculate_maternal_mortality_risk(mother, repro_cfg) * 2.0
@@ -379,6 +425,8 @@ class GestationSystem:
     def _calculate_maternal_mortality_risk(self, mother: Any, repro_cfg: Any) -> float:
         """Calcula el riesgo de mortalidad materna durante el parto.
         
+        GENÉTICA UNIVERSAL: Solo aplica factores emocionales si tiene capacidades cognitivas.
+        
         Factores de riesgo:
         - Edad avanzada
         - Enfermedad activa
@@ -400,15 +448,19 @@ class GestationSystem:
         if getattr(mother, 'is_sick', False):
             base_risk *= 2.0
         
-        # Desnutrición
-        energy = mother.emotions.get("energy", 1.0)
-        if energy < 0.3:
-            base_risk *= 2.5
+        # GENÉTICA UNIVERSAL: Solo aplicar factores emocionales si tiene emociones
+        cognitive_caps = CognitiveCapabilities.from_genome(mother.genome)
         
-        # Estrés extremo
-        stress = mother.emotions.get("stress", 0.0)
-        if stress > 0.8:
-            base_risk *= 1.5
+        if cognitive_caps.has_emotions:
+            # Desnutrición
+            energy = mother.emotions.get("energy", 1.0)
+            if energy < 0.3:
+                base_risk *= 2.5
+            
+            # Estrés extremo
+            stress = mother.emotions.get("stress", 0.0)
+            if stress > 0.8:
+                base_risk *= 1.5
         
         # Camada grande (mayor riesgo)
         litter_size = getattr(mother, 'litter_size_gestating', 1)

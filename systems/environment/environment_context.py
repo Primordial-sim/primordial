@@ -18,6 +18,8 @@ from typing import List, Tuple, Dict, Any, Optional
 from core.state.world_state import WorldState
 from core.config.simulation_config import SimulationConfig
 
+from systems.environment.biome_classifier import BiomeClassifier, Biome
+
 
 class EnvironmentContext:
     """Representa el estado del entorno, distribuyendo recursos y agentes."""
@@ -39,6 +41,9 @@ class EnvironmentContext:
         self._sector_consumer_counts: Dict[Tuple[int, int], int] = {
             sector: len(agents) for sector, agents in self.sector_map.items()
         }
+
+        # Referencia al mapa de tiles (si existe)
+        self.tile_map = getattr(state, 'tile_map', None)
 
     def _build_sector_map(self, state: WorldState) -> Dict[Tuple[int, int], List[Any]]:
         """Agrupa a los agentes por sector espacial para agilizar las consultas (O(1))."""
@@ -82,3 +87,55 @@ class EnvironmentContext:
         desgaste = (consumidores / max(1, self.max_agents_per_sector)) * 0.8
         
         return max(0.0, min(1.0, recurso_base - desgaste))
+
+    # =====================================================================
+    # API DE TILES Y BIOMAS
+    # =====================================================================
+    
+    def get_tile_at(self, x: int, y: int) -> Optional[Any]:
+        """Retorna el tile en la posición dada.
+        
+        Args:
+            x: Coordenada X.
+            y: Coordenada Y.
+            
+        Returns:
+            El tile en esa posición, o None si no existe o no hay mapa de tiles.
+        """
+        if self.tile_map is None:
+            return None
+        return self.tile_map.get_tile(int(x), int(y))
+    
+    def get_biome_at(self, x: int, y: int) -> Optional[Biome]:
+        """Retorna el bioma en la posición dada.
+        
+        El bioma se calcula dinámicamente a partir de las variables del tile.
+        
+        Args:
+            x: Coordenada X.
+            y: Coordenada Y.
+            
+        Returns:
+            El bioma en esa posición, o None si no existe tile.
+        """
+        tile = self.get_tile_at(x, y)
+        if tile is None:
+            return None
+        return BiomeClassifier.classify(tile)
+    
+    def get_biome_name_at(self, x: int, y: int) -> str:
+        """Retorna el nombre del bioma en la posición dada como string.
+        
+        Args:
+            x: Coordenada X.
+            y: Coordenada Y.
+            
+        Returns:
+            Nombre del bioma, o "unknown" si no existe tile.
+        """
+        biome = self.get_biome_at(x, y)
+        return str(biome) if biome is not None else "unknown"
+    
+    def has_tile_map(self) -> bool:
+        """Verifica si hay un mapa de tiles disponible."""
+        return self.tile_map is not None

@@ -2,6 +2,8 @@
 
 OPTIMIZACIONES APLICADAS:
 - Corrección de iteración sobre _relationships.values() (Dict en lugar de List)
+
+GENÉTICA UNIVERSAL: Filtra experiencias según SocialCapabilities del organismo.
 """
 
 from __future__ import annotations
@@ -17,6 +19,7 @@ from core.state.pending_changes import PendingChanges
 from core.state.world_state import WorldState
 from systems.environment.environment_context import EnvironmentContext
 from systems.relationships.relationship_model import RelationshipEventType
+from systems.relationships.social_capabilities import SocialCapabilities
 
 if TYPE_CHECKING:
     from systems.relationships.relationship_experience_engine import RelationshipExperienceEngine
@@ -127,6 +130,13 @@ class ExperienceGenerator:
         if not hasattr(agent, '_relationships') or not agent._relationships:
             return
         
+        # GENÉTICA UNIVERSAL: Solo generar experiencias si tiene capacidades sociales
+        social_caps = SocialCapabilities.from_genome(agent.genome)
+        
+        # Sin conciencia social, no hay experiencias relacionales
+        if not social_caps.has_social_awareness:
+            return
+        
         should_log = self._tick_counter % self._log_interval == 0
         
         # CORRECCIÓN CRÍTICA: _relationships es ahora Dict[int, Relationship]
@@ -146,6 +156,10 @@ class ExperienceGenerator:
                 
                 experiences = self.experience_probabilities[label]
                 for experience_type, probability in experiences.items():
+                    # GENÉTICA UNIVERSAL: Verificar si puede participar en este evento
+                    if not social_caps.can_participate_in_event(experience_type):
+                        continue
+                    
                     if random.random() < probability:
                         self._trigger_experience(agent, rel.partner_id, experience_type, label, current_day, state)
 

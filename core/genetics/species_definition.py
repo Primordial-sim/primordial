@@ -5,6 +5,7 @@ FILOSOFÍA:
 - Una especie puede heredar rasgos de otra plantilla.
 - La plantilla "empty" permite crear especies completamente desde cero.
 - El usuario siempre tiene libertad absoluta para modificar.
+- Las especies pueden definir preferencias de hábitat (condiciones ambientales).
 
 Jerarquía por defecto:
     empty
@@ -24,12 +25,12 @@ Jerarquía por defecto:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Set
 import logging
 
-from core.genetics.trait import Trait, TraitCategory
 from core.genetics.trait_library import TraitLibrary
+from systems.environment.habitat_preference import HabitatPreference
 
 
 @dataclass
@@ -63,6 +64,7 @@ class SpeciesDefinition:
         archetype: Categoría biológica base.
         parent_template: ID de la plantilla de la que hereda (None si no hereda).
         trait_configs: Diccionario de trait_id -> TraitConfig (solo rasgos locales).
+        habitat_preference: Preferencias ambientales de la especie.
     """
     
     _logger = logging.getLogger("SpeciesDefinition")
@@ -75,6 +77,7 @@ class SpeciesDefinition:
         trait_configs: Optional[Dict[str, TraitConfig]] = None,
         archetype: str = "custom",
         parent_template: Optional[str] = None,
+        habitat_preference: Optional[HabitatPreference] = None,
     ) -> None:
         self.species_id = species_id
         self.name = name
@@ -82,6 +85,7 @@ class SpeciesDefinition:
         self.archetype = archetype
         self.parent_template = parent_template
         self._trait_configs: Dict[str, TraitConfig] = trait_configs or {}
+        self._habitat_preference: Optional[HabitatPreference] = habitat_preference
     
     # =================================================================
     # CONSTRUCTORES ALTERNATIVOS (FACTORIES)
@@ -95,6 +99,7 @@ class SpeciesDefinition:
         base_template: str,
         description: str = "",
         archetype: str = "custom",
+        habitat_preference: Optional[HabitatPreference] = None,
     ) -> 'SpeciesDefinition':
         """Crea una especie heredando de una plantilla existente.
         
@@ -104,6 +109,7 @@ class SpeciesDefinition:
             base_template: ID de la plantilla de la que hereda.
             description: Descripción.
             archetype: Categoría biológica.
+            habitat_preference: Preferencias de hábitat opcionales.
             
         Returns:
             Nueva SpeciesDefinition con parent_template establecido.
@@ -114,6 +120,7 @@ class SpeciesDefinition:
             description=description,
             archetype=archetype,
             parent_template=base_template,
+            habitat_preference=habitat_preference,
         )
     
     @classmethod
@@ -234,6 +241,42 @@ class SpeciesDefinition:
         return (min_val, max_val)
     
     # =================================================================
+    # PREFERENCIAS DE HÁBITAT (NUEVO)
+    # =================================================================
+    
+    def set_habitat_preference(self, preference: HabitatPreference) -> 'SpeciesDefinition':
+        """Establece las preferencias de hábitat para esta especie.
+        
+        Args:
+            preference: Las preferencias de hábitat.
+            
+        Returns:
+            self para encadenamiento.
+        """
+        self._habitat_preference = preference
+        return self
+    
+    def get_habitat_preference(self) -> Optional[HabitatPreference]:
+        """Obtiene las preferencias de hábitat de esta especie.
+        
+        Si la especie no tiene preferencias propias, hereda del padre.
+        """
+        # Primero verificar si tiene preferencias propias
+        if self._habitat_preference is not None:
+            return self._habitat_preference
+        
+        # Si hay padre, heredar preferencias
+        parent = self._get_parent()
+        if parent is not None:
+            return parent.get_habitat_preference()
+        
+        return None
+    
+    def has_habitat_preference(self) -> bool:
+        """Verifica si la especie tiene preferencias de hábitat (propia o heredada)."""
+        return self.get_habitat_preference() is not None
+    
+    # =================================================================
     # HERENCIA
     # =================================================================
     
@@ -269,9 +312,10 @@ class SpeciesDefinition:
     
     def __repr__(self) -> str:
         parent_str = f" <- {self.parent_template}" if self.parent_template else ""
+        habitat_str = " [habitat]" if self.has_habitat_preference() else ""
         return (
             f"SpeciesDefinition({self.species_id}: {self.name} "
-            f"[{self.archetype}]{parent_str}, "
+            f"[{self.archetype}]{parent_str}{habitat_str}, "
             f"{self.get_trait_count()} traits)"
         )
 
@@ -297,6 +341,8 @@ def create_animal_template() -> SpeciesDefinition:
     Contiene los rasgos mínimos comunes a cualquier animal:
     metabolismo, inmunidad, longevidad, reproducción, movimiento.
     """
+    from systems.environment.habitat_preference import create_human_habitat
+    
     return SpeciesDefinition(
         species_id="animal",
         name="Animal",
@@ -311,7 +357,8 @@ def create_animal_template() -> SpeciesDefinition:
      .add_trait("healing", default_value=0.7, weight=0.7) \
      .add_trait("speed", default_value=1.0, weight=0.8) \
      .add_trait("vision", default_value=0.8, weight=0.7) \
-     .add_trait("heterotrophy", default_value=1.0, weight=1.0)
+     .add_trait("heterotrophy", default_value=1.0, weight=1.0) \
+     .set_habitat_preference(create_human_habitat())
 
 
 def create_vertebrate_template() -> SpeciesDefinition:
@@ -371,6 +418,8 @@ def create_mammal_template() -> SpeciesDefinition:
 
 def create_human_species() -> SpeciesDefinition:
     """Humano: mamífero con inteligencia y sociabilidad extremas."""
+    from systems.environment.habitat_preference import create_human_habitat
+    
     return SpeciesDefinition(
         species_id="human",
         name="Humano",
@@ -386,11 +435,14 @@ def create_human_species() -> SpeciesDefinition:
      .add_trait("intelligence", default_value=1.8, weight=1.0) \
      .add_trait("empathy", default_value=1.0, weight=0.9) \
      .add_trait("cooperation", default_value=1.3, weight=0.9) \
-     .add_trait("nervous_system", default_value=1.8, weight=1.0)
+     .add_trait("nervous_system", default_value=1.8, weight=1.0) \
+     .set_habitat_preference(create_human_habitat())
 
 
 def create_bird_species() -> SpeciesDefinition:
     """Ave: vertebrado volador con visión excelente."""
+    from systems.environment.habitat_preference import create_bird_habitat
+    
     return SpeciesDefinition(
         species_id="bird",
         name="Ave",
@@ -404,7 +456,8 @@ def create_bird_species() -> SpeciesDefinition:
      .add_trait("speed", default_value=1.5, weight=0.9) \
      .add_trait("territoriality", default_value=1.5, weight=0.9) \
      .add_trait("aggressiveness", default_value=1.0, weight=0.7) \
-     .add_trait("cooperation", default_value=0.6, weight=0.5)
+     .add_trait("cooperation", default_value=0.6, weight=0.5) \
+     .set_habitat_preference(create_bird_habitat())
 
 
 def create_reptile_species() -> SpeciesDefinition:
@@ -426,6 +479,8 @@ def create_reptile_species() -> SpeciesDefinition:
 
 def create_fish_species() -> SpeciesDefinition:
     """Pez: vertebrado acuático."""
+    from systems.environment.habitat_preference import create_fish_habitat
+    
     return SpeciesDefinition(
         species_id="fish",
         name="Pez",
@@ -439,11 +494,14 @@ def create_fish_species() -> SpeciesDefinition:
      .add_trait("smell", default_value=1.3, weight=0.9) \
      .add_trait("territoriality", default_value=0.5, weight=0.5) \
      .add_trait("cooperation", default_value=0.4, weight=0.4) \
-     .add_trait("intelligence", default_value=0.3, weight=0.5)
+     .add_trait("intelligence", default_value=0.3, weight=0.5) \
+     .set_habitat_preference(create_fish_habitat())
 
 
 def create_amphibian_species() -> SpeciesDefinition:
     """Anfibio: vertebrado de vida dual."""
+    from systems.environment.habitat_preference import create_aquatic_plant_habitat
+    
     return SpeciesDefinition(
         species_id="amphibian",
         name="Anfibio",
@@ -457,11 +515,14 @@ def create_amphibian_species() -> SpeciesDefinition:
      .add_trait("swimming", default_value=1.5, weight=1.0) \
      .add_trait("healing", default_value=1.3, weight=0.9) \
      .add_trait("venom", default_value=0.3, weight=0.4) \
-     .add_trait("intelligence", default_value=0.3, weight=0.4)
+     .add_trait("intelligence", default_value=0.3, weight=0.4) \
+     .set_habitat_preference(create_aquatic_plant_habitat())
 
 
 def create_insect_species() -> SpeciesDefinition:
     """Insecto: invertebrado con fertilidad extrema."""
+    from systems.environment.habitat_preference import create_bacteria_habitat
+    
     return SpeciesDefinition(
         species_id="insect",
         name="Insecto",
@@ -474,7 +535,8 @@ def create_insect_species() -> SpeciesDefinition:
      .add_trait("growth_rate", default_value=2.0, weight=1.0) \
      .add_trait("flight", default_value=1.0, weight=0.7) \
      .add_trait("mobility", default_value=1.5, weight=0.9) \
-     .add_trait("venom", default_value=0.2, weight=0.3)
+     .add_trait("venom", default_value=0.2, weight=0.3) \
+     .set_habitat_preference(create_bacteria_habitat())
 
 
 def create_plant_template() -> SpeciesDefinition:
@@ -496,6 +558,8 @@ def create_plant_template() -> SpeciesDefinition:
 
 def create_fungus_template() -> SpeciesDefinition:
     """Plantilla base para hongos: descomponedores."""
+    from systems.environment.habitat_preference import create_fungus_habitat
+    
     return SpeciesDefinition(
         species_id="fungus",
         name="Hongo",
@@ -508,11 +572,14 @@ def create_fungus_template() -> SpeciesDefinition:
      .add_trait("longevity", default_value=1.5, weight=1.0) \
      .add_trait("healing", default_value=1.0, weight=0.8) \
      .add_trait("fertility", default_value=1.5, weight=1.0) \
-     .add_trait("cooperation", default_value=1.2, weight=0.6)
+     .add_trait("cooperation", default_value=1.2, weight=0.6) \
+     .set_habitat_preference(create_fungus_habitat())
 
 
 def create_bacteria_template() -> SpeciesDefinition:
     """Plantilla base para bacterias: unicelulares, asexuales."""
+    from systems.environment.habitat_preference import create_bacteria_habitat
+    
     return SpeciesDefinition(
         species_id="bacteria",
         name="Bacteria",
@@ -524,7 +591,8 @@ def create_bacteria_template() -> SpeciesDefinition:
      .add_trait("antibiotic_resistance", default_value=0.2, weight=1.0) \
      .add_trait("mobility", default_value=0.6, weight=0.7) \
      .add_trait("immunity", default_value=0.3, weight=0.5) \
-     .add_trait("growth_rate", default_value=2.0, weight=1.0)
+     .add_trait("growth_rate", default_value=2.0, weight=1.0) \
+     .set_habitat_preference(create_bacteria_habitat())
 
 
 def create_fantasy_template() -> SpeciesDefinition:

@@ -5,7 +5,6 @@ from __future__ import annotations
 import csv
 import json
 import logging
-import math
 import os
 import random
 from datetime import datetime
@@ -17,7 +16,6 @@ from core.execution.execution_pipeline import ExecutionPipeline
 from core.engine.tick_manager import TickManager
 from core.engine.snapshot_manager import SnapshotManager
 from core.state.world_state import WorldState
-from entities.person.allele import Allele, Gene
 from entities.person.genome import Genome
 from entities.person.person import Person
 
@@ -28,6 +26,7 @@ from core.genetics.species_definition import SpeciesRegistry
 
 # SISTEMA DE ESCENARIOS
 from core.engine.scenario_loader import Scenario, SpeciesConfig
+
 
 
 class SimulationEngine:
@@ -83,6 +82,8 @@ class SimulationEngine:
                 config.metrics.snapshot_interval_days = snapshot_interval
 
         state = WorldState(config=config, width=width, height=height)
+        state.initialize_tile_map()
+
         cls._generate_founding_population(
             config=config, state=state, size=founding_population_size,
         )
@@ -150,6 +151,9 @@ class SimulationEngine:
             width=scenario.world.width,
             height=scenario.world.height,
         )
+
+        # NUEVO: Inicializar mapa de tiles
+        state.initialize_tile_map()
         
         # Generar población fundadora multiespecie
         cls._generate_multispecies_population(
@@ -190,8 +194,6 @@ class SimulationEngine:
         """Ejecuta la simulación completa gestionada por TickManager."""
         total_days = float(self.config.engine.total_days)
         history: list[dict[str, Any]] = []
-
-        metrics_system = self._find_metrics_system()
 
         self.logger.info(
             "Iniciando simulación: %s días totales, %s días/tick.",

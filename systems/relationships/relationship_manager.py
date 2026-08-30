@@ -22,8 +22,6 @@ from core.state.world_state import WorldState
 from systems.environment.environment_context import EnvironmentContext
 from systems.relationships.compatibility_engine import CompatibilityEngine
 from systems.relationships.relationship_model import (
-    Relationship,
-    RelationshipEventType,
     SexualOrientation,
     MemoryCategory,
     MemoryRole,
@@ -93,6 +91,14 @@ class RelationshipManager:
             if other.entity_id in pending.deaths:
                 continue
             
+            # GENÉTICA UNIVERSAL: Solo crear relaciones si ambos pueden reconocer individuos
+            from systems.relationships.social_capabilities import SocialCapabilities
+            person_caps = SocialCapabilities.from_genome(person.genome)
+            other_caps = SocialCapabilities.from_genome(other.genome)
+            
+            if not person_caps.can_recognize_individuals or not other_caps.can_recognize_individuals:
+                continue
+            
             # OPTIMIZACIÓN: Evitar procesar el mismo par dos veces
             if other.entity_id <= person.entity_id:
                 continue
@@ -158,7 +164,6 @@ class RelationshipManager:
 
     def _are_orientations_compatible(self, o1: SexualOrientation, o2: SexualOrientation) -> bool:
         """Verifica si dos orientaciones sexuales son compatibles."""
-        tolerance = getattr(self.rel_cfg, 'orientation_tolerance', 1.5)
         diff = abs(o1.value - o2.value)
         
         if (o1 == SexualOrientation.HETEROSEXUAL and o2 == SexualOrientation.HOMOSEXUAL) or \

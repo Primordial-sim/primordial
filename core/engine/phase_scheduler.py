@@ -89,13 +89,13 @@ from systems.movement.movement_system import MovementSystem
 # Sistemas de relaciones
 from systems.relationships.compatibility_engine import CompatibilityEngine
 from systems.relationships.marriage_system import MarriageSystem
-from systems.relationships.relationship_system import RelationshipSystem
 from systems.relationships.relationship_manager import RelationshipManager
 from systems.relationships.relationship_experience_engine import RelationshipExperienceEngine
 from systems.relationships.experience_generator import ExperienceGenerator
 
 from systems.reproduction.conception_system import ConceptionSystem
 from systems.reproduction.gestation_system import GestationSystem
+from systems.reproduction.egg_system import EggSystem  # NUEVO: Sistema de huevos ovíparos
 from systems.temporal.temporal_system import TemporalSystem
 
 
@@ -152,11 +152,11 @@ class PhaseScheduler:
             relationship_engine=self.relationship_engine,
         )
         
-        # BLOQUE B: RelationshipSystem (mantenimiento y ruptura)
-        relationship_system = RelationshipSystem(
-            config=self.config,
-            relationship_engine=self.relationship_engine,
-        )
+        # CORRECCIÓN: relationship_system ya no se usa (eliminado del pipeline)
+        # relationship_system = RelationshipSystem(
+        #     config=self.config,
+        #     relationship_engine=self.relationship_engine,
+        # )
         
         # RelationshipManager existente (transiciones relacionales)
         relationship_manager = RelationshipManager(
@@ -173,6 +173,10 @@ class PhaseScheduler:
         # BLOQUE 4: Sistema de presión social unificado
         # CORRECCIÓN: Se usa una sola instancia (antes se creaban dos)
         social_pressure_system = SocialPressureCalculator(self.config)
+
+        # OPCIÓN B.2: Sistema de huevos ovíparos
+        # Procesa incubación, mortalidad ambiental y eclosión de huevos
+        egg_system = EggSystem(self.config)
 
         # Definición estructurada del ciclo biológico y físico
         phases = [
@@ -208,8 +212,7 @@ class PhaseScheduler:
                 name="relationships",
                 systems=[
                     compatibility_engine,
-                    marriage_system,         # Genera eventos de intimidad (NUEVO)
-                    # relationship_system,   # ELIMINADO: Era el que causaba las 7.908 rupturas
+                    marriage_system,         # Genera eventos de intimidad
                     relationship_manager,    # Crea relaciones iniciales y detecta encuentros
                     AdoptionSystem(
                         config=self.config,
@@ -264,6 +267,7 @@ class PhaseScheduler:
                         config=self.config,
                         relationship_engine=self.relationship_engine,
                     ),
+                    egg_system,  # OPCIÓN B.2: Procesar huevos ovíparos (incubación y eclosión)
                     GestationSystem(
                         config=self.config,
                         evolution_engine=evolution_engine,

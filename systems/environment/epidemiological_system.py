@@ -16,7 +16,7 @@ import random
 from core.config.simulation_config import SimulationConfig
 from core.state.pending_changes import PendingChanges
 from core.state.world_state import WorldState
-from systems.diseases.pathogen import Pathogen, InfectionPhase
+from systems.diseases.pathogen import Pathogen
 from systems.environment.environment_context import EnvironmentContext
 
 

@@ -25,16 +25,15 @@ FASE C: Ocupación estricta de casillas (1 agente = 1 casilla)
 """
 
 import math
-import random
 import logging
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, List, Tuple, Optional
 
 from core.config.simulation_config import SimulationConfig
 from core.state.pending_changes import PendingChanges
 from core.state.world_state import WorldState
 from systems.environment.environment_context import EnvironmentContext
 from systems.social.social_pressure import SocialPressureCalculator
-
+from systems.movement.movement_capabilities import MovementCapabilities
 
 class MovementSystem:
     """Sistema de movimiento táctico que decide el paso inmediato de cada agente."""
@@ -74,13 +73,19 @@ class MovementSystem:
         pending: PendingChanges,
         delta_days: float,
         context: EnvironmentContext,
-    ) -> None:
+        ) -> None:
         """Calcula el siguiente paso para cada agente activo."""
         max_x = state.width - 1
         max_y = state.height - 1
 
         for person in state.get_all_persons():
             if person.entity_id in pending.deaths:
+                continue
+
+            # GENÉTICA UNIVERSAL: Consultar capacidades de movimiento del genoma
+            # Si no puede moverse (plantas, organismos sésiles), saltar
+            capabilities = MovementCapabilities.from_genome(person.genome)
+            if not capabilities.can_move:
                 continue
 
             # Si ya tiene un movimiento registrado por otro sistema, no sobrescribir
@@ -90,11 +95,11 @@ class MovementSystem:
             # Si tiene un destino migratorio activo, moverse hacia él
             migration_target = pending.get_migration_target(person.entity_id)
             if migration_target is not None:
-                self._move_towards_target(person, migration_target, max_x, max_y, pending, state)
+                self._move_towards_target(person, migration_target, max_x, max_y, pending, state, capabilities)
                 continue
 
             # Evaluar celdas cercanas usando Utility AI
-            best_move = self._evaluate_nearby_cells(person, state, context, max_x, max_y, pending)
+            best_move = self._evaluate_nearby_cells(person, state, context, max_x, max_y, pending, capabilities)
 
             if best_move is not None:
                 pending.register_movement(person.entity_id, best_move[0], best_move[1])
@@ -107,8 +112,13 @@ class MovementSystem:
         max_y: int,
         pending: PendingChanges,
         state: WorldState,
+        capabilities: MovementCapabilities,
     ) -> None:
-        """Mueve al agente hacia su destino migratorio."""
+        """Mueve al agente hacia su destino migratorio.
+        
+        GENÉTICA UNIVERSAL: Usa capabilities.movement_speed para determinar
+        la distancia máxima de movimiento por tick.
+        """
         tx, ty = target
 
         # Calcular dirección hacia el destino
@@ -120,9 +130,21 @@ class MovementSystem:
         if distance < 1.0:
             return  # Ya está muy cerca
 
-        # Paso unitario hacia el destino
-        step_x = int(round(person.x + dx / distance))
-        step_y = int(round(person.y + dy / distance))
+        # GENÉTICA UNIVERSAL: Distancia máxima según speed del genoma
+        max_step = capabilities.movement_speed
+        
+        # Si puede volar, puede moverse más lejos por tick
+        if capabilities.can_fly:
+            max_step *= 1.5
+        
+        # Si la distancia es menor que el paso máximo, moverse directamente
+        if distance <= max_step:
+            step_x = int(round(tx))
+            step_y = int(round(ty))
+        else:
+            # Paso proporcional a la distancia máxima
+            step_x = int(round(person.x + (dx / distance) * max_step))
+            step_y = int(round(person.y + (dy / distance) * max_step))
 
         # Envolver como toroide (esfera): si sale por un lado, aparece por el otro
         step_x = step_x % (max_x + 1)
@@ -150,15 +172,22 @@ class MovementSystem:
         max_x: int,
         max_y: int,
         pending: PendingChanges,
+        capabilities: MovementCapabilities,
     ) -> Optional[Tuple[int, int]]:
         """Evalúa celdas cercanas y selecciona la mejor casilla disponible.
 
         FASE C: Verifica ocupación antes de seleccionar.
         Incluye la opción de quedarse quieto (casilla actual).
+        
+        GENÉTICA UNIVERSAL: Usa capabilities.vision_range para determinar
+        el radio de evaluación.
         """
         scored_cells: List[Tuple[Tuple[int, int], float]] = []
 
-        radius = self.eval_radius
+        # GENÉTICA UNIVERSAL: Radio de evaluación según visión del genoma
+        # Visión alta = evalúa más lejos, visión baja = evalúa más cerca
+        radius = max(1, int(capabilities.vision_range))
+        
         person_x = int(person.x)
         person_y = int(person.y)
 
@@ -167,13 +196,6 @@ class MovementSystem:
         genome = person.genome
         curiosity = min(1.0, genome.get_trait_value("curiosity") / 2.0) if genome.has_trait("curiosity") else 0.5
         curiosity_factor = 0.5 * (1.0 - curiosity) if curiosity > 0.6 else 1.0 * (1.0 - curiosity)
-        
-        # TODO (Fase 3): Consultar rasgos específicos de movimiento
-        # - flight > 0.3: puede saltar obstáculos o moverse a mayor radio
-        # - swimming > 0.3: puede atravesar zonas acuáticas
-        # - burrowing > 0.3: puede moverse bajo tierra
-        # - speed: factor de multiplicación de distancia de movimiento
-        # Estos se implementarán cuando se diseñen los biomas/terrenos.
 
         preferred_sector = None
         memory = getattr(person, 'memory', None)
@@ -214,6 +236,7 @@ class MovementSystem:
                     dx=dx,
                     dy=dy,
                     curiosity_factor=curiosity_factor,
+                    capabilities=capabilities,
                 )
 
                 scored_cells.append(((nx, ny), score))
@@ -259,6 +282,7 @@ class MovementSystem:
         dx: int = 0,
         dy: int = 0,
         curiosity_factor: float = 1.0,
+        capabilities: Optional[MovementCapabilities] = None,
     ) -> float:
         """Calcula la puntuación de una celda usando Utility AI.
 

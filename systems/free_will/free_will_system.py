@@ -12,6 +12,9 @@ RESUELVE TODOS LOS PUNTOS DE LA AUDITORÍA:
 - Aprendizaje desde memoria episódica
 - Motivaciones definidas en configuración (escalable)
 
+GENÉTICA UNIVERSAL: Consulta CognitiveCapabilities para respetar la biología
+de cada especie (organismos simples sin motivaciones complejas, etc.)
+
 FASE 0: Integración con RelationshipExperienceEngine para emitir eventos
 relacionales ligeros cuando los agentes toman decisiones que afectan a otros.
 """
@@ -19,7 +22,6 @@ relacionales ligeros cuando los agentes toman decisiones que afectan a otros.
 from __future__ import annotations
 
 import logging
-import math
 import random
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -27,14 +29,13 @@ from typing import Any, Dict, List, Optional, Tuple
 from core.config.simulation_config import SimulationConfig
 from core.state.pending_changes import PendingChanges
 from core.state.world_state import WorldState
-from systems.behavior.cognitive_memory_system import CognitiveMemorySystem
+from systems.behavior.cognitive_capabilities import CognitiveCapabilities
 from systems.environment.environment_context import EnvironmentContext
 from systems.relationships.behavior_influence import BehaviorInfluence
 from systems.relationships.relationship_logger import relationship_logger
 
 from systems.relationships.relationship_model import (
     RelationshipEventType,
-    RelationshipStatus,
 )
 from systems.relationships.relationship_experience_engine import RelationshipExperienceEngine
 
@@ -81,21 +82,32 @@ class FreeWillSystem:
             if not hasattr(person, '_motivations'):
                 continue
             
+            # GENÉTICA UNIVERSAL: Consultar capacidades cognitivas del genoma
+            cognitive_caps = CognitiveCapabilities.from_genome(person.genome)
+            
             # 1. DECAIMIENTO NATURAL (resuelve "impulsos que nunca desaparecen")
             if hasattr(person, 'decay_motivations'):
                 person.decay_motivations(delta_days, fw_cfg.motivation_decay_rate)
             
             # 2. CÁLCULO MULTIFACTORIAL DE AJUSTES
-            genetic_motivations = self._calculate_genetic_motivations(person, fw_cfg)
-            emotional_adjustments = self._calculate_emotional_adjustments(person, fw_cfg)
+            genetic_motivations = self._calculate_genetic_motivations(person, fw_cfg, cognitive_caps)
+            emotional_adjustments = self._calculate_emotional_adjustments(person, fw_cfg, cognitive_caps)
             environmental_adjustments = self._calculate_environmental_adjustments(person, context, fw_cfg)
-            memory_adjustments = self._calculate_memory_adjustments(person, fw_cfg)
+            memory_adjustments = self._calculate_memory_adjustments(person, fw_cfg, cognitive_caps)
             sickness_adjustments = self._calculate_sickness_adjustments(person, fw_cfg)
             age_adjustments = self._calculate_age_adjustments(person, fw_cfg)
-            systemic_adjustments = self._calculate_systemic_adjustments(person, fw_cfg)
+            systemic_adjustments = self._calculate_systemic_adjustments(person, fw_cfg, cognitive_caps)
             
             # 3. APLICAR AJUSTES A LAS MOTIVACIONES CONTINUAS
             for motivation_name in fw_cfg.motivations:
+                # GENÉTICA UNIVERSAL: Solo aplicar motivaciones que el organismo puede tener
+                if not cognitive_caps.can_have_motivation(motivation_name):
+                    # Si no puede tener esta motivación, forzar a 0
+                    current_value = person.get_motivation(motivation_name)
+                    if current_value > 0:
+                        pending.register_motivation_update(person.entity_id, motivation_name, -current_value)
+                    continue
+                
                 base = genetic_motivations.get(motivation_name, 0.3)
                 
                 adjustment = (
@@ -152,10 +164,11 @@ class FreeWillSystem:
     # CÁLCULOS DE AJUSTE MULTIFACTORIAL
     # =================================================================
 
-    def _calculate_genetic_motivations(self, person: Any, fw_cfg: Any) -> Dict[str, float]:
+    def _calculate_genetic_motivations(self, person: Any, fw_cfg: Any, cognitive_caps: CognitiveCapabilities) -> Dict[str, float]:
         """Calcula la base genética de cada motivación usando rasgos del genoma.
         
         GENÉTICA UNIVERSAL: API genérica agnóstica a especie.
+        Solo calcula motivaciones que el organismo puede tener.
         """
         genome = person.genome
         impulsivity = min(1.0, genome.get_trait_value("impulsivity") / 2.0)
@@ -164,33 +177,69 @@ class FreeWillSystem:
         aggressiveness = min(1.0, genome.get_trait_value("aggressiveness") / 2.0)
         temperament = min(1.0, genome.get_trait_value("temperament") / 2.0)
         sociability = min(1.0, genome.get_trait_value("sociability") / 2.0)
+        
+        motivations = {}
+        
+        # Solo calcular motivaciones que el organismo puede tener
+        if cognitive_caps.can_have_motivation("independence"):
+            motivations["independence"] = impulsivity * fw_cfg.impulsivity_weight + aggressiveness * fw_cfg.aggressiveness_weight * 0.5 + (1.0 - obedience) * fw_cfg.obedience_weight * 0.5
+        
+        if cognitive_caps.can_have_motivation("exploration"):
+            motivations["exploration"] = curiosity * fw_cfg.curiosity_weight + impulsivity * fw_cfg.impulsivity_weight * 0.3
+        
+        if cognitive_caps.can_have_motivation("rebellion"):
+            motivations["rebellion"] = aggressiveness * fw_cfg.aggressiveness_weight + impulsivity * fw_cfg.impulsivity_weight * 0.5 + (1.0 - obedience) * fw_cfg.obedience_weight
+        
+        if cognitive_caps.can_have_motivation("partnership"):
+            motivations["partnership"] = sociability * fw_cfg.sociability_weight + temperament * fw_cfg.temperament_weight * 0.5
+        
+        if cognitive_caps.can_have_motivation("protection"):
+            motivations["protection"] = temperament * fw_cfg.temperament_weight + (1.0 - impulsivity) * fw_cfg.impulsivity_weight * 0.3
+        
+        if cognitive_caps.can_have_motivation("migration"):
+            motivations["migration"] = curiosity * fw_cfg.curiosity_weight + impulsivity * fw_cfg.impulsivity_weight * 0.4
+        
+        if cognitive_caps.can_have_motivation("cooperation"):
+            motivations["cooperation"] = sociability * fw_cfg.sociability_weight + obedience * fw_cfg.obedience_weight + temperament * fw_cfg.temperament_weight * 0.3
        
-        return {
-            "independence": impulsivity * fw_cfg.impulsivity_weight + aggressiveness * fw_cfg.aggressiveness_weight * 0.5 + (1.0 - obedience) * fw_cfg.obedience_weight * 0.5,
-            "exploration": curiosity * fw_cfg.curiosity_weight + impulsivity * fw_cfg.impulsivity_weight * 0.3,
-            "rebellion": aggressiveness * fw_cfg.aggressiveness_weight + impulsivity * fw_cfg.impulsivity_weight * 0.5 + (1.0 - obedience) * fw_cfg.obedience_weight,
-            "partnership": sociability * fw_cfg.sociability_weight + temperament * fw_cfg.temperament_weight * 0.5,
-            "protection": temperament * fw_cfg.temperament_weight + (1.0 - impulsivity) * fw_cfg.impulsivity_weight * 0.3,
-            "migration": curiosity * fw_cfg.curiosity_weight + impulsivity * fw_cfg.impulsivity_weight * 0.4,
-            "cooperation": sociability * fw_cfg.sociability_weight + obedience * fw_cfg.obedience_weight + temperament * fw_cfg.temperament_weight * 0.3,
-        }
+        return motivations
 
-    def _calculate_emotional_adjustments(self, person: Any, fw_cfg: Any) -> Dict[str, float]:
-        """Ajusta motivaciones según el estado emocional actual."""
+    def _calculate_emotional_adjustments(self, person: Any, fw_cfg: Any, cognitive_caps: CognitiveCapabilities) -> Dict[str, float]:
+        """Ajusta motivaciones según el estado emocional actual.
+        
+        GENÉTICA UNIVERSAL: Solo aplica si el organismo tiene emociones.
+        """
+        # Sin emociones, no hay ajustes emocionales
+        if not cognitive_caps.has_emotions:
+            return {mot: 0.0 for mot in fw_cfg.motivations}
+        
         emotions = person.emotions
         stress = emotions.get("stress", 0.0)
         happiness = emotions.get("happiness", 0.5)
         energy = emotions.get("energy", 1.0)
         
-        adjustments = {
-            "independence": stress * fw_cfg.stress_weight * 0.5,
-            "exploration": (happiness - 0.5) * fw_cfg.happiness_weight * 0.3,
-            "rebellion": stress * fw_cfg.stress_weight,
-            "partnership": (happiness - 0.5) * fw_cfg.happiness_weight,
-            "protection": (1.0 - happiness) * fw_cfg.happiness_weight * 0.5,
-            "migration": stress * fw_cfg.stress_weight * 0.7,
-            "cooperation": (happiness - 0.5) * fw_cfg.happiness_weight * 0.5,
-        }
+        adjustments = {}
+        
+        if cognitive_caps.can_have_motivation("independence"):
+            adjustments["independence"] = stress * fw_cfg.stress_weight * 0.5
+        
+        if cognitive_caps.can_have_motivation("exploration"):
+            adjustments["exploration"] = (happiness - 0.5) * fw_cfg.happiness_weight * 0.3
+        
+        if cognitive_caps.can_have_motivation("rebellion"):
+            adjustments["rebellion"] = stress * fw_cfg.stress_weight
+        
+        if cognitive_caps.can_have_motivation("partnership"):
+            adjustments["partnership"] = (happiness - 0.5) * fw_cfg.happiness_weight
+        
+        if cognitive_caps.can_have_motivation("protection"):
+            adjustments["protection"] = (1.0 - happiness) * fw_cfg.happiness_weight * 0.5
+        
+        if cognitive_caps.can_have_motivation("migration"):
+            adjustments["migration"] = stress * fw_cfg.stress_weight * 0.7
+        
+        if cognitive_caps.can_have_motivation("cooperation"):
+            adjustments["cooperation"] = (happiness - 0.5) * fw_cfg.happiness_weight * 0.5
         
         energy_factor = energy * fw_cfg.energy_weight
         for motivation in adjustments:
@@ -213,9 +262,17 @@ class FreeWillSystem:
             "cooperation": -excess_pressure * fw_cfg.pressure_weight * 0.2,
         }
 
-    def _calculate_memory_adjustments(self, person: Any, fw_cfg: Any) -> Dict[str, float]:
-        """APRENDIZAJE: Ajusta motivaciones según la memoria episódica acumulada."""
+    def _calculate_memory_adjustments(self, person: Any, fw_cfg: Any, cognitive_caps: CognitiveCapabilities) -> Dict[str, float]:
+        """APRENDIZAJE: Ajusta motivaciones según la memoria episódica acumulada.
+        
+        GENÉTICA UNIVERSAL: Solo aplica si el organismo tiene memoria episódica.
+        """
         adjustments = {mot: 0.0 for mot in fw_cfg.motivations}
+        
+        # Sin memoria episódica, no hay aprendizaje
+        if not cognitive_caps.has_episodic_memory:
+            return adjustments
+        
         if not hasattr(person, 'memory') or not isinstance(person.memory, dict):
             return adjustments
         
@@ -227,36 +284,62 @@ class FreeWillSystem:
             intensity = mem.get('intensity', 0.0)
             valence = mem.get('valence', 0)
             
-            if key.startswith("migration_") and valence > 0:
-                adjustments["migration"] += intensity * fw_cfg.episodic_memory_factor
-                adjustments["exploration"] += intensity * fw_cfg.episodic_memory_factor * 0.5
-            if key.startswith("conflict_"):
+            # Solo procesar tipos de memoria que el organismo puede tener
+            if key.startswith("migration_") and valence > 0 and cognitive_caps.can_have_memory_type("migration"):
+                if cognitive_caps.can_have_motivation("migration"):
+                    adjustments["migration"] += intensity * fw_cfg.episodic_memory_factor
+                if cognitive_caps.can_have_motivation("exploration"):
+                    adjustments["exploration"] += intensity * fw_cfg.episodic_memory_factor * 0.5
+            
+            if key.startswith("conflict_") and cognitive_caps.can_have_memory_type("conflict"):
                 if valence < 0:
-                    adjustments["rebellion"] += intensity * fw_cfg.episodic_memory_factor * 0.5
-                    adjustments["cooperation"] -= intensity * fw_cfg.episodic_memory_factor * 0.3
+                    if cognitive_caps.can_have_motivation("rebellion"):
+                        adjustments["rebellion"] += intensity * fw_cfg.episodic_memory_factor * 0.5
+                    if cognitive_caps.can_have_motivation("cooperation"):
+                        adjustments["cooperation"] -= intensity * fw_cfg.episodic_memory_factor * 0.3
                 else:
-                    adjustments["cooperation"] += intensity * fw_cfg.episodic_memory_factor * 0.3
-            if key.startswith("marriage_") or key.startswith("companion_"):
+                    if cognitive_caps.can_have_motivation("cooperation"):
+                        adjustments["cooperation"] += intensity * fw_cfg.episodic_memory_factor * 0.3
+            
+            if (key.startswith("marriage_") or key.startswith("companion_")) and cognitive_caps.can_have_memory_type("marriage"):
                 if valence > 0:
-                    adjustments["partnership"] += intensity * fw_cfg.episodic_memory_factor
-                    adjustments["protection"] += intensity * fw_cfg.episodic_memory_factor * 0.4
+                    if cognitive_caps.can_have_motivation("partnership"):
+                        adjustments["partnership"] += intensity * fw_cfg.episodic_memory_factor
+                    if cognitive_caps.can_have_motivation("protection"):
+                        adjustments["protection"] += intensity * fw_cfg.episodic_memory_factor * 0.4
                 else:
-                    adjustments["partnership"] -= intensity * fw_cfg.episodic_memory_factor * 0.5
-            if key.startswith("divorce_") and valence < 0:
-                adjustments["partnership"] -= intensity * fw_cfg.episodic_memory_factor * 0.6
-                adjustments["independence"] += intensity * fw_cfg.episodic_memory_factor * 0.4
-            if key.startswith("adoption_") and valence > 0:
-                adjustments["protection"] += intensity * fw_cfg.episodic_memory_factor * 0.5
-                adjustments["cooperation"] += intensity * fw_cfg.episodic_memory_factor * 0.3
-            if key.startswith("death_") and valence < 0:
-                adjustments["independence"] += intensity * fw_cfg.episodic_memory_factor * 0.4
-                adjustments["cooperation"] -= intensity * fw_cfg.episodic_memory_factor * 0.2
-                adjustments["migration"] += intensity * fw_cfg.episodic_memory_factor * 0.3
-            if key.startswith("child_") and valence > 0:
-                adjustments["protection"] += intensity * fw_cfg.episodic_memory_factor * 0.6
-                adjustments["partnership"] += intensity * fw_cfg.episodic_memory_factor * 0.3
-            if key.startswith("disease_") and valence < 0:
-                adjustments["independence"] += intensity * fw_cfg.episodic_memory_factor * 0.2
+                    if cognitive_caps.can_have_motivation("partnership"):
+                        adjustments["partnership"] -= intensity * fw_cfg.episodic_memory_factor * 0.5
+            
+            if key.startswith("divorce_") and valence < 0 and cognitive_caps.can_have_memory_type("divorce"):
+                if cognitive_caps.can_have_motivation("partnership"):
+                    adjustments["partnership"] -= intensity * fw_cfg.episodic_memory_factor * 0.6
+                if cognitive_caps.can_have_motivation("independence"):
+                    adjustments["independence"] += intensity * fw_cfg.episodic_memory_factor * 0.4
+            
+            if key.startswith("adoption_") and valence > 0 and cognitive_caps.can_have_memory_type("adoption"):
+                if cognitive_caps.can_have_motivation("protection"):
+                    adjustments["protection"] += intensity * fw_cfg.episodic_memory_factor * 0.5
+                if cognitive_caps.can_have_motivation("cooperation"):
+                    adjustments["cooperation"] += intensity * fw_cfg.episodic_memory_factor * 0.3
+            
+            if key.startswith("death_") and valence < 0 and cognitive_caps.can_have_memory_type("death"):
+                if cognitive_caps.can_have_motivation("independence"):
+                    adjustments["independence"] += intensity * fw_cfg.episodic_memory_factor * 0.4
+                if cognitive_caps.can_have_motivation("cooperation"):
+                    adjustments["cooperation"] -= intensity * fw_cfg.episodic_memory_factor * 0.2
+                if cognitive_caps.can_have_motivation("migration"):
+                    adjustments["migration"] += intensity * fw_cfg.episodic_memory_factor * 0.3
+            
+            if key.startswith("child_") and valence > 0 and cognitive_caps.can_have_memory_type("child"):
+                if cognitive_caps.can_have_motivation("protection"):
+                    adjustments["protection"] += intensity * fw_cfg.episodic_memory_factor * 0.6
+                if cognitive_caps.can_have_motivation("partnership"):
+                    adjustments["partnership"] += intensity * fw_cfg.episodic_memory_factor * 0.3
+            
+            if key.startswith("disease_") and valence < 0 and cognitive_caps.can_have_memory_type("disease"):
+                if cognitive_caps.can_have_motivation("independence"):
+                    adjustments["independence"] += intensity * fw_cfg.episodic_memory_factor * 0.2
         
         return adjustments
 
@@ -299,35 +382,48 @@ class FreeWillSystem:
         
         return adjustments
 
-    def _calculate_systemic_adjustments(self, person: Any, fw_cfg: Any) -> Dict[str, float]:
-        """BLOQUE 3: Ajusta motivaciones según trauma sistémico y reputación social."""
+    def _calculate_systemic_adjustments(self, person: Any, fw_cfg: Any, cognitive_caps: CognitiveCapabilities) -> Dict[str, float]:
+        """BLOQUE 3: Ajusta motivaciones según trauma sistémico y reputación social.
+        
+        GENÉTICA UNIVERSAL: Solo aplica traumas que el organismo puede formar.
+        """
         adjustments = {mot: 0.0 for mot in fw_cfg.motivations}
         
         memory = getattr(person, 'memory', {})
         if not isinstance(memory, dict):
             memory = {}
-            
-        trauma_abandonment = memory.get("trauma_abandonment", 0.0)
-        trauma_adoption = memory.get("trauma_adoption", 0.0)
-        reputation = getattr(person, 'reputation_score', 0.5)
         
-        # Trauma por abandono: impulsa huida y reduce confianza social
-        if trauma_abandonment > 0.3:
-            adjustments["migration"] += trauma_abandonment * 0.6
-            adjustments["cooperation"] -= trauma_abandonment * 0.4
-            adjustments["partnership"] -= trauma_abandonment * 0.3
-            
-        # Trauma por adopción: impulsa independencia y rebelión
-        if trauma_adoption > 0.3:
-            adjustments["independence"] += trauma_adoption * 0.5
-            adjustments["rebellion"] += trauma_adoption * 0.4
-            adjustments["protection"] -= trauma_adoption * 0.3
-            
+        # Solo aplicar traumas que el organismo puede formar
+        if cognitive_caps.can_form_trauma("abandonment"):
+            trauma_abandonment = memory.get("trauma_abandonment", 0.0)
+            # Trauma por abandono: impulsa huida y reduce confianza social
+            if trauma_abandonment > 0.3:
+                if cognitive_caps.can_have_motivation("migration"):
+                    adjustments["migration"] += trauma_abandonment * 0.6
+                if cognitive_caps.can_have_motivation("cooperation"):
+                    adjustments["cooperation"] -= trauma_abandonment * 0.4
+                if cognitive_caps.can_have_motivation("partnership"):
+                    adjustments["partnership"] -= trauma_abandonment * 0.3
+        
+        if cognitive_caps.can_form_trauma("adoption"):
+            trauma_adoption = memory.get("trauma_adoption", 0.0)
+            # Trauma por adopción: impulsa independencia y rebelión
+            if trauma_adoption > 0.3:
+                if cognitive_caps.can_have_motivation("independence"):
+                    adjustments["independence"] += trauma_adoption * 0.5
+                if cognitive_caps.can_have_motivation("rebellion"):
+                    adjustments["rebellion"] += trauma_adoption * 0.4
+                if cognitive_caps.can_have_motivation("protection"):
+                    adjustments["protection"] -= trauma_adoption * 0.3
+        
         # Reputación social baja: dificulta cooperación y emparejamiento
+        reputation = getattr(person, 'reputation_score', 0.5)
         if reputation < 0.5:
             deficit = 0.5 - reputation
-            adjustments["cooperation"] -= deficit * 0.5
-            adjustments["partnership"] -= deficit * 0.4
+            if cognitive_caps.can_have_motivation("cooperation"):
+                adjustments["cooperation"] -= deficit * 0.5
+            if cognitive_caps.can_have_motivation("partnership"):
+                adjustments["partnership"] -= deficit * 0.4
             
         return adjustments
 

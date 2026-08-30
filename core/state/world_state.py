@@ -24,17 +24,25 @@ NOTA: La importación de CognitiveMemorySystem se hace localmente en los método
 para evitar dependencias circulares.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from systems.environment.tile import Tile
 
 from core.config.simulation_config import SimulationConfig
 from core.state.world_grid import WorldGrid
 from entities.person.person import Person
 from systems.environment.epidemiological_map import EpidemiologicalMap
+from systems.environment.tile_map import TileMap
+from systems.environment.tile_map_initializer import TileMapInitializer
+from systems.environment.world_config import WorldConfig
 from systems.social.residential_nucleus import (
     ResidentialNucleus,
     NucleusMemberRole,
-    NucleusType,
 )
 
 # Eventos poblacionales importados
@@ -43,7 +51,6 @@ from events.population.divorce_occurred import DivorceOccurredEvent
 from events.population.marriage_created import MarriageCreatedEvent
 from events.population.person_born import PersonBornEvent
 from events.population.person_died import PersonDiedEvent
-
 
 class WorldState:
     """Contenedor de la realidad simulada. Garantiza aislamiento en la lectura."""
@@ -61,6 +68,12 @@ class WorldState:
         self.world_grid = WorldGrid(width, height)
         self.epidemiological_map = EpidemiologicalMap(config.environment.max_viral_load)
         self.world_days_elapsed: float = 0.0
+
+        # =====================================================================
+        # MAPA DE TILES (SISTEMA DE BIOMAS)
+        # =====================================================================
+        self.world_config = WorldConfig()
+        self.tile_map: Optional[TileMap] = None
         
         # =====================================================================
         # NÚCLEOS RESIDENCIALES (FASE A)
@@ -73,6 +86,8 @@ class WorldState:
         # Regla fundamental: 1 agente = 1 casilla
         # =====================================================================
         self._cell_occupancy: Dict[Tuple[int, int], Optional[int]] = {}
+
+        self.active_eggs: List[Any] = []
         
     def get_next_entity_id(self) -> int:
         """Genera de forma segura e incremental el ID único para nuevos agentes."""
@@ -889,3 +904,57 @@ class WorldState:
                 father.entity_id,
                 newborn_id,
             )
+
+    # =========================================================================
+    # API PÚBLICA DE TILES (SISTEMA DE BIOMAS)
+    # =========================================================================
+    
+    def initialize_tile_map(self, world_config: Optional[WorldConfig] = None, seed: int = 42) -> None:
+        """Inicializa el mapa de tiles usando generación procedural.
+
+        Args:
+            world_config: Configuración física del mundo (opcional).
+            seed: Semilla para generación determinista (default: 42).
+        """
+        if world_config is not None:
+            self.world_config = world_config
+        
+        try:
+            initializer = TileMapInitializer(self.world_config, seed=seed)
+            self.tile_map = initializer.initialize(self.width, self.height)
+            
+            # Verificar que el tile_map se creó correctamente
+            if self.tile_map is None:
+                raise ValueError("TileMapInitializer retornó None")
+            
+            tile_count = self.tile_map.get_tile_count()
+            
+            self.logger.info(
+                "🗺️ Mapa de tiles inicializado: %d tiles (%dx%d)",
+                tile_count, self.width, self.height,
+            )
+            
+        except Exception as e:
+            self.logger.error(
+                "❌ Error al inicializar mapa de tiles: %s. Continuando sin tiles.",
+                str(e)
+            )
+            self.tile_map = None
+    
+    def get_tile_at(self, x: int, y: int) -> Optional[Tile]:
+        """Retorna el tile en la posición dada.
+        
+        Args:
+            x: Coordenada X.
+            y: Coordenada Y.
+            
+        Returns:
+            El tile en esa posición, o None si no existe.
+        """
+        if self.tile_map is None:
+            return None
+        return self.tile_map.get_tile(int(x), int(y))
+    
+    def has_tile_map(self) -> bool:
+        """Verifica si el mapa de tiles ha sido inicializado."""
+        return self.tile_map is not None and self.tile_map.is_initialized()

@@ -23,7 +23,13 @@ def _create_mock_person(entity_id: int, is_sick: bool = False, x: float = 50.0, 
     person.y = y
     person.active_infections = {}
     person.genome = MagicMock()
+    
+    # GENÉTICA UNIVERSAL: Configurar mocks para ImmunologicalCapabilities
+    # has_trait() debe retornar True para que se consulten los rasgos
+    person.genome.has_trait.return_value = True
+    # get_trait_value() retorna 0.5 por defecto (inmunidad normal, puede enfermarse)
     person.genome.get_trait_value.return_value = 0.5
+    
     person.emotions = {"energy": 1.0}
     person.get_specific_immunity = MagicMock(return_value=0.5)
     return person
@@ -73,6 +79,7 @@ class TestDiseaseSystemLocalContagion:
         """Sin carga viral en el sector, no debe haber contagios."""
         config = SimulationConfig()
         config.environment.sector_size = 10
+        config.diseases.base_outbreak_chance = 0.0
         system = DiseaseSystem(config)
         
         state = MagicMock()
@@ -111,9 +118,27 @@ class TestDiseaseSystemLocalContagion:
         }
         
         # Agente sano en el mismo sector
+                # Agente sano en el mismo sector
         healthy_person = _create_mock_person(2, is_sick=False, x=5.0, y=5.0)
-        healthy_person.genome.get_trait_value.return_value = 0.1  # Baja inmunidad para facilitar contagio
         
+        # GENÉTICA UNIVERSAL: Configurar valores específicos por rasgo
+        # Usamos side_effect para retornar valores diferentes según el rasgo consultado
+        def get_trait_side_effect(trait_id):
+            """Retorna valores específicos para cada rasgo."""
+            if trait_id == "immunity":
+                return 0.1  # Baja inmunidad para facilitar contagio
+            elif trait_id == "nervous_system":
+                return 0.5  # Necesario para ser susceptible a virus
+            elif trait_id == "metabolism":
+                return 0.5  # Necesario para poder enfermarse
+            elif trait_id == "heterotrophy":
+                return 0.5  # Necesario para ser susceptible
+            else:
+                return 0.5  # Default para otros rasgos
+        
+        healthy_person.genome.has_trait.return_value = True
+        healthy_person.genome.get_trait_value.side_effect = get_trait_side_effect
+
         state.get_all_persons.return_value = [sick_person, healthy_person]
         
         pending = PendingChanges()

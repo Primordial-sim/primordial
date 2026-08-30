@@ -4,6 +4,10 @@ Un núcleo residencial es una estructura lógica que agrupa agentes que
 comparten una situación de convivencia. NO es una zona física, sino
 una relación estructural que genera preferencias de proximidad.
 
+GENÉTICA UNIVERSAL: Los tipos de núcleo están condicionados por las
+SocialCapabilities del organismo. La validación de capacidades debe
+hacerse en los sistemas que crean núcleos (MarriageSystem, ConceptionSystem).
+
 Principios fundamentales:
 1. La posición física de cada agente es individual (1 agente = 1 casilla).
 2. El núcleo influye en el movimiento mediante preferencias, no restricciones.
@@ -49,6 +53,10 @@ class ResidentialNucleus:
     Un núcleo agrupa agentes que comparten residencia. Genera
     preferencias de proximidad pero NO restringe el movimiento.
 
+    GENÉTICA UNIVERSAL: La validación de capacidades sociales (can_form_pair_bond,
+    can_form_family_bonds) debe hacerse en los sistemas que crean núcleos,
+    no en esta clase que es una estructura de datos pura.
+
     Attributes:
         nucleus_id: Identificador único del núcleo.
         nucleus_type: Tipo de núcleo (single, couple, family, etc.).
@@ -80,14 +88,23 @@ class ResidentialNucleus:
 
     @classmethod
     def create_single(cls, agent_id: int) -> "ResidentialNucleus":
-        """Crea un núcleo para una persona sola."""
+        """Crea un núcleo para una persona sola.
+        
+        GENÉTICA UNIVERSAL: Todos los organismos pueden estar solos.
+        """
         nucleus = cls(nucleus_type=NucleusType.SINGLE, target_distance=0.0)
         nucleus.add_member(agent_id, NucleusMemberRole.HEAD)
         return nucleus
 
     @classmethod
     def create_couple(cls, agent_a_id: int, agent_b_id: int) -> "ResidentialNucleus":
-        """Crea un núcleo para una pareja."""
+        """Crea un núcleo para una pareja.
+        
+        GENÉTICA UNIVERSAL: Este método asume que ambos agentes tienen
+        capacidad de formar vínculos de pareja (can_form_pair_bond).
+        La validación de capacidades debe hacerse en el sistema que llama
+        a este método (ej: MarriageSystem, ConceptionSystem).
+        """
         nucleus = cls(nucleus_type=NucleusType.COUPLE, target_distance=1.5)
         nucleus.add_member(agent_a_id, NucleusMemberRole.HEAD)
         nucleus.add_member(agent_b_id, NucleusMemberRole.PARTNER)
@@ -100,7 +117,12 @@ class ResidentialNucleus:
         parent_b_id: Optional[int],
         children_ids: List[int],
     ) -> "ResidentialNucleus":
-        """Crea un núcleo familiar."""
+        """Crea un núcleo familiar.
+        
+        GENÉTICA UNIVERSAL: Este método asume que los padres tienen
+        capacidad de formar vínculos familiares (can_form_family_bonds).
+        La validación de capacidades debe hacerse en el sistema que llama.
+        """
         nucleus = cls(nucleus_type=NucleusType.FAMILY, target_distance=2.0)
         nucleus.add_member(parent_a_id, NucleusMemberRole.HEAD)
         if parent_b_id is not None:
@@ -182,7 +204,6 @@ class ResidentialNucleus:
             return
 
         roles = list(self.members.values())
-        has_head = NucleusMemberRole.HEAD in roles
         has_partner = NucleusMemberRole.PARTNER in roles
         has_children = NucleusMemberRole.CHILD in roles
 
@@ -207,7 +228,11 @@ class ResidentialNucleus:
     # =========================================================================
 
     def on_marriage(self, agent_a_id: int, agent_b_id: int) -> None:
-        """Se llama cuando dos agentes forman una pareja."""
+        """Se llama cuando dos agentes forman una pareja.
+        
+        GENÉTICA UNIVERSAL: Asume que ambos agentes tienen can_form_pair_bond.
+        La validación debe hacerse en el sistema que llama (MarriageSystem).
+        """
         if self.has_member(agent_a_id):
             self.add_member(agent_b_id, NucleusMemberRole.PARTNER)
         elif self.has_member(agent_b_id):
@@ -222,7 +247,11 @@ class ResidentialNucleus:
         )
 
     def on_birth(self, child_id: int) -> None:
-        """Se llama cuando nace un hijo en este núcleo."""
+        """Se llama cuando nace un hijo en este núcleo.
+        
+        GENÉTICA UNIVERSAL: Asume que los padres tienen can_form_family_bonds.
+        La validación debe hacerse en el sistema que llama (ConceptionSystem).
+        """
         self.add_member(child_id, NucleusMemberRole.CHILD)
         self.logger.info(
             "👶 Nacimiento: agente %d → Núcleo %d (%s)",
@@ -241,6 +270,9 @@ class ResidentialNucleus:
 
     def on_child_independence(self, child_id: int) -> Optional["ResidentialNucleus"]:
         """Se llama cuando un hijo se independiza.
+
+        GENÉTICA UNIVERSAL: La independencia requiere capacidades cognitivas
+        suficientes. La validación debe hacerse en el sistema que llama.
 
         Returns:
             Un nuevo núcleo para el hijo, o None si no procede.

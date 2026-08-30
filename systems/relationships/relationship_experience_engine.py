@@ -12,7 +12,6 @@ from typing import Any, Optional
 
 from core.config.simulation_config import SimulationConfig
 from systems.relationships.relationship_model import (
-    Relationship,
     RelationshipEventType,
     MemoryCategory,
     MemoryRole,

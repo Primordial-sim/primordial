@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from core.genetics.species_definition import SpeciesDefinition, SpeciesRegistry
+from core.genetics.species_definition import SpeciesRegistry
 
 
 @dataclass

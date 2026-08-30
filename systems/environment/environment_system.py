@@ -3,6 +3,11 @@
 Calcula la presión espacial basada en densidad poblacional y actúa como 
 infraestructura base para futuras expansiones de clima y catástrofes.
 
+Integra:
+- Infraestructura climática (estaciones y clima)
+- Sistema de dinámica ambiental (escala media y lenta)
+- Sistema de catástrofes (eventos catastróficos mayores)
+
 OPTIMIZACIÓN: Se elimina la precomputación O(N) de pressure_map. 
 Ahora la presión se calcula bajo demanda en O(1) a través de EnvironmentContext.
 """
@@ -13,9 +18,11 @@ from enum import Enum, auto
 from typing import Dict, Tuple
 
 from systems.environment.environment_context import EnvironmentContext
+from systems.environment.environment_dynamics import EnvironmentDynamics
 from core.state.world_state import WorldState
 from core.state.pending_changes import PendingChanges
 from core.config.simulation_config import SimulationConfig
+from systems.environment.feedback_system import FeedbackSystem
 
 
 class Season(Enum):
@@ -46,15 +53,15 @@ class EnvironmentSystem:
     def __init__(self, config: SimulationConfig) -> None:
         self.config = config
         self.logger = logging.getLogger(self.__class__.__name__)
-        
         self.current_season: Season = Season.SPRING
         self.current_weather: Weather = Weather.CLEAR
         self.days_in_current_season: float = 0.0
         self.season_duration_days: float = getattr(config.environment, 'season_duration_days', 90.0)
-        
         self.biome_map: Dict[Tuple[int, int], BiomeType] = {}
         self.resource_grid: Dict[Tuple[int, int], Dict[str, float]] = {}
         self.danger_zones: Dict[Tuple[int, int], float] = {}
+        self.dynamics = EnvironmentDynamics()
+        self.feedback_system = FeedbackSystem()
 
     def process(
         self,
@@ -63,7 +70,7 @@ class EnvironmentSystem:
         delta_days: float,
         context: EnvironmentContext,
     ) -> None:
-        """Actualiza el reloj climático y valida la integridad del contexto."""
+        """Actualiza el reloj climático y procesa la dinámica ambiental."""
         # =====================================================================
         # 1. INFRAESTRUCTURA CLIMÁTICA (Segura contra estados None)
         # =====================================================================
@@ -81,6 +88,32 @@ class EnvironmentSystem:
         # Inyectar datos climáticos en el contexto
         context.current_season = self.current_season
         context.current_weather = self.current_weather
+        
+        # =====================================================================
+        # 2. DINÁMICA AMBIENTAL Y CATÁSTROFES (NUEVO)
+        # =====================================================================
+        occurred_events = self.dynamics.process(
+            state=state,
+            delta_days=delta_days,
+            current_season=self.current_season,
+            current_weather=self.current_weather,
+            world_config=getattr(state, 'world_config', None),
+        )
+        
+        # Registrar eventos catastróficos en el log
+        if occurred_events:
+            for event in occurred_events:
+                self.logger.info(f"⚠️ Catástrofe: {event}")
+
+        # =====================================================================
+        # 3. RETROALIMENTACIÓN ORGANISMOS-ENTORNO (NUEVO)
+        # =====================================================================
+        self.feedback_system.process(
+            state=state,
+            pending=pending,
+            delta_days=delta_days,
+            context=context,
+        )
 
     def _advance_season(self) -> None:
         if self.current_season is None:
@@ -122,8 +155,25 @@ class EnvironmentSystem:
         return min(1.0, self.danger_zones.get((int(x), int(y)), 0.0) + base_danger)
 
     def trigger_catastrophe(self, x: float, y: float, radius: float, severity: float) -> None:
+        """Método legacy para activar catástrofes manuales (compatibilidad)."""
         self.logger.warning(f"¡CATÁSTROFE ACTIVADA en ({x}, {y}) con radio {radius}!")
         for dx in range(int(-radius), int(radius) + 1):
             for dy in range(int(-radius), int(radius) + 1):
                 target_coord = (int(x + dx), int(y + dy))
                 self.danger_zones[target_coord] = severity
+    
+    def get_catastrophe_summary(self) -> dict:
+        """Retorna un resumen de la actividad catastrófica (NUEVO)."""
+        return self.dynamics.get_catastrophe_summary()
+    
+    def get_catastrophe_history(self) -> list:
+        """Retorna el historial completo de catástrofes (NUEVO)."""
+        return self.dynamics.catastrophe_system.get_history()
+    
+    def get_recent_catastrophes(self, count: int = 10) -> list:
+        """Retorna las N catástrofes más recientes (NUEVO)."""
+        return self.dynamics.catastrophe_system.get_recent_events(count)
+
+    def get_feedback_summary(self, state: WorldState) -> dict:
+        """Retorna un resumen de la retroalimentación actual (NUEVO)."""
+        return self.feedback_system.get_impact_summary(state)

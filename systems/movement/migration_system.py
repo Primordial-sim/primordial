@@ -25,6 +25,7 @@ from core.state.pending_changes import PendingChanges
 from systems.behavior.cognitive_memory_system import CognitiveMemorySystem
 from systems.environment.environment_context import EnvironmentContext
 from core.config.simulation_config import SimulationConfig
+from systems.movement.movement_capabilities import MovementCapabilities
 
 
 class MigrationSystem:
@@ -75,6 +76,12 @@ class MigrationSystem:
                 self._target_set_day.pop(eid, None)
                 continue
 
+            # GENÉTICA UNIVERSAL: Consultar capacidades de movimiento del genoma
+            # Si no puede moverse o no puede migrar, saltar
+            capabilities = MovementCapabilities.from_genome(person.genome)
+            if not capabilities.can_move or not capabilities.can_migrate:
+                continue
+
             # 2. VERIFICAR COOLDOWN
             last_migration = self._cooldowns.get(eid, 0.0)
             if (current_day - last_migration) < migration_cooldown:
@@ -101,8 +108,11 @@ class MigrationSystem:
                     else:
                         # Destino sigue válido: continuar hacia él
                         dist = math.hypot(person.x - tx, person.y - ty)
-                        
-                        if dist <= self.arrival_threshold:
+                
+                        # GENÉTICA UNIVERSAL: Umbral de llegada ajustado por speed
+                        arrival_threshold = self.arrival_threshold * capabilities.movement_speed
+                
+                        if dist <= arrival_threshold:
                             # CORRECCIÓN: Establecimiento al llegar
                             self._handle_arrival(person, tx, ty, current_day, pending, fw_cfg)
                             pending.clear_migration_target(eid)
@@ -111,8 +121,11 @@ class MigrationSystem:
                 else:
                     # Aún no toca reevaluar: continuar hacia el destino
                     dist = math.hypot(person.x - tx, person.y - ty)
-                    
-                    if dist <= self.arrival_threshold:
+                
+                    # GENÉTICA UNIVERSAL: Umbral de llegada ajustado por speed
+                    arrival_threshold = self.arrival_threshold * capabilities.movement_speed
+                
+                    if dist <= arrival_threshold:
                         self._handle_arrival(person, tx, ty, current_day, pending, fw_cfg)
                         pending.clear_migration_target(eid)
                         self._target_set_day.pop(eid, None)
@@ -155,14 +168,16 @@ class MigrationSystem:
 
             # ==========================================
             # BLOQUE 3: TRAUMA GLOBAL SISTÉMICO (HUIDA EMOCIONAL)
+            # GENÉTICA UNIVERSAL: Estos traumas son específicos de humanos
+            # y especies sociales complejas. Solo aplicar si existen.
             # ==========================================
-            # E. Trauma por Abandono
+            # E. Trauma por Abandono (solo si existe)
             abandonment_trauma = mem.get("trauma_abandonment", 0.0)
             if abandonment_trauma > 0.6:
                 needs_to_migrate = True
                 migration_reasons.append(("trauma_abandono_huida", abandonment_trauma * 1.5))
 
-            # F. Trauma por Adopción
+            # F. Trauma por Adopción (solo si existe)
             adoption_trauma = mem.get("trauma_adoption", 0.0)
             if adoption_trauma > 0.7:
                 needs_to_migrate = True
@@ -174,13 +189,15 @@ class MigrationSystem:
                 migration_reasons.append(("objetivo_psicologico", 1.0))
             
             # H. MOTIVACIÓN INTERNA 'migration'
-            if hasattr(person, 'get_motivation'):
-                migration_motivation = person.get_motivation("migration")
-                migration_threshold = getattr(fw_cfg, 'migration_action_threshold', 0.85)
-                
-                if migration_motivation >= migration_threshold:
-                    needs_to_migrate = True
-                    migration_reasons.append(("impulso_interno", migration_motivation))
+            # GENÉTICA UNIVERSAL: Solo aplicar si el organismo tiene este concepto
+            if hasattr(person, 'get_motivation') and hasattr(person, '_motivations'):
+                if "migration" in person._motivations:
+                    migration_motivation = person.get_motivation("migration")
+                    migration_threshold = getattr(fw_cfg, 'migration_action_threshold', 0.85)
+                    
+                    if migration_motivation >= migration_threshold:
+                        needs_to_migrate = True
+                        migration_reasons.append(("impulso_interno", migration_motivation))
 
             # 5. BÚSQUEDA DE OPORTUNIDADES (Pull Factors)
             if needs_to_migrate:

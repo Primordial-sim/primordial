@@ -23,7 +23,7 @@ import math
 import logging
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Dict, Set, Optional, Any
+from typing import Dict, Optional, Any
 
 from core.state.world_state import WorldState
 from core.state.pending_changes import PendingChanges
@@ -36,7 +36,9 @@ from systems.relationships.relationship_model import (
     RelationshipEventType,
     RelationshipStatus,
 )
+
 from systems.relationships.relationship_experience_engine import RelationshipExperienceEngine
+from systems.diseases.immunological_capabilities import ImmunologicalCapabilities
 
 
 @dataclass
@@ -88,6 +90,12 @@ class DiseaseSystem:
             if person.entity_id in pending.deaths:
                 continue
             
+            # GENÉTICA UNIVERSAL: Consultar capacidades inmunológicas
+            # Si no puede enfermarse (plantas, organismos simples), saltar
+            immune_caps = ImmunologicalCapabilities.from_genome(person.genome)
+            if not immune_caps.can_get_sick:
+                continue
+            
             if hasattr(person, 'advance_infections'):
                 person.advance_infections(delta_days)
             
@@ -118,18 +126,19 @@ class DiseaseSystem:
                         pending.register_recovery(person.entity_id, path_id)
                         self._notify_recovery_care(person, state, pending, current_day, pathogen)
                         
-                        # Memoria episódica de la recuperación
-                        intensity = min(1.0, 0.3 + (pathogen.virulence * 0.6))
-                        CognitiveMemorySystem.add_memory(
-                            person=person,
-                            mem_type=CognitiveMemorySystem.TYPE_DISEASE,
-                            target_id=pathogen.pathogen_id,
-                            intensity=intensity,
-                            valence=-1,
-                            context="recuperacion",
-                            current_day=current_day,
-                            pending=pending,
-                        )
+                        # GENÉTICA UNIVERSAL: Memoria episódica solo si puede formar memoria inmunológica
+                        if immune_caps.can_form_immunological_memory:
+                            intensity = min(1.0, 0.3 + (pathogen.virulence * 0.6))
+                            CognitiveMemorySystem.add_memory(
+                                person=person,
+                                mem_type=CognitiveMemorySystem.TYPE_DISEASE,
+                                target_id=pathogen.pathogen_id,
+                                intensity=intensity,
+                                valence=-1,
+                                context="recuperacion",
+                                current_day=current_day,
+                                pending=pending,
+                            )
                         continue
                 
                 # Contribuir a la carga viral del sector si es contagioso
@@ -174,6 +183,13 @@ class DiseaseSystem:
             if getattr(person, 'is_sick', False):
                 continue
             
+            # GENÉTICA UNIVERSAL: Consultar capacidades inmunológicas
+            immune_caps = ImmunologicalCapabilities.from_genome(person.genome)
+            
+            # Si no puede enfermarse, saltar
+            if not immune_caps.can_get_sick:
+                continue
+            
             sector = (person.x // sector_size, person.y // sector_size)
             viral_load = sector_viral_load.get(sector, 0.0)
             
@@ -198,10 +214,17 @@ class DiseaseSystem:
                 # Seleccionar un patógeno aleatorio de los presentes en el sector
                 local_p = sector_pathogens.get(sector, [])
                 if local_p:
-                    chosen_pathogen = random.choice(local_p)
-                    # Verificar que no lo tenga ya (doble chequeo de seguridad)
-                    if chosen_pathogen.pathogen_id not in person.active_infections:
-                        pending.register_infection(person.entity_id, chosen_pathogen)
+                    # GENÉTICA UNIVERSAL: Filtrar patógenos por susceptibilidad
+                    susceptible_pathogens = [
+                        p for p in local_p 
+                        if immune_caps.is_susceptible_to(p.family)
+                    ]
+                    
+                    if susceptible_pathogens:
+                        chosen_pathogen = random.choice(susceptible_pathogens)
+                        # Verificar que no lo tenga ya (doble chequeo de seguridad)
+                        if chosen_pathogen.pathogen_id not in person.active_infections:
+                            pending.register_infection(person.entity_id, chosen_pathogen)
 
         # =================================================================
         # FASE 3: BROTES ESPONTÁNEOS (CORREGIDO: FUERA DEL BUCLE DE AGENTES)
@@ -219,42 +242,55 @@ class DiseaseSystem:
             ]
             
             if alive_and_healthy:
-                patient_zero = random.choice(alive_and_healthy)
+                # GENÉTICA UNIVERSAL: Filtrar por organismos que pueden enfermarse
+                susceptible_agents = []
+                for agent in alive_and_healthy:
+                    immune_caps = ImmunologicalCapabilities.from_genome(agent.genome)
+                    if immune_caps.can_get_sick:
+                        susceptible_agents.append(agent)
                 
-                # Crear un patógeno aleatorio
-                pathogen_families = getattr(
-                    dis_cfg, 
-                    'pathogen_families', 
-                    ["Influenza", "Coronavirus", "Poxvirus", "Bacteriofago_X"]
-                )
-                familia_random = random.choice(pathogen_families)
-                patient_zero_virus = Pathogen.create_random_variant(familia_random)
-                
-                # Verificar que el paciente cero no esté ya infectado con esta familia
-                already_infected = any(
-                    inf_state.pathogen.family == patient_zero_virus.family 
-                    for inf_state in patient_zero.active_infections.values()
-                )
-                
-                # Verificar que no tenga ya una infección pendiente en este tick
-                already_pending = any(
-                    eid == patient_zero.entity_id 
-                    for eid, _ in pending.infections
-                )
-                
-                if not already_infected and not already_pending:
-                    pending.register_infection(patient_zero.entity_id, patient_zero_virus)
+                if susceptible_agents:
+                    patient_zero = random.choice(susceptible_agents)
                     
-                    self.logger.info(
-                        "🚨 Brote: %s en Agente %s (vir: %.2f, trans: %.2f, let: %.2f, inc: %.1fd, asym: %.2f)",
-                        patient_zero_virus.pathogen_id, 
-                        patient_zero.entity_id,
-                        patient_zero_virus.virulence, 
-                        patient_zero_virus.transmission,
-                        patient_zero_virus.lethality, 
-                        patient_zero_virus.incubation_days,
-                        patient_zero_virus.asymptomatic_chance,
+                    # Crear un patógeno aleatorio
+                    pathogen_families = getattr(
+                        dis_cfg, 
+                        'pathogen_families', 
+                        ["Influenza", "Coronavirus", "Poxvirus", "Bacteriofago_X"]
                     )
+                    familia_random = random.choice(pathogen_families)
+                    patient_zero_virus = Pathogen.create_random_variant(familia_random)
+                    
+                    # GENÉTICA UNIVERSAL: Verificar susceptibilidad al tipo de patógeno
+                    immune_caps = ImmunologicalCapabilities.from_genome(patient_zero.genome)
+                    is_susceptible = immune_caps.is_susceptible_to(patient_zero_virus.family)
+                    
+                    # Verificar que el paciente cero no esté ya infectado con esta familia
+                    already_infected = any(
+                        inf_state.pathogen.family == patient_zero_virus.family 
+                        for inf_state in patient_zero.active_infections.values()
+                    )
+                    
+                    # Verificar que no tenga ya una infección pendiente en este tick
+                    already_pending = any(
+                        eid == patient_zero.entity_id 
+                        for eid, _ in pending.infections
+                    )
+                    
+                    # CORREGIDO: Verificar todas las condiciones antes de registrar
+                    if is_susceptible and not already_infected and not already_pending:
+                        pending.register_infection(patient_zero.entity_id, patient_zero_virus)
+                        
+                        self.logger.info(
+                            "🚨 Brote: %s en Agente %s (vir: %.2f, trans: %.2f, let: %.2f, inc: %.1fd, asym: %.2f)",
+                            patient_zero_virus.pathogen_id, 
+                            patient_zero.entity_id,
+                            patient_zero_virus.virulence, 
+                            patient_zero_virus.transmission,
+                            patient_zero_virus.lethality, 
+                            patient_zero_virus.incubation_days,
+                            patient_zero_virus.asymptomatic_chance,
+                        )
 
     # =========================================================================
     # INTEGRACIÓN CON RELATIONSHIP EXPERIENCE ENGINE (FASE 0 + CORRECCIONES)

@@ -41,4 +41,3 @@ class RelationshipSystem:
         context: EnvironmentContext,
     ) -> None:
         """Intencionalmente vacío. Las relaciones evolucionan por experiencias."""
-        pass

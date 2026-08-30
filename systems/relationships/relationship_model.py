@@ -18,7 +18,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 from enum import Enum, IntEnum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from systems.relationships.narrative_engine import NarrativeEngine
 
 
@@ -202,7 +202,6 @@ class Relationship:
         self._labels_cache_day: float = -1.0
         
         # OPTIMIZACIÓN CRÍTICA: Contadores incrementales por categoría
-        # CORRECCIÓN: Usar strings en lugar de enums para evitar enum.__hash__
         self._category_weights: Dict[str, float] = {cat.value: 0.0 for cat in MemoryCategory}
         self._category_weights_day: float = start_day
         
@@ -353,12 +352,18 @@ class Relationship:
         if not self._cache_valid:
             self._rebuild_cache(current_day)
 
-    def get_labels(self, current_day: float) -> List[str]:
+    def get_labels(self, current_day: float, owner: Any = None) -> List[str]:
         """Retorna las etiquetas de la relación.
         
         OPTIMIZACIÓN: Si las etiquetas ya se calcularon para el día actual,
         retorna la caché sin recalcular. Usa contadores incrementales para
         evitar los 4 sum() en LabelGenerator.generate().
+        
+        GENÉTICA UNIVERSAL: Acepta owner para filtrar etiquetas por capacidades.
+        
+        Args:
+            current_day: Día actual de la simulación.
+            owner: El agente dueño de la relación (para consultar capacidades).
         """
         if self._labels_cache_valid and self._labels_cache_day == current_day:
             return self._cached_labels
@@ -367,7 +372,7 @@ class Relationship:
         if current_day - self._category_weights_day > 30.0:
             self._rebuild_category_weights(current_day)
         
-        self._cached_labels = LabelGenerator.generate(self, current_day)
+        self._cached_labels = LabelGenerator.generate(self, current_day, owner)
         self._labels_cache_valid = True
         self._labels_cache_day = current_day
         return self._cached_labels
@@ -522,11 +527,27 @@ class LabelGenerator:
     Reduce complejidad de O(N) a O(1) donde N es el número de memorias.
     
     CORRECCIÓN: Usar strings en lugar de enums para evitar enum.__hash__
+    
+    GENÉTICA UNIVERSAL: Filtra etiquetas según SocialCapabilities del organismo.
     """
     
     @staticmethod
-    def generate(rel: Relationship, current_day: float) -> List[str]:
+    def generate(rel: Relationship, current_day: float, owner: Any = None) -> List[str]:
+        """Genera etiquetas relacionales filtradas por capacidades sociales.
+        
+        Args:
+            rel: La relación a evaluar.
+            current_day: Día actual de la simulación.
+            owner: El agente dueño de la relación (para consultar capacidades).
+                   Si es None, usa comportamiento legacy (todas las etiquetas).
+        """
         labels = []
+        
+        # GENÉTICA UNIVERSAL: Consultar capacidades sociales si tenemos el owner
+        social_caps = None
+        if owner is not None and hasattr(owner, 'genome'):
+            from systems.relationships.social_capabilities import SocialCapabilities
+            social_caps = SocialCapabilities.from_genome(owner.genome)
         
         # OPTIMIZACIÓN CRÍTICA: Leer contadores precalculados en O(1)
         romantic_weight = rel._category_weights["romantic"]
@@ -536,27 +557,43 @@ class LabelGenerator:
 
         # --- UMBRALES DE PRODUCCIÓN ---
         
-        if romantic_weight > 250:
-            labels.append("Amante")
-        elif romantic_weight > 80:
-            labels.append("Interés Romántico")
-            
-        if conflict_weight > 150:
-            labels.append("Rival")
-        if conflict_weight > 60 and cooperation_weight > 60:
-            labels.append("Rival Respetado")
-            
-        if cooperation_weight > 200 and conflict_weight < 100:
-            labels.append("Amigo")
-        elif cooperation_weight > 80:
-            labels.append("Aliado")
-            
-        if family_weight > 150:
-            labels.append("Familia Elegida")
-            
+        # Etiquetas románticas (requieren romantic_bonds)
+        if social_caps is None or social_caps.can_have_romantic_bonds:
+            if romantic_weight > 250:
+                labels.append("Amante")
+            elif romantic_weight > 80:
+                labels.append("Interés Romántico")
+        
+        # Etiquetas de conflicto (requieren can_form_conflict)
+        if social_caps is None or social_caps.can_form_conflict:
+            if conflict_weight > 150:
+                labels.append("Rival")
+            if conflict_weight > 60 and cooperation_weight > 60:
+                labels.append("Rival Respetado")
+        
+        # Etiquetas de amistad (requieren friendship)
+        if social_caps is None or social_caps.can_have_friendship:
+            if cooperation_weight > 200 and conflict_weight < 100:
+                labels.append("Amigo")
+        
+        # Etiquetas de alianza (requieren cooperation)
+        if social_caps is None or social_caps.can_form_cooperation:
+            if cooperation_weight > 80 and "Amigo" not in labels:
+                labels.append("Aliado")
+        
+        # Etiquetas de familia (requieren family_bonds)
+        if social_caps is None or social_caps.can_form_family_bonds:
+            if family_weight > 150:
+                labels.append("Familia Elegida")
+        
+        # Etiquetas básicas
         if not labels:
             if len(rel.memories) > 0:
-                labels.append("Conocido")
+                # "Conocido" requiere reconocimiento individual
+                if social_caps is None or social_caps.can_recognize_individuals:
+                    labels.append("Conocido")
+                else:
+                    labels.append("Desconocido")
             else:
                 labels.append("Desconocido")
                 

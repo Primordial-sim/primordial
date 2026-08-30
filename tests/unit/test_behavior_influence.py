@@ -13,11 +13,22 @@ from systems.relationships.behavior_influence import BehaviorInfluence
 
 
 def _create_mock_agent(entity_id: int):
-    """Crea un agente mock para tests."""
+    """Crea un agente mock para tests.
+    
+    GENÉTICA UNIVERSAL: Configura el genoma mock para que
+    SocialCapabilities funcione correctamente.
+    """
     agent = MagicMock()
     agent.entity_id = entity_id
     agent.x = 0.0
     agent.y = 0.0
+    
+    # Configurar genoma mock para SocialCapabilities
+    # Valores altos para que tenga capacidades sociales completas
+    agent.genome = MagicMock()
+    agent.genome.has_trait.return_value = True
+    agent.genome.get_trait_value.return_value = 0.9
+    
     return agent
 
 

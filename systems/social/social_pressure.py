@@ -12,6 +12,8 @@ Este módulo gestiona dos tipos de presión social:
    - Basada en: muertes, matrimonios, adopciones, migraciones
    - Usado por el pipeline para modificar el mapa de presión
 
+GENÉTICA UNIVERSAL: Filtra presión social según SocialCapabilities del organismo.
+
 Principio: La presión social influye en el comportamiento pero NO lo determina.
 """
 
@@ -20,7 +22,9 @@ from __future__ import annotations
 import logging
 import math
 import random
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
+
+from systems.relationships.social_capabilities import SocialCapabilities
 
 
 # =============================================================================
@@ -117,6 +121,8 @@ class SocialPressureCalculator:
         Esta presión afecta SOLO al agente que se está moviendo.
         Se basa en sus relaciones personales.
         
+        GENÉTICA UNIVERSAL: Solo aplica si el organismo tiene capacidades sociales.
+        
         Args:
             person: El agente evaluando el movimiento.
             cell_x: Coordenada X de la casilla candidata.
@@ -126,6 +132,12 @@ class SocialPressureCalculator:
         Returns:
             Presión social total (positivo = atrae, negativo = repele).
         """
+        # GENÉTICA UNIVERSAL: Solo aplicar si puede sentir presión social
+        social_caps = SocialCapabilities.from_genome(person.genome)
+        
+        if not social_caps.can_have_social_pressure:
+            return 0.0
+        
         total_pressure = 0.0
         
         # 1. Presión por relaciones
@@ -273,7 +285,7 @@ class SocialPressureCalculator:
                     )
         
         # Aplicar presión por matrimonios
-        for person_a_id, person_b_id in getattr(pending, 'marriages', {}).items():
+        for person_a_id in getattr(pending, 'marriages', {}).items():
             person_a = state.get_person_by_id(person_a_id)
             if person_a:
                 self._apply_pressure_to_area(
@@ -291,7 +303,7 @@ class SocialPressureCalculator:
                 )
         
         # Aplicar alivio por migraciones
-        for entity_id, target in getattr(pending, 'migration_targets', {}).items():
+        for entity_id in getattr(pending, 'migration_targets', {}).items():
             person = state.get_person_by_id(entity_id)
             if person:
                 self._apply_pressure_to_area(

@@ -20,7 +20,7 @@ y con el sistema de genoma para analizar la distribución de rasgos fenotípicos
 import logging
 import json
 import math
-from typing import Dict, Any, List, Optional, Set, Tuple
+from typing import Dict, Any, List
 from core.state.world_state import WorldState
 from core.state.pending_changes import PendingChanges
 from systems.environment.environment_context import EnvironmentContext

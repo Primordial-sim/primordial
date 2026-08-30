@@ -3,14 +3,18 @@
 Determina cómo las etiquetas relacionales influyen en las decisiones
 de los agentes, tanto en la selección de targets para interacción
 como en la evaluación de utilidad espacial.
+
+GENÉTICA UNIVERSAL: Filtra influencia según SocialCapabilities del organismo.
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, List, Optional, TYPE_CHECKING
+
+from systems.relationships.social_capabilities import SocialCapabilities
 
 if TYPE_CHECKING:
-    from systems.relationships.relationship_model import Relationship
+    pass
 
 
 class BehaviorInfluence:
@@ -24,9 +28,16 @@ class BehaviorInfluence:
     def get_target_priority(agent: Any, target: Any, current_day: float) -> float:
         """Calcula la prioridad de un target para interacción social.
         
+        GENÉTICA UNIVERSAL: Solo aplica si el agente tiene capacidades sociales.
+        
         Retorna un multiplicador [0.0, 2.0] que indica cuán probable es
         que el agente elija a este target para interactuar.
         """
+        # GENÉTICA UNIVERSAL: Sin capacidades sociales, prioridad neutra
+        social_caps = SocialCapabilities.from_genome(agent.genome)
+        if not social_caps.has_social_awareness:
+            return 0.5
+        
         rel = agent.get_relationship_with(target.entity_id, current_day)
         if rel is None:
             return 0.5
@@ -100,8 +111,15 @@ class BehaviorInfluence:
     ) -> float:
         """Calcula la atracción social hacia un target para evaluación de celdas.
         
+        GENÉTICA UNIVERSAL: Solo aplica si el agente tiene capacidades sociales.
+        
         Retorna un valor [-5.0, 10.0]. Positivo = atracción, negativo = repulsión.
         """
+        # GENÉTICA UNIVERSAL: Sin capacidades sociales, atracción neutra
+        social_caps = SocialCapabilities.from_genome(agent.genome)
+        if not social_caps.has_social_awareness:
+            return 0.0
+        
         rel = agent.get_relationship_with(target.entity_id, current_day)
         if rel is None:
             return 0.0
@@ -138,8 +156,15 @@ class BehaviorInfluence:
     ) -> List[tuple[Any, float]]:
         """Obtiene múltiples anclas sociales ordenadas por importancia.
         
+        GENÉTICA UNIVERSAL: Solo aplica si el agente tiene capacidades sociales.
+        
         Retorna los N agentes más importantes basándose en etiquetas.
         """
+        # GENÉTICA UNIVERSAL: Sin capacidades sociales, sin anclas
+        social_caps = SocialCapabilities.from_genome(agent.genome)
+        if not social_caps.has_social_awareness:
+            return []
+        
         anchors = []
         
         for other in all_agents:

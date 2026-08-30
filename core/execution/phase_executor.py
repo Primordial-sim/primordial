@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Iterable
 
 from core.execution.execution_context import ExecutionContext
 from core.execution.system_runner import ProcessableSystem, SystemRunner

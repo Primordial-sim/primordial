@@ -40,7 +40,7 @@ def _create_cooperation_memory(
     )
 
 
-def test_experience_generation() -> float:
+def test_experience_generation() -> None:
     """Valida que el ExperienceGenerator genera experiencias basadas en etiquetas."""
     print("[Benchmark 3.1] Validación de ExperienceGenerator")
     
@@ -55,10 +55,20 @@ def test_experience_generation() -> float:
     agent.x = 10
     agent.y = 10
     
+    # GENÉTICA UNIVERSAL: Configurar genoma mock para SocialCapabilities
+    agent.genome = Mock()
+    agent.genome.has_trait.return_value = True
+    agent.genome.get_trait_value.return_value = 0.9
+    
     partner = Mock()
     partner.entity_id = 2
     partner.x = 12
     partner.y = 12
+    
+    # GENÉTICA UNIVERSAL: Configurar genoma mock para SocialCapabilities
+    partner.genome = Mock()
+    partner.genome.has_trait.return_value = True
+    partner.genome.get_trait_value.return_value = 0.9
     
     # Crear relación con etiqueta "Amigo"
     rel = Relationship(owner_id=1, partner_id=2, start_day=0.0)
@@ -73,9 +83,7 @@ def test_experience_generation() -> float:
     labels = rel.get_labels(current_day)
     print(f"           Etiquetas generadas: {labels}")
     
-    if "Amigo" not in labels:
-        print("           ❌ FAIL  No se generó la etiqueta 'Amigo'")
-        return 1.0
+    assert "Amigo" in labels, "No se generó la etiqueta 'Amigo'"
     
     # CORRECCIÓN CRÍTICA: _relationships es ahora Dict[int, Relationship]
     # La clave es partner_id, el valor es el objeto Relationship
@@ -105,7 +113,7 @@ def test_experience_generation() -> float:
     status = "✅ PASS" if passed else "❌ FAIL"
     print(f"           {status}  ExperienceGenerator genera experiencias basadas en etiquetas")
     
-    return 0.0 if passed else 1.0
+    assert passed, "ExperienceGenerator no genera experiencias basadas en etiquetas"
 
 
 def benchmark_experience_performance() -> float:
@@ -176,7 +184,11 @@ def run_all_benchmarks() -> None:
     
     results = {}
     
-    results["generation"] = test_experience_generation()
+    try:
+        test_experience_generation()
+        results["generation"] = 0.0
+    except AssertionError:
+        results["generation"] = 1.0
     print()
     
     results["performance"] = benchmark_experience_performance()

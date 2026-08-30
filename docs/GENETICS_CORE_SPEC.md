@@ -6,7 +6,14 @@
 vista conceptual. No habla de implementación, tests, ni archivos específicos.
 Para el estado actual de la implementación, ver GENETICS_IMPLEMENTATION.md
 
----
+**ESTADO: CERRADO Y CONGELADO**
+ 
+Este documento es el contrato del núcleo genético.
+A partir de este momento, no se modificará salvo que se descubra
+un error conceptual. Todo lo demás debe construirse encima del núcleo,
+nunca dentro de él.
+ 
+Fecha de cierre: Agosto 2026
 
 ## 1. CONCEPTOS FUNDAMENTALES
 

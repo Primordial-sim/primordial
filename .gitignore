@@ -1,4 +1,6 @@
-# --- Python ---
+# =============================================================================
+# Python
+# =============================================================================
 __pycache__/
 *.pyc
 *.pyo
@@ -6,7 +8,26 @@ __pycache__/
 .Python
 *.so
 
-# --- Entornos Virtuales (Venv) ---
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# =============================================================================
+# Entornos Virtuales (Venv)
+# =============================================================================
 # Es vital no subir el entorno virtual al repositorio
 venv/
 .venv/
@@ -16,31 +37,88 @@ include/
 lib/
 lib64/
 
-# --- IDEs y Editores ---
+# =============================================================================
+# Testing / Profiling
+# =============================================================================
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+
+# Profiling
+profile*.stats
+*.prof
+*.lprof
+
+# Pytest
+.pytest_cache/
+.cache/
+nosetests.xml
+
+# =============================================================================
+# IDEs y Editores
+# =============================================================================
 .vscode/
 .idea/
 *.swp
 *.swo
+*.sublime-project
+*.sublime-workspace
 
-# --- Archivos del Sistema Operativo ---
+# Visual Studio
+.vs/
+
+# =============================================================================
+# Archivos del Sistema Operativo
+# =============================================================================
 .DS_Store
 Thumbs.db
 ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
 
-# --- Archivos Sensibles / Configuración ---
+# Linux
+*~
+
+# =============================================================================
+# Archivos Sensibles / Configuración
+# =============================================================================
 # Si usas variables de entorno o credenciales, nunca las subas
 .env
 .flaskenv
 secret_config.json
 
-# --- Archivos generados por tu simulador ---
-# Estos son los archivos que mencionaste que tu sistema exporta. 
+# =============================================================================
+# Archivos generados por el simulador
+# =============================================================================
+# Estos son los archivos que el sistema exporta. 
 # Generalmente no queremos subir la "historia" de cada ejecución de prueba.
 simulation_metrics.json
 data_historica.json
+historico_evolucion.json
 logs/
 *.log
+simulacion.txt
 
-# Godot
+# Datos temporales (carpeta data/)
+data/*.json
+data/*.csv
+
+# Escenarios personalizados del usuario
+scenarios/custom_*.json
+
+# =============================================================================
+# Godot (frontend)
+# =============================================================================
+# Ignorar solo la cache de Godot, no el código fuente
+godot/simulador-vida/.godot/
 godot/.godot/
+
+# Export builds
 godot/export_presets.cfg
+godot/simulador-vida/export/
+*.pck
+*.zip

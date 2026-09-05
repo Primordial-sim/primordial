@@ -566,7 +566,8 @@ def create_fungus_template() -> SpeciesDefinition:
         description="Plantilla base para hongos: descomponedores, simbióticos.",
         archetype="fungus",
         parent_template="empty",
-    ).add_trait("growth_rate", default_value=1.3, weight=1.0) \
+    ).add_trait("heterotrophy", default_value=1.5, weight=1.0) \
+     .add_trait("growth_rate", default_value=1.3, weight=1.0) \
      .add_trait("metabolism", default_value=1.0, weight=1.0) \
      .add_trait("immunity", default_value=1.2, weight=1.0) \
      .add_trait("longevity", default_value=1.5, weight=1.0) \

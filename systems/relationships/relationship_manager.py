@@ -14,7 +14,7 @@ import logging
 import math
 import random
 import hashlib
-from typing import Any, Set
+from typing import Any, Set, Optional
 
 from core.config.simulation_config import SimulationConfig
 from core.state.pending_changes import PendingChanges
@@ -29,6 +29,7 @@ from systems.relationships.relationship_model import (
     WorldEvent,
 )
 from systems.spatial.spatial_grid import SpatialGrid
+from events.population.relationship_created import RelationshipCreatedEvent
 
 
 class RelationshipManager:
@@ -38,10 +39,12 @@ class RelationshipManager:
         self,
         config: SimulationConfig,
         compatibility_engine: CompatibilityEngine,
+        event_bus: Any = None,
     ) -> None:
         self.config = config
         self.rel_cfg = config.relationships
         self.compatibility = compatibility_engine
+        self.event_bus = event_bus
         self.logger = logging.getLogger(self.__class__.__name__)
         self._relationships_created_this_tick: Set[tuple] = set()
         
@@ -157,6 +160,17 @@ class RelationshipManager:
             self._relationships_created_this_tick.add(relationship_key)
             
             affinity = self.compatibility.calculate_compatibility(person, other, current_day)
+            
+            # Emitir evento de relación creada
+            if self.event_bus is not None:
+                event = RelationshipCreatedEvent(
+                    person_a_id=person.entity_id,
+                    person_b_id=other.entity_id,
+                    compatibility_score=affinity,
+                    tick=int(current_day),
+                )
+                self.event_bus.publish(event)
+            
             self.logger.info(
                 "👋 Día %.0f: Agente %s conoce a %s (distancia: %.1f, afinidad: %.2f)",
                 current_day, person.entity_id, other.entity_id, distance, affinity

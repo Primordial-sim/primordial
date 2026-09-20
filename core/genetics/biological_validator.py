@@ -252,19 +252,46 @@ class BiologicalValidator:
     def _check_incompatibilities(
         self, species: SpeciesDefinition, result: ValidationResult
     ) -> None:
-        """Verifica incompatibilidades entre rasgos."""
+        """Verifica incompatibilidades entre rasgos.
+        
+        EXCEPCIÓN: Organismos con symbiosis alto (>1.5) quedan excluidos
+        de la regla longevity-fertility, porque en hongos, líquenes y
+        organismos simbióticos no aplica el trade-off biológico clásico.
+        """
         trait_ids = species.get_all_trait_ids()
         
+        # Detectar si el organismo tiene symbiosis alto
+        has_high_symbiosis = False
+        if "symbiosis" in trait_ids:
+            symbiosis_config = species.get_trait_config("symbiosis")
+            if symbiosis_config and symbiosis_config.default_value > 1.5:
+                has_high_symbiosis = True
+        
         for rule in INCOMPATIBILITY_RULES:
+            # Excluir organismos simbióticos de la regla longevity-fertility
+            if has_high_symbiosis and rule.trait_a == "longevity" and rule.trait_b == "fertility":
+                continue
+            
             if rule.trait_a in trait_ids and rule.trait_b in trait_ids:
-                # Verificar si ambos tienen valores significativos
                 config_a = species.get_trait_config(rule.trait_a)
                 config_b = species.get_trait_config(rule.trait_b)
                 
                 value_a = config_a.default_value if config_a else 0.0
                 value_b = config_b.default_value if config_b else 0.0
                 
-                # Solo reportar si ambos tienen valores relevantes
+                # LÓGICA ESPECIAL para la regla speed + metabolism:
+                # Solo se dispara si speed es ALTO y metabolism es BAJO
+                if rule.trait_a == "speed" and rule.trait_b == "metabolism":
+                    if value_a > 1.0 and value_b < 0.5:  # Speed alto, metabolism bajo
+                        result.messages.append(ValidationMessage(
+                            severity=rule.severity,
+                            message=rule.message,
+                            trait_ids=[rule.trait_a, rule.trait_b],
+                            rule_id=f"incompat_{rule.trait_a}_{rule.trait_b}",
+                        ))
+                    continue
+                
+                # Lógica estándar para otras reglas
                 if value_a > 0.3 and value_b > 0.3:
                     result.messages.append(ValidationMessage(
                         severity=rule.severity,

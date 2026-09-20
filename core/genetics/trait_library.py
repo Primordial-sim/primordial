@@ -348,6 +348,90 @@ class TraitLibrary:
         ))
         
         # =================================================================
+        # RASGOS ECOLÓGICOS
+        # =================================================================
+        
+        library.register_trait(Trait(
+            trait_id="diet",
+            name="Dieta",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.9,
+            heritability=0.8,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.3,
+            description="Tipo de dieta: 0=herbívoro, 1=omnívoro, 2=carnívoro.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="predatory_instinct",
+            name="Instinto Depredador",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.8,
+            heritability=0.7,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.3,
+            description="Instinto de caza y capacidad depredadora.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="defense_capability",
+            name="Capacidad Defensiva",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.7,
+            heritability=0.7,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.3,
+            description="Capacidad de defenderse de depredadores.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="body_size",
+            name="Tamaño Corporal",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.8,
+            heritability=0.85,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.3,
+            description="Tamaño corporal relativo de la especie.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="pack_behavior",
+            name="Comportamiento en Manada",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.6,
+            heritability=0.6,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.3,
+            initial_std=0.3,
+            description="Tendencia a cazar y vivir en grupo.",
+        ))
+        
+        # =================================================================
         # RASGOS DE PERCEPCIÓN SENSORIAL
         # =================================================================
         
@@ -623,6 +707,22 @@ class TraitLibrary:
             initial_mean=1.0,
             initial_std=0.2,
             description="Capacidad de movimiento autónomo.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="symbiosis",
+            name="Simbiosis",
+            category=TraitCategory.SPECIAL,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.6,
+            heritability=0.7,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.2,
+            description="Capacidad de formar asociaciones simbióticas con otros organismos.",
         ))
         
         return library

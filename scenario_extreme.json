@@ -1,9 +1,0 @@
-{
-  "reproduction": {
-    "daily_birth_rate": 0.08,
-    "mutation_factor": 0.25
-  },
-  "mortality": {
-    "infant_mortality_rate": 0.1
-  }
-}

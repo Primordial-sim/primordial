@@ -24,32 +24,37 @@ ORDEN DE FASES:
    - BLOQUE 4: Aplica "Social Pressure Field" (eventos sociales del tick anterior).
    - Actualiza la memoria cognitiva de los agentes según el estrés del entorno.
 
-3. Fase Social ('relationships'):
+3. Fase Ecológica ('ecology'):
+   - Detecta encuentros entre organismos cercanos (SpatialGrid).
+   - Infiere y ejecuta relaciones ecológicas (depredación, herbivoría, mutualismo, competencia).
+   - Verifica condiciones ambientales (bioma, estación).
+
+4. Fase Social ('relationships'):
    - Precalcula compatibilidades (CompatibilityEngine).
    - BLOQUE B: Gestiona formación de relaciones (MarriageSystem).
    - BLOQUE B: Gestiona mantenimiento y ruptura (RelationshipSystem).
    - Procesa reasignaciones familiares legales (Adopciones).
    - Genera experiencias basadas en etiquetas (ExperienceGenerator).
 
-4. Fase de Movimiento y Conducta ('behavior_and_movement'):
+5. Fase de Movimiento y Conducta ('behavior_and_movement'):
    - Evalúa decisiones autónomas y rebeldía (FreeWillSystem).
    - Calcula vectores de migración masiva (MigrationSystem).
    - Genera vectores de desplazamiento para el tick (MovementSystem).
    - Resuelve colisiones espaciales físicas (MovementResolver).
 
-5. Fase de Salud ('health'):
+6. Fase de Salud ('health'):
    - Resuelve interacciones inmunológicas y calcula contagios/recuperaciones.
    - Emite eventos relacionales (cuidado, duelo) al RelationshipExperienceEngine.
 
-6. Fase Reproductiva ('reproduction'):
+7. Fase Reproductiva ('reproduction'):
    - Verifica las ventanas de fertilidad e inicia concepciones.
    - Procesa los embarazos en curso y encola nacimientos con mutaciones genéticas.
 
-7. Fase de Mortalidad ('mortality'):
+8. Fase de Mortalidad ('mortality'):
    - Calcula las curvas de supervivencia (Gompertz) y decreta fallecimientos.
    - Purga las acciones de los recién fallecidos del búfer (DeathResolver).
 
-8. Fase Observacional ('observers'):
+9. Fase Observacional ('observers'):
    - Sincroniza el árbol genealógico.
    - Actualiza métricas poblacionales macroscópicas y el motor evolutivo.
 
@@ -98,6 +103,8 @@ from systems.reproduction.gestation_system import GestationSystem
 from systems.reproduction.egg_system import EggSystem  # NUEVO: Sistema de huevos ovíparos
 from systems.temporal.temporal_system import TemporalSystem
 
+from systems.ecology.ecological_relationship_system import EcologicalRelationshipSystem 
+from systems.energy.energy_system import EnergySystem  # NUEVO: Sistema de energía
 
 class PhaseScheduler:
     """Construye la lista maestra de fases y sistemas activos del motor."""
@@ -178,6 +185,9 @@ class PhaseScheduler:
         # Procesa incubación, mortalidad ambiental y eclosión de huevos
         egg_system = EggSystem(self.config)
 
+        # Sistema de ecología (compartido con MetricsSystem para métricas)
+        ecological_system = EcologicalRelationshipSystem()
+
         # Definición estructurada del ciclo biológico y físico
         phases = [
             # ================================================================
@@ -206,7 +216,18 @@ class PhaseScheduler:
             ),
             
             # ================================================================
-            # FASE 3: SOCIAL (RELACIONES)
+            # FASE 3: ECOLOGÍA (RELACIONES ENTRE ESPECIES Y ENERGÍA)
+            # ================================================================
+            PhaseDefinition(
+                name="ecology",
+                systems=[
+                    ecological_system,  # Variable compartida para métricas
+                    EnergySystem(self.config),
+                ],
+            ),
+            
+            # ================================================================
+            # FASE 4: SOCIAL (RELACIONES)
             # ================================================================
             PhaseDefinition(
                 name="relationships",
@@ -225,7 +246,7 @@ class PhaseScheduler:
             ),
             
             # ================================================================
-            # FASE 4: MOVIMIENTO Y CONDUCTA
+            # FASE 5: MOVIMIENTO Y CONDUCTA
             # ================================================================
             PhaseDefinition(
                 name="behavior_and_movement",
@@ -245,7 +266,7 @@ class PhaseScheduler:
             ),
             
             # ================================================================
-            # FASE 5: SALUD
+            # FASE 6: SALUD
             # ================================================================
             PhaseDefinition(
                 name="health",
@@ -258,7 +279,7 @@ class PhaseScheduler:
             ),
             
             # ================================================================
-            # FASE 6: REPRODUCCIÓN
+            # FASE 7: REPRODUCCIÓN
             # ================================================================
             PhaseDefinition(
                 name="reproduction",
@@ -277,7 +298,7 @@ class PhaseScheduler:
             ),
             
             # ================================================================
-            # FASE 7: MORTALIDAD
+            # FASE 8: MORTALIDAD
             # ================================================================
             PhaseDefinition(
                 name="mortality",
@@ -292,7 +313,7 @@ class PhaseScheduler:
             ),
             
             # ================================================================
-            # FASE 8: OBSERVADORES
+            # FASE 9: OBSERVADORES
             # ================================================================
             PhaseDefinition(
                 name="observers",
@@ -300,7 +321,8 @@ class PhaseScheduler:
                     genealogy_system,
                     MetricsSystem(
                         self.config, 
-                        genealogy_system=genealogy_system,  # CORRECCIÓN: Para métricas de linajes
+                        genealogy_system=genealogy_system,
+                        ecology_system=ecological_system,  # Para métricas de ecología
                     ),
                     evolution_engine,
                 ],

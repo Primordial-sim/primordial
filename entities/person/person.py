@@ -5,6 +5,12 @@ OPTIMIZACIONES APLICADAS:
 - _relationships es ahora Dict[int, Relationship] para búsqueda O(1)
 - _get_active_relationships() con caché
 - Property 'relationships' retorna lista bajo demanda para compatibilidad
+
+SISTEMA DE ENERGÍA:
+- _energy y _max_energy gestionan el nivel de energía del organismo
+- La energía se gana por alimentación (según dieta) y se gasta por metabolismo
+- Si la energía llega a 0, el organismo entra en estado de inanición
+- _starvation_days rastrea cuánto tiempo lleva sin energía
 """
 
 from __future__ import annotations
@@ -49,6 +55,11 @@ class Person:
         self._health_state = "sano"
         self._is_adult = False
         self._is_senior = False
+
+        # Sistema de energía
+        self._max_energy: float = 100.0  # Energía máxima
+        self._energy: float = 100.0      # Energía actual (empieza llena)
+        self._starvation_days: float = 0.0  # Días sin energía
 
         self._active_infections: Dict[str, InfectionState] = {}
         self._immune_memory: Dict[str, float] = {}
@@ -123,7 +134,7 @@ class Person:
         else: return SexualOrientation.HOMOSEXUAL
 
     # ==========================================
-    # PROPERTIES BÁSICAS
+    # PROPIEDADES BÁSICAS
     # ==========================================
     @property
     def species(self) -> str: return self._species
@@ -253,6 +264,37 @@ class Person:
         """Verifica si el agente pertenece a un núcleo residencial."""
         return self.nucleus_id is not None
 
+    # ==========================================
+    # PROPIEDADES DE ENERGÍA
+    # ==========================================
+
+    @property
+    def energy(self) -> float:
+        """Nivel de energía actual del organismo."""
+        return self._energy
+
+    @property
+    def max_energy(self) -> float:
+        """Nivel máximo de energía del organismo."""
+        return self._max_energy
+
+    @property
+    def energy_ratio(self) -> float:
+        """Proporción de energía actual respecto al máximo (0.0 a 1.0)."""
+        if self._max_energy <= 0:
+            return 0.0
+        return self._energy / self._max_energy
+
+    @property
+    def is_starving(self) -> bool:
+        """Indica si el organismo está en estado de inanición."""
+        return self._energy <= 0.0
+
+    @property
+    def starvation_days(self) -> float:
+        """Días que el organismo lleva sin energía."""
+        return self._starvation_days
+
     def _get_active_relationships(self) -> List[Relationship]:
         if self._relationships_cache_dirty or self._active_relationships_cache is None:
             self._active_relationships_cache = [
@@ -265,6 +307,62 @@ class Person:
 
     def _invalidate_relationships_cache(self) -> None:
         self._relationships_cache_dirty = True
+
+    # ==========================================
+    # MÉTODOS DE ENERGÍA
+    # ==========================================
+
+    def add_energy(self, amount: float) -> None:
+        """Añade energía al organismo (sin exceder el máximo).
+        
+        Args:
+            amount: Cantidad de energía a añadir (puede ser negativa para gastar).
+        """
+        self._energy = max(0.0, min(self._max_energy, self._energy + amount))
+        
+        # Si tiene energía, resetear contador de inanición
+        if self._energy > 0.0:
+            self._starvation_days = 0.0
+
+    def spend_energy(self, amount: float) -> bool:
+        """Gasta energía del organismo.
+        
+        Args:
+            amount: Cantidad de energía a gastar.
+            
+        Returns:
+            True si se pudo gastar toda la energía, False si no había suficiente.
+        """
+        if amount <= 0:
+            return True
+        
+        if self._energy >= amount:
+            self._energy -= amount
+            return True
+        else:
+            self._energy = 0.0
+            return False
+
+    def advance_starvation(self, delta_days: float) -> None:
+        """Avanza el contador de inanición si no hay energía.
+        
+        Args:
+            delta_days: Días transcurridos desde el último tick.
+        """
+        if self._energy <= 0.0:
+            self._starvation_days += delta_days
+        else:
+            self._starvation_days = 0.0
+
+    def set_energy(self, value: float) -> None:
+        """Establece el nivel de energía directamente.
+        
+        Args:
+            value: Nuevo nivel de energía (se clampea al rango [0, max_energy]).
+        """
+        self._energy = max(0.0, min(self._max_energy, value))
+        if self._energy > 0.0:
+            self._starvation_days = 0.0
 
     # ==========================================
     # GESTIÓN DE RELACIONES (OPTIMIZADA)

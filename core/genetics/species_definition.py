@@ -358,6 +358,9 @@ def create_animal_template() -> SpeciesDefinition:
      .add_trait("speed", default_value=1.0, weight=0.8) \
      .add_trait("vision", default_value=0.8, weight=0.7) \
      .add_trait("heterotrophy", default_value=1.0, weight=1.0) \
+     .add_trait("diet", default_value=1.0, weight=0.8) \
+     .add_trait("predatory_instinct", default_value=0.3, weight=0.5) \
+     .add_trait("defense_capability", default_value=0.5, weight=0.6) \
      .set_habitat_preference(create_human_habitat())
 
 
@@ -391,7 +394,9 @@ def create_invertebrate_template() -> SpeciesDefinition:
         parent_template="animal",
     ).add_trait("nervous_system", default_value=0.3, weight=0.8) \
      .add_trait("smell", default_value=1.2, weight=0.8) \
-     .add_trait("intelligence", default_value=0.1, weight=0.4)
+     .add_trait("intelligence", default_value=0.1, weight=0.4) \
+     .add_trait("predatory_instinct", default_value=0.2, weight=0.4) \
+     .add_trait("defense_capability", default_value=0.3, weight=0.4)
 
 
 def create_mammal_template() -> SpeciesDefinition:
@@ -413,7 +418,10 @@ def create_mammal_template() -> SpeciesDefinition:
      .add_trait("curiosity", default_value=0.7, weight=0.6) \
      .add_trait("empathy", default_value=0.6, weight=0.6) \
      .add_trait("nervous_system", default_value=1.3, weight=1.0) \
-     .add_trait("metabolism", default_value=1.2, weight=0.9)
+     .add_trait("metabolism", default_value=1.2, weight=0.9) \
+     .add_trait("diet", default_value=1.0, weight=0.9) \
+     .add_trait("predatory_instinct", default_value=0.5, weight=0.7) \
+     .add_trait("defense_capability", default_value=0.7, weight=0.7)
 
 
 def create_human_species() -> SpeciesDefinition:
@@ -436,6 +444,9 @@ def create_human_species() -> SpeciesDefinition:
      .add_trait("empathy", default_value=1.0, weight=0.9) \
      .add_trait("cooperation", default_value=1.3, weight=0.9) \
      .add_trait("nervous_system", default_value=1.8, weight=1.0) \
+     .add_trait("diet", default_value=1.0, weight=1.0) \
+     .add_trait("predatory_instinct", default_value=0.5, weight=0.7) \
+     .add_trait("defense_capability", default_value=1.2, weight=0.8) \
      .set_habitat_preference(create_human_habitat())
 
 
@@ -457,6 +468,9 @@ def create_bird_species() -> SpeciesDefinition:
      .add_trait("territoriality", default_value=1.5, weight=0.9) \
      .add_trait("aggressiveness", default_value=1.0, weight=0.7) \
      .add_trait("cooperation", default_value=0.6, weight=0.5) \
+     .add_trait("diet", default_value=1.5, weight=1.0) \
+     .add_trait("predatory_instinct", default_value=1.2, weight=0.9) \
+     .add_trait("defense_capability", default_value=0.5, weight=0.6) \
      .set_habitat_preference(create_bird_habitat())
 
 
@@ -474,7 +488,10 @@ def create_reptile_species() -> SpeciesDefinition:
      .add_trait("territoriality", default_value=1.6, weight=0.9) \
      .add_trait("aggressiveness", default_value=1.2, weight=0.8) \
      .add_trait("sociability", default_value=0.3, weight=0.5) \
-     .add_trait("venom", default_value=0.2, weight=0.3)
+     .add_trait("venom", default_value=0.2, weight=0.3) \
+     .add_trait("diet", default_value=1.5, weight=1.0) \
+     .add_trait("predatory_instinct", default_value=1.5, weight=1.0) \
+     .add_trait("defense_capability", default_value=0.8, weight=0.7)
 
 
 def create_fish_species() -> SpeciesDefinition:
@@ -495,6 +512,9 @@ def create_fish_species() -> SpeciesDefinition:
      .add_trait("territoriality", default_value=0.5, weight=0.5) \
      .add_trait("cooperation", default_value=0.4, weight=0.4) \
      .add_trait("intelligence", default_value=0.3, weight=0.5) \
+     .add_trait("diet", default_value=1.2, weight=0.9) \
+     .add_trait("predatory_instinct", default_value=0.8, weight=0.7) \
+     .add_trait("defense_capability", default_value=0.4, weight=0.5) \
      .set_habitat_preference(create_fish_habitat())
 
 
@@ -516,6 +536,9 @@ def create_amphibian_species() -> SpeciesDefinition:
      .add_trait("healing", default_value=1.3, weight=0.9) \
      .add_trait("venom", default_value=0.3, weight=0.4) \
      .add_trait("intelligence", default_value=0.3, weight=0.4) \
+     .add_trait("diet", default_value=1.0, weight=0.8) \
+     .add_trait("predatory_instinct", default_value=0.6, weight=0.6) \
+     .add_trait("defense_capability", default_value=0.3, weight=0.5) \
      .set_habitat_preference(create_aquatic_plant_habitat())
 
 
@@ -536,6 +559,9 @@ def create_insect_species() -> SpeciesDefinition:
      .add_trait("flight", default_value=1.0, weight=0.7) \
      .add_trait("mobility", default_value=1.5, weight=0.9) \
      .add_trait("venom", default_value=0.2, weight=0.3) \
+     .add_trait("diet", default_value=0.3, weight=1.0) \
+     .add_trait("predatory_instinct", default_value=0.1, weight=0.3) \
+     .add_trait("defense_capability", default_value=0.2, weight=0.4) \
      .set_habitat_preference(create_bacteria_habitat())
 
 
@@ -553,7 +579,30 @@ def create_plant_template() -> SpeciesDefinition:
      .add_trait("immunity", default_value=0.8, weight=0.9) \
      .add_trait("healing", default_value=0.9, weight=0.8) \
      .add_trait("metabolism", default_value=0.5, weight=0.7) \
-     .add_trait("fertility", default_value=1.0, weight=1.0)
+     .add_trait("fertility", default_value=1.0, weight=1.0) \
+     .add_trait("defense_capability", default_value=0.2, weight=0.5)
+
+
+def create_plant_species() -> SpeciesDefinition:
+    """Planta concreta: productor primario (ejemplo: hierba común)."""
+    from systems.environment.habitat_preference import create_human_habitat
+    
+    return SpeciesDefinition(
+        species_id="grass",                    # ← ID diferente de "plant"
+        name="Hierba",
+        description="Productor primario fotosintético.",
+        archetype="plant",
+        parent_template="plant",               # ← Hereda de la plantilla "plant"
+    ).add_trait("photosynthesis", default_value=1.8, weight=1.0) \
+     .add_trait("growth_rate", default_value=0.8, weight=1.0) \
+     .add_trait("longevity", default_value=1.0, weight=0.8) \
+     .add_trait("immunity", default_value=0.8, weight=0.9) \
+     .add_trait("healing", default_value=0.9, weight=0.8) \
+     .add_trait("metabolism", default_value=0.5, weight=0.7) \
+     .add_trait("fertility", default_value=1.5, weight=1.0) \
+     .add_trait("defense_capability", default_value=0.2, weight=0.5) \
+     .add_trait("symbiosis", default_value=0.8, weight=0.6) \
+     .set_habitat_preference(create_human_habitat())
 
 
 def create_fungus_template() -> SpeciesDefinition:
@@ -567,13 +616,14 @@ def create_fungus_template() -> SpeciesDefinition:
         archetype="fungus",
         parent_template="empty",
     ).add_trait("heterotrophy", default_value=1.5, weight=1.0) \
+     .add_trait("symbiosis", default_value=1.8, weight=1.0) \
      .add_trait("growth_rate", default_value=1.3, weight=1.0) \
      .add_trait("metabolism", default_value=1.0, weight=1.0) \
      .add_trait("immunity", default_value=1.2, weight=1.0) \
      .add_trait("longevity", default_value=1.5, weight=1.0) \
      .add_trait("healing", default_value=1.0, weight=0.8) \
      .add_trait("fertility", default_value=1.5, weight=1.0) \
-     .add_trait("cooperation", default_value=1.2, weight=0.6) \
+     .add_trait("defense_capability", default_value=0.1, weight=0.3) \
      .set_habitat_preference(create_fungus_habitat())
 
 
@@ -593,6 +643,7 @@ def create_bacteria_template() -> SpeciesDefinition:
      .add_trait("mobility", default_value=0.6, weight=0.7) \
      .add_trait("immunity", default_value=0.3, weight=0.5) \
      .add_trait("growth_rate", default_value=2.0, weight=1.0) \
+     .add_trait("defense_capability", default_value=0.1, weight=0.3) \
      .set_habitat_preference(create_bacteria_habitat())
 
 
@@ -611,7 +662,10 @@ def create_fantasy_template() -> SpeciesDefinition:
      .add_trait("regeneration", default_value=1.8, weight=1.0) \
      .add_trait("bioluminescence", default_value=1.0, weight=0.6) \
      .add_trait("nervous_system", default_value=1.0, weight=0.8) \
-     .add_trait("heterotrophy", default_value=0.5, weight=0.5)
+     .add_trait("heterotrophy", default_value=0.5, weight=0.5) \
+     .add_trait("diet", default_value=1.0, weight=0.7) \
+     .add_trait("predatory_instinct", default_value=0.8, weight=0.7) \
+     .add_trait("defense_capability", default_value=0.8, weight=0.7)
 
 
 # =============================================================================
@@ -693,3 +747,4 @@ class SpeciesRegistry:
         cls.register(create_insect_species())
         cls.register(create_reptile_species())
         cls.register(create_amphibian_species())
+        cls.register(create_plant_species())

@@ -203,7 +203,7 @@ flight = Trait(
 **📁 Archivo**: `core/genetics/trait_library.py`
 **🌍 Equivalencia real**: El banco mundial de genes, con todos los rasgos posibles.
 
-#### Rasgos disponibles (36 rasgos en 5 categorías)
+#### Rasgos disponibles (37 rasgos en 5 categorías)
 
 | Categoría | Rasgos |
 |-----------|--------|
@@ -211,7 +211,7 @@ flight = Trait(
 | **BEHAVIOR** (10) | sociability, aggressiveness, territoriality, empathy, cooperation, curiosity, impulsivity, obedience, temperament, intelligence |
 | **PERCEPTION** (5) | vision, smell, hearing, night_vision, echolocation |
 | **MOVEMENT** (5) | speed, flight, swimming, climbing, burrowing |
-| **SPECIAL** (8) | venom, photosynthesis, camouflage, regeneration, bioluminescence, division_speed, antibiotic_resistance, mobility |
+| **SPECIAL** (9) | venom, photosynthesis, camouflage, regeneration, bioluminescence, division_speed, antibiotic_resistance, mobility, **symbiosis** |
 
 #### Entradas
 
@@ -230,7 +230,7 @@ TraitLibrary.get_default()  ← Singleton
     │
     ├── Primera llamada:
     │   └── _create_default_library()
-    │       └── Registrar 36 rasgos predefinidos
+    │       └── Registrar 37 rasgos predefinidos
     │
     └── Llamadas siguientes:
         └── Retornar instancia existente
@@ -493,6 +493,12 @@ empty
 | fungus | create_fungus_habitat() |
 | bacteria | create_bacteria_habitat() |
 
+**Nota sobre el hongo**: La plantilla `fungus` incluye los rasgos `heterotrophy` (1.5) y `symbiosis` (1.8) que representan correctamente la biología fúngica:
+- **Heterotrophy**: Los hongos son heterótrofos por absorción (descomponen materia orgánica)
+- **Symbiosis**: Los hongos forman redes de micelio, micorrizas y asociaciones simbióticas (líquenes)
+
+El rasgo `symbiosis` sustituye al `cooperation` que sería semánticamente incorrecto para organismos no sociales.
+
 #### Ejemplos
 
 ```python
@@ -593,6 +599,21 @@ mammals = SpeciesRegistry.get_by_archetype("mammal")
 - longevity + fertility (INFO)
 - speed + metabolism bajo (WARNING)
 
+**Excepción para organismos simbióticos:**
+
+Los organismos con `symbiosis` alto (>1.5) quedan **excluidos** de la regla `longevity + fertility`.
+
+**Justificación biológica**: Los organismos simbióticos (hongos, líquenes) no siguen el trade-off longevidad-fertilidad de los animales:
+- Los hongos pueden vivir décadas (micelio perenne) Y producir millones de esporas simultáneamente
+- La reproducción por esporas no requiere inversión parental que limite la fertilidad
+- El trade-off es exclusivo de organismos con reproducción sexual compleja
+
+**Nota**: Esta excepción solo aplica a organismos con `symbiosis > 1.5`. Organismos con simbiosis moderada siguen sujetos a la regla de trade-off.
+
+**Corrección de la regla speed + metabolism:**
+
+La regla `speed + metabolism` solo se dispara cuando `speed > 1.0` Y `metabolism < 0.5` (alta velocidad con metabolismo bajo). No se dispara cuando ambos son altos, ya que un metabolismo alto sostiene la velocidad.
+
 **Dependencias:**
 - empathy → nervous_system (ERROR)
 - intelligence → nervous_system (ERROR)
@@ -631,6 +652,9 @@ mammals = SpeciesRegistry.get_by_archetype("mammal")
 validate_species(species)
     │
     ├── _check_incompatibilities()
+    │   ├── Detectar si el organismo tiene symbiosis alto
+    │   ├── Excluir simbióticos de la regla longevity-fertility
+    │   ├── Lógica especial para speed + metabolism
     │   └── Para cada regla: si ambos rasgos presentes → mensaje
     │
     ├── _check_dependencies()
@@ -734,7 +758,7 @@ print(realism.get_description(score))
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    TraitLibrary (Singleton)                     │
-│         Catálogo global de 36 rasgos neutros                    │
+│         Catálogo global de 37 rasgos neutros                    │
 └────────────────────────┬────────────────────────────────────────┘
                          │ consultado por
                          ▼
@@ -776,16 +800,24 @@ config.mutation.mutate_dominance = True  # ¿Mutar dominancia?
 
 ## 🧪 Tests del sistema
 
-**Total: 181 tests pasando**
+**Total: 342 tests pasando**
 
 | Archivo | Tests | Cobertura |
 |---------|-------|-----------|
 | `tests/unit/test_genetics_universal.py` | 40 | Trait, TraitLibrary, SpeciesDefinition, BiologicalValidator, RealismIndex |
 | `tests/unit/test_mutation.py` | 22 | Mutación de alelos, replicación |
 | `tests/unit/test_genome_combine.py` | 21 | Genome.combine(), Allele, Gene |
-| `tests/integration/test_regression_bugs.py` | 10 | Regresiones |
+| `tests/unit/test_catastrophe_system.py` | 16 | Catástrofes naturales |
+| `tests/unit/test_habitat_compatibility.py` | 14 | Compatibilidad de hábitats |
+| `tests/unit/test_immunological_capabilities.py` | 13 | Capacidades inmunológicas |
+| `tests/unit/test_cognitive_capabilities.py` | 22 | Capacidades cognitivas |
+| `tests/unit/test_movement_capabilities.py` | 14 | Capacidades de movimiento |
+| `tests/unit/test_reproductive_capabilities.py` | 18 | Capacidades reproductivas |
+| `tests/unit/test_social_capabilities.py` | 18 | Capacidades sociales |
+| `tests/integration/test_regression_bugs.py` | 9 | Regresiones |
 | `tests/integration/test_statistical.py` | 3 | Estadística |
-| Otros tests de sistemas | 85 | Integración con otros sistemas |
+| `tests/integration/test_tile_integration.py` | 11 | Integración de tiles |
+| Otros tests de sistemas | 121 | Comportamiento, relaciones, memoria, etc. |
 
 ---
 
@@ -819,6 +851,15 @@ El núcleo genético está cerrado. No se modificará salvo que una necesidad re
 - Conceptos humanos opcionales
 
 **Nota**: Para la especificación conceptual detallada, ver `docs/specs/GENETICS_CORE_SPEC.md`.
+
+### Adiciones recientes (Agosto 2026)
+
+Aunque el núcleo está congelado, se han realizado las siguientes adiciones compatibles:
+- ✅ **Nuevo rasgo `symbiosis`** (categoría SPECIAL): Capacidad de formar asociaciones simbióticas con otros organismos. Usado por hongos (1.8) y disponible para líquenes, plantas y bacterias simbióticas.
+- ✅ **Plantilla `fungus` actualizada**: Añadido `heterotrophy` (1.5) y `symbiosis` (1.8), eliminado `cooperation` (semánticamente incorrecto para hongos).
+- ✅ **Excepción de validación para organismos simbióticos**: Los organismos con `symbiosis > 1.5` quedan excluidos de la regla `longevity + fertility`.
+- ✅ **Corrección de regla speed + metabolism**: La regla ahora solo se dispara cuando hay alta velocidad con metabolismo bajo, no cuando ambos son altos.
+- ✅ **Rasgo `symbiosis` en TraitLibrary**: Total de rasgos actualizado de 36 a 37.
 
 ---
 
@@ -978,19 +1019,28 @@ Cada rasgo elige el modelo que mejor lo representa.
 
 **Filosofía del simulador**: el usuario tiene libertad absoluta. El validador es un asesor, no un policía. Si quieres crear un mamífero con fotosíntesis, el sistema te avisará pero no te impedirá hacerlo.
 
+### ¿Por qué un rasgo symbiosis separado de cooperation?
+
+**Principio de precisión semántica**:
+- `cooperation` representa cooperación SOCIAL (animales que cazan juntos, se defienden mutuamente)
+- `symbiosis` representa cooperación QUÍMICA/ESTRUCTURAL (redes de micelio, micorrizas, líquenes)
+- Los hongos no son sociales en el sentido animal, pero son los organismos simbióticos más importantes del planeta
+- Usar el rasgo correcto permite que el validador aplique reglas específicas (ej: excepción longevity-fertility para simbióticos)
+
 ---
 
 ## 📊 Métricas del sistema
 
 | Métrica | Valor |
 |---------|-------|
-| Rasgos disponibles | 36 |
+| Rasgos disponibles | 37 |
 | Categorías de rasgos | 5 |
 | Modelos de expresión | 7 |
 | Especies predefinidas | 15 |
 | Plantillas base | 9 |
 | Reglas de validación | 13 |
-| Tests cubriendo genética | ~181 |
+| Excepciones de validación | 1 (organismos simbióticos) |
+| Tests cubriendo genética | ~342 |
 
 ---
 
@@ -1002,12 +1052,14 @@ Cada rasgo elige el modelo que mejor lo representa.
 - [ ] Movimiento por rasgos (flight, swimming, burrowing)
 - [ ] Interacciones entre especies (depredación, parasitismo)
 - [ ] Conceptos humanos opcionales (marriage, pregnancy según especie)
+- [ ] Mecánica del rasgo `symbiosis`: efecto en FeedbackSystem (hongos mejoran crecimiento de plantas cercanas)
 
 ### Planificadas (medio plazo)
 - [ ] Epigenética (marcadores que afectan expresión sin cambiar ADN)
 - [ ] Epistasis (interacciones entre genes)
 - [ ] Ligamiento genético (genes cercanos se heredan juntos)
 - [ ] Recombinación cromosómica (crossing-over)
+- [ ] Plantillas para líquenes y bacterias simbióticas usando `symbiosis`
 
 ### Posibles (largo plazo)
 - [ ] Mutación dirigida por estrés ambiental
@@ -1018,5 +1070,5 @@ Cada rasgo elige el modelo que mejor lo representa.
 ---
 
 *Documento: 03_GENETICA.md*
-*Versión: 2.0 (integrado con GENETICS_IMPLEMENTATION.md)*
+*Versión: 2.1 (actualizado con rasgo symbiosis y correcciones del validador)*
 *Última actualización: Agosto 2026*

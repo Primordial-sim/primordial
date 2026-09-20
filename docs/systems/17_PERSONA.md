@@ -11,6 +11,7 @@ La **Entidad Persona** (`Person`) es el corazón del simulador: representa a cad
 ## 🎯 Responsabilidad
 
 **Es responsable de:**
+
 - Almacenar el estado completo de un agente individual
 - Gestionar sus atributos básicos (ID, posición, edad, género, especie)
 - Contener su genoma y propiedades derivadas (sociabilidad efectiva, temperamento)
@@ -25,6 +26,7 @@ La **Entidad Persona** (`Person`) es el corazón del simulador: representa a cad
 - Integrarse con el sistema de núcleos residenciales
 
 **NO es responsable de:**
+
 - ❌ Decidir qué acciones tomar (eso lo hacen `FreeWillSystem`, `MovementSystem`)
 - ❌ Calcular su propio envejecimiento (eso lo hace `AgingSystem`)
 - ❌ Procesar sus enfermedades (eso lo hace `DiseaseSystem`)
@@ -36,7 +38,7 @@ La **Entidad Persona** (`Person`) es el corazón del simulador: representa a cad
 ## 🌍 Equivalencia con la vida real
 
 | Concepto del sistema | Equivalencia en la vida real | Unidad |
-|---------------------|-----------------------------|--------|
+| --------------------- | ----------------------------- | -------- |
 | **Person** | Un individuo completo | Ser vivo |
 | **entity_id** | Identificación única | DNI / ADN |
 | **x, y** | Posición geográfica | Coordenadas |
@@ -62,7 +64,7 @@ La **Entidad Persona** (`Person`) es el corazón del simulador: representa a cad
 ## 📁 Archivos que lo componen
 
 | Archivo | Clase principal | Responsabilidad |
-|---------|-----------------|-----------------|
+| --------- | ----------------- | ----------------- |
 | `entities/person/person.py` | `Person` | Entidad principal completa |
 | `entities/person/genome.py` | `Genome` | Genoma del agente (ver doc 03) |
 | `entities/person/allele.py` | `Allele`, `Gene` | Unidades genéticas (ver doc 03) |
@@ -90,7 +92,7 @@ def __init__(
 #### Atributos de identidad y posición
 
 | Atributo | Tipo | Descripción |
-|----------|------|-------------|
+| ---------- | ------ | ------------- |
 | `entity_id` | `int` | Identificador único (atributo directo, optimizado) |
 | `x`, `y` | `int` | Posición en el mapa (atributos directos, optimizados) |
 | `_species` | `str` | Especie del agente ("human", "wolf", etc.) |
@@ -101,7 +103,7 @@ def __init__(
 #### Atributos de salud y reproducción
 
 | Atributo | Tipo | Descripción |
-|----------|------|-------------|
+| ---------- | ------ | ------------- |
 | `_health_state` | `str` | Estado de salud ("sano", "enfermo") |
 | `_is_adult` | `bool` | Si es adulto |
 | `_is_senior` | `bool` | Si es anciano |
@@ -119,7 +121,7 @@ def __init__(
 #### Atributos familiares y sociales
 
 | Atributo | Tipo | Descripción |
-|----------|------|-------------|
+| ---------- | ------ | ------------- |
 | `_mother_id` | `Optional[int]` | ID de la madre biológica |
 | `_father_id` | `Optional[int]` | ID del padre biológico |
 | `_parents` | `List[int]` | Lista de padres biológicos |
@@ -134,7 +136,7 @@ def __init__(
 #### Atributos psicológicos
 
 | Atributo | Tipo | Descripción |
-|----------|------|-------------|
+| ---------- | ------ | ------------- |
 | `_memory` | `Dict[str, Any]` | Memoria implícita (traumas, preferencias) |
 | `_emotions` | `Dict[str, float]` | Emociones actuales |
 | `_motivations` | `Dict[str, float]` | Motivaciones continuas |
@@ -189,7 +191,7 @@ self._motivations = {
 ### Propiedades básicas (solo lectura)
 
 | Propiedad | Retorno | Descripción |
-|-----------|---------|-------------|
+| ----------- | --------- | ------------- |
 | `species` | `str` | Especie del agente |
 | `age` | `float` | Edad en días |
 | `gender` | `str` | Género |
@@ -214,7 +216,7 @@ self._motivations = {
 ### Propiedades de salud
 
 | Propiedad | Retorno | Descripción |
-|-----------|---------|-------------|
+| ----------- | --------- | ------------- |
 | `active_pathogens` | `Dict[str, Pathogen]` | Patógenos activos |
 | `active_infections` | `Dict[str, InfectionState]` | Estados de infección |
 | `is_sick` | `bool` | Si tiene alguna infección |
@@ -225,7 +227,7 @@ self._motivations = {
 ### Propiedades sociales
 
 | Propiedad | Retorno | Descripción |
-|-----------|---------|-------------|
+| ----------- | --------- | ------------- |
 | `relationships` | `List[Relationship]` | Lista de relaciones (compatibilidad) |
 | `adoption_history` | `List[Dict]` | Historial de adopciones |
 | `parental_status` | `str` | Estado parental |
@@ -311,7 +313,7 @@ def parental_status(self) -> str:
 ### Gestión de Relaciones (optimizada O(1))
 
 | Método | Descripción |
-|--------|-------------|
+| -------- | ------------- |
 | `get_relationship_with(partner_id, current_day)` | Obtiene o crea relación (O(1) con dict) |
 | `add_relationship(partner_id, status, ...)` | Añade relación con estado |
 | `update_relationship_status(partner_id, new_status, ...)` | Actualiza estado de relación |
@@ -323,7 +325,7 @@ def parental_status(self) -> str:
 ### Gestión de Salud e Inmunidad
 
 | Método | Descripción |
-|--------|-------------|
+| -------- | ------------- |
 | `infect(pathogen)` | Infecta con un patógeno (reemplaza familia) |
 | `recover(pathogen_id)` | Recupera de infección y genera inmunidad |
 | `advance_infections(delta_days)` | Avanza fases de todas las infecciones |
@@ -335,7 +337,7 @@ def parental_status(self) -> str:
 ### Gestión de Motivaciones
 
 | Método | Descripción |
-|--------|-------------|
+| -------- | ------------- |
 | `get_motivation(motivation_name)` | Obtiene valor de motivación |
 | `update_motivation(motivation_name, amount)` | Actualiza motivación (delta) |
 | `get_dominant_motivation()` | Obtiene motivación dominante |
@@ -344,7 +346,7 @@ def parental_status(self) -> str:
 ### Gestión de Posición y Edad
 
 | Método | Descripción |
-|--------|-------------|
+| -------- | ------------- |
 | `set_position(x, y)` | Establece posición |
 | `add_age(increment_days)` | Incrementa edad y verifica hitos |
 | `_check_milestones()` | Verifica hitos (adulto, senior) |
@@ -352,7 +354,7 @@ def parental_status(self) -> str:
 ### Gestión Familiar
 
 | Método | Descripción |
-|--------|-------------|
+| -------- | ------------- |
 | `set_parents(mother_id, father_id)` | Establece padres biológicos |
 | `add_adoptive_parent(parent_id, current_day)` | Añade padre adoptivo |
 | `add_child()` | Registra un hijo |
@@ -371,7 +373,7 @@ def parental_status(self) -> str:
 ### Gestión de Reputación y Adopciones
 
 | Método | Descripción |
-|--------|-------------|
+| -------- | ------------- |
 | `register_adoption_event(event_type, entity_id, day, context)` | Registra evento de adopción |
 | `get_adoption_history()` | Obtiene historial completo |
 | `get_adoptions_as_parent()` | Obtiene adopciones como padre |
@@ -668,7 +670,7 @@ print(person.reputation_score)  # 0.6
 ### Optimizaciones aplicadas
 
 | Optimización | Descripción | Beneficio |
-|--------------|-------------|-----------|
+| -------------- | ------------- | ----------- |
 | `entity_id`, `x`, `y` como atributos directos | Sin properties | Acceso rápido |
 | `_relationships` como `Dict[int, Relationship]` | En lugar de `List[Relationship]` | Búsqueda O(1) |
 | `_get_active_relationships()` con caché | Evita recomputar cada llamada | Rendimiento |
@@ -687,7 +689,7 @@ print(person.reputation_score)  # 0.6
 ### Errores comunes
 
 | Error | Consecuencia | Solución |
-|-------|-------------|----------|
+| ------- | ------------- | ---------- |
 | ❌ Modificar `_relationships` directamente | Inconsistencia con caché | Usar `add_relationship()` o `update_relationship_status()` |
 | ❌ Olvidar invalidar caché de relaciones | Datos obsoletos | Llamar a `_invalidate_relationships_cache()` |
 | ❌ Acceder a `_age` directamente | Saltar verificación de hitos | Usar `add_age()` que verifica hitos |
@@ -703,6 +705,7 @@ print(person.reputation_score)  # 0.6
 ### ¿Por qué entity_id, x, y son atributos directos?
 
 **Principio de rendimiento**:
+
 - Se acceden miles de veces por tick
 - Las properties tienen overhead (llamada a función)
 - Los atributos directos son más rápidos en Python
@@ -711,6 +714,7 @@ print(person.reputation_score)  # 0.6
 ### ¿Por qué _relationships es un Dict?
 
 **Principio de complejidad algorítmica**:
+
 - Búsqueda en lista: O(N) - recorrer hasta encontrar
 - Búsqueda en dict: O(1) - acceso directo por clave
 - Con 1000 agentes y 100 relaciones cada uno, la diferencia es enorme
@@ -719,6 +723,7 @@ print(person.reputation_score)  # 0.6
 ### ¿Por qué _get_active_relationships() tiene caché?
 
 **Principio de memoización**:
+
 - Se llama frecuentemente (en cada propiedad calculada)
 - Filtrar relaciones activas es O(N)
 - El caché evita recomputar si no cambió
@@ -727,6 +732,7 @@ print(person.reputation_score)  # 0.6
 ### ¿Por qué hay inmunidad por cepa Y por familia?
 
 **Principio de inmunología real**:
+
 - **Por cepa**: Inmunidad específica a una variante concreta (ej: Influenza_000001)
 - **Por familia**: Inmunidad general a la familia (ej: Influenza)
 - **Cruzada**: Inmunidad parcial a familias relacionadas (ej: Influenza → Coronavirus)
@@ -735,6 +741,7 @@ print(person.reputation_score)  # 0.6
 ### ¿Por qué la sociabilidad efectiva se ajusta por emociones?
 
 **Principio de estado dependiente**:
+
 - Un agente estresado se comporta diferente a uno feliz
 - Las emociones afectan las interacciones sociales
 - La sociabilidad genética es el potencial, la efectiva es la real
@@ -743,6 +750,7 @@ print(person.reputation_score)  # 0.6
 ### ¿Por qué parental_status distingue entre biológico y adoptivo?
 
 **Principio de inclusión**:
+
 - Los hijos adoptivos son igual de válidos
 - Pero el sistema necesita distinguir para cálculos genéticos
 - Permite métricas demográficas más precisas
@@ -753,7 +761,7 @@ print(person.reputation_score)  # 0.6
 ## 📊 Métricas de la Entidad
 
 | Métrica | Valor |
-|---------|-------|
+| --------- | ------- |
 | Archivos de la entidad | 3 (person.py, genome.py, allele.py) |
 | Atributos principales | ~40 |
 | Properties | ~30 |
@@ -769,12 +777,14 @@ print(person.reputation_score)  # 0.6
 ## 🔮 Futuras Extensiones
 
 ### Planificadas
+
 - [ ] Estados de salud más granulares (leve, moderado, grave, crítico)
 - [ ] Más emociones (miedo, ira, sorpresa, asco)
 - [ ] Motivaciones dinámicas (añadir/eliminar según contexto)
 - [ ] Memoria episódica integrada directamente en Person
 
 ### Posibles
+
 - [ ] Sistema de habilidades aprendidas
 - [ ] Estado nutricional detallado (hambre, sed, nutrientes específicos)
 - [ ] Personalidad más compleja (Big Five: apertura, responsabilidad, extraversión, amabilidad, neuroticismo)

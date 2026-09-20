@@ -16,7 +16,7 @@ basándose en un modelo de Utility AI que pondera:
 CORRECCIONES APLICADAS (Auditoría):
 - Personalidad integrada (curiosity, sociability del genoma)
 - Memoria espacial (preferred_sector)
-- Penalización migratoria adaptativa (no ×10 fijo)
+- Penalización migratoria adaptativa
 - Movimiento social ponderado por sociabilidad
 - Ruido personal fijo para consistencia entre ticks
 
@@ -26,7 +26,7 @@ FASE C: Ocupación estricta de casillas (1 agente = 1 casilla)
 
 import math
 import logging
-from typing import Any, List, Tuple, Optional
+from typing import Any, List, Tuple, Optional, Dict
 
 from core.config.simulation_config import SimulationConfig
 from core.state.pending_changes import PendingChanges
@@ -34,7 +34,9 @@ from core.state.world_state import WorldState
 from systems.environment.environment_context import EnvironmentContext
 from systems.social.social_pressure import SocialPressureCalculator
 from systems.movement.movement_capabilities import MovementCapabilities
-
+from systems.spatial.spatial_grid import SpatialGrid
+from core.taxonomy.species_classification import SpeciesClassificationSystem
+from core.taxonomy.profile_enums import DietType
 class MovementSystem:
     """Sistema de movimiento táctico que decide el paso inmediato de cada agente."""
 
@@ -61,11 +63,21 @@ class MovementSystem:
 
         # FASE B: Calculadora de presión social
         self.social_pressure = SocialPressureCalculator(config)
+        
+        # OPTIMIZACIÓN: Grid espacial para búsquedas de vecinos O(k)
+        self.spatial_grid = SpatialGrid(cell_size=10.0)
+        
+        # Sistema de clasificación de especies (consulta perfiles biológicos)
+        self.species_classification = SpeciesClassificationSystem.get_default()
 
         # Temperatura para selección probabilística
-        # Baja (0.5) → comportamiento más determinista
-        # Alta (5.0) → comportamiento más aleatorio
         self.selection_temperature = getattr(config.movement, 'selection_temperature', 2.0)
+        
+        # Caché de detección ecológica por tick (evita recalcular por cada celda)
+        self._threat_cache = {}
+        self._prey_cache = {}
+        self._vegetation_cache = {}
+        self._diet_cache = {}
 
     def process(
         self,
@@ -77,6 +89,15 @@ class MovementSystem:
         """Calcula el siguiente paso para cada agente activo."""
         max_x = state.width - 1
         max_y = state.height - 1
+
+            # NUEVO: Resetear caché de detección ecológica cada tick
+        self._threat_cache.clear()
+        self._prey_cache.clear()
+        self._vegetation_cache.clear()
+        self._diet_cache.clear()
+        
+        # OPTIMIZACIÓN: Poblar el grid espacial una vez por tick
+        self.spatial_grid.populate_from_state(state)
 
         for person in state.get_all_persons():
             if person.entity_id in pending.deaths:
@@ -325,7 +346,225 @@ class MovementSystem:
         distance_from_current = math.sqrt(dx * dx + dy * dy)
         score -= distance_from_current * curiosity_factor
 
+        # 8. ECOLOGÍA - Detección de amenazas, presas y vegetación
+        if capabilities is not None:
+            diet = self._get_diet(person)
+            
+            # 8a. REPULSIÓN POR DEPREDADORES (para presas)
+            # Si el agente es herbívoro u omnívoro, evita depredadores
+            if diet in ("herbivore", "omnivore"):
+                threats = self._count_nearby_threats(person, state, capabilities)
+                if threats > 0:
+                    # Repulsión fuerte: los depredadores son peligrosos
+                    score -= threats * 25.0
+            
+            # 8b. ATRACCIÓN POR PRESAS (para carnívoros)
+            # Si el agente es carnívoro u omnívoro, busca presas
+            if diet in ("carnivore", "omnivore"):
+                prey = self._count_nearby_prey(person, state, capabilities)
+                if prey > 0:
+                    # Atracción moderada: las presas son comida
+                    score += prey * 15.0
+            
+            # 8c. ATRACCIÓN POR VEGETACIÓN (para herbívoros)
+            # Si el agente es herbívoro, busca plantas
+            if diet == "herbivore":
+                vegetation = self._count_nearby_vegetation(person, state, capabilities)
+                if vegetation > 0:
+                    # Atracción fuerte: la vegetación es comida principal
+                    score += vegetation * 20.0
+
         return score
+
+    # =========================================================================
+    # DETECCIÓN ECOLÓGICA (DEPREDADORES, PRESAS, VEGETACIÓN)
+    # =========================================================================
+
+    def _get_diet(self, person: Any) -> str:
+        """Determina la dieta de un agente usando SpeciesClassificationSystem.
+        
+        Prioridad:
+        1. Perfil biológico de la especie (SpeciesClassificationSystem)
+        2. Rasgo genético "diet" (fallback)
+        3. Omnívoro por defecto
+        
+        Args:
+            person: El agente.
+            
+        Returns:
+            String: "herbivore", "carnivore", "omnivore", "photosynthetic"
+        """
+        # Verificar caché primero
+        cached = self._diet_cache.get(person.entity_id)
+        if cached is not None:
+            return cached
+        
+        result = "omnivore"  # Default
+        
+        # 1. Intentar obtener del perfil biológico de la especie
+        species_id = person.species
+        diet_type = self.species_classification.get_diet(species_id)
+        
+        if diet_type is not None:
+            # Convertir DietType enum a string
+            if diet_type == DietType.CARNIVORE:
+                result = "carnivore"
+            elif diet_type == DietType.HERBIVORE:
+                result = "herbivore"
+            elif diet_type == DietType.OMNIVORE:
+                result = "omnivore"
+            elif diet_type == DietType.PHOTOSYNTHETIC:
+                result = "photosynthetic"
+            elif diet_type == DietType.INSECTIVORE:
+                result = "carnivore"  # Insectívoros son carnívoros especializados
+            elif diet_type == DietType.FILTER_FEEDER:
+                result = "herbivore"  # Filtradores consumen plancton
+            elif diet_type == DietType.PARASITE:
+                result = "carnivore"  # Parásitos consumen otros organismos
+            elif diet_type == DietType.DETRITIVORE:
+                result = "omnivore"  # Descomponedores consumen materia orgánica
+            elif diet_type == DietType.CHEMOSYNTHETIC:
+                result = "photosynthetic"  # Similar a fotosintéticos
+        else:
+            # 2. Fallback: consultar rasgo genético "diet"
+            try:
+                diet_value = person.genome.get_trait_value("diet")
+                if diet_value is not None:
+                    if diet_value <= 0.1:
+                        result = "photosynthetic"
+                    elif diet_value <= 1.33:
+                        result = "herbivore"
+                    elif diet_value <= 2.33:
+                        result = "omnivore"
+                    else:
+                        result = "carnivore"
+            except (AttributeError, TypeError):
+                pass
+        
+        # Guardar en caché y retornar
+        self._diet_cache[person.entity_id] = result
+        return result
+
+    def _is_predator_of(self, predator: Any, prey: Any) -> bool:
+        """Verifica si un agente es depredador de otro.
+        
+        Usa SpeciesClassificationSystem para verificar:
+        1. Si el predador es un depredador (perfil biológico)
+        2. Si la presa no es fotosintética
+        3. Si son de especies diferentes
+        
+        Args:
+            predator: El posible depredador.
+            prey: La posible presa.
+            
+        Returns:
+            True si el primero puede depredar al segundo.
+        """
+        # No se depredan a sí mismos (misma especie)
+        if predator.species == prey.species:
+            return False
+        
+        # Verificar si el predador es un depredador según su perfil biológico
+        predator_is_predator = self.species_classification.is_predator(predator.species)
+        
+        # Si el perfil no está disponible, usar la dieta
+        if not predator_is_predator:
+            predator_diet = self._get_diet(predator)
+            if predator_diet not in ("carnivore", "omnivore"):
+                return False
+        
+        # No pueden depredar plantas
+        prey_diet = self._get_diet(prey)
+        if prey_diet == "photosynthetic":
+            return False
+        
+        return True
+
+    def _count_nearby_threats(
+        self,
+        person: Any,
+        state: WorldState,
+        capabilities: MovementCapabilities,
+    ) -> int:
+        """Cuenta depredadores cercanos a un agente.
+        
+        Args:
+            person: El agente que busca amenazas.
+            state: Estado del mundo.
+            capabilities: Capacidades de movimiento (para rango de visión/olfato).
+            
+        Returns:
+            Número de depredadores detectados.
+        """
+        # Rango de detección basado en visión y olfato
+        detection_range = max(capabilities.vision_range, capabilities.smell_range)
+        
+        threats = 0
+        person_x = int(person.x)
+        person_y = int(person.y)
+        
+        # Buscar agentes cercanos iterando sobre todos (O(N) pero seguro)
+        for other in state.get_all_persons():
+            if other.entity_id == person.entity_id:
+                continue
+            
+            # Calcular distancia
+            dx = int(other.x) - person_x
+            dy = int(other.y) - person_y
+            distance = math.sqrt(dx * dx + dy * dy)
+            
+            if distance <= detection_range:
+                if self._is_predator_of(other, person):
+                    threats += 1
+        
+        return threats
+
+    def _count_nearby_prey(
+        self,
+        person: Any,
+        state: WorldState,
+        capabilities: MovementCapabilities,
+    ) -> int:
+        """Cuenta presas cercanas a un agente carnívoro/omnívoro (con caché y SpatialGrid)."""
+        cached = self._prey_cache.get(person.entity_id)
+        if cached is not None:
+            return cached
+        
+        detection_range = max(capabilities.vision_range, capabilities.smell_range)
+        
+        prey_count = 0
+        nearby_agents = self.spatial_grid.get_nearby_agents(person, radius=detection_range)
+        
+        for other in nearby_agents:
+            if self._is_predator_of(person, other):
+                prey_count += 1
+        
+        self._prey_cache[person.entity_id] = prey_count
+        return prey_count
+
+    def _count_nearby_vegetation(
+        self,
+        person: Any,
+        state: WorldState,
+        capabilities: MovementCapabilities,
+    ) -> int:
+        """Cuenta vegetación cercana a un agente herbívoro (con caché y SpatialGrid)."""
+        cached = self._vegetation_cache.get(person.entity_id)
+        if cached is not None:
+            return cached
+        
+        detection_range = max(capabilities.vision_range, capabilities.smell_range)
+        
+        veg_count = 0
+        nearby_agents = self.spatial_grid.get_nearby_agents(person, radius=detection_range)
+        
+        for other in nearby_agents:
+            other_diet = self._get_diet(other)
+            if other_diet == "photosynthetic":
+                veg_count += 1
+        
+        self._vegetation_cache[person.entity_id] = veg_count
+        return veg_count
 
     @staticmethod
     def _get_viral_load(state: WorldState, x: int, y: int) -> float:

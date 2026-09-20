@@ -20,6 +20,12 @@ CORRECCIONES APLICADAS (Auditoría):
 - Periodo refractario posparto configurable
 - Llamadas exactas a register_pregnancy_update (is_pregnant, pregnancy_days, failed_increment)
 - OPCIÓN B.2: Ovíparos ponen huevos en lugar de quedar embarazados
+
+SISTEMA DE ENERGÍA:
+- Verificación de energía mínima antes de intentar reproducirse
+- Gasto de energía al concebir (vivíparos)
+- Gasto de energía al poner huevos (ovíparos)
+- Gasto de energía en reproducción asexual
 """
 
 from __future__ import annotations
@@ -45,6 +51,11 @@ class ConceptionSystem:
         self.relationship_engine = relationship_engine
         self.logger = logging.getLogger(self.__class__.__name__)
         self._clutch_counter = 0
+        
+        # Parámetros de coste energético por reproducción
+        self.energy_cost_per_offspring: float = 10.0  # Energía por cada descendiente
+        self.energy_cost_per_egg: float = 5.0         # Energía por cada huevo puesto
+        self.minimum_energy_to_reproduce: float = 20.0  # Energía mínima para intentar reproducirse
 
     def process(
         self,
@@ -96,6 +107,12 @@ class ConceptionSystem:
             acquired_fertility_modifier = self._calculate_acquired_fertility(person)
             if acquired_fertility_modifier <= 0.05:
                 continue  # Efectivamente estéril por condición adquirida
+            
+            # NUEVO: Verificación de energía mínima para reproducirse
+            # Sin energía suficiente, el organismo no puede invertir en reproducción
+            current_energy = getattr(person, 'energy', self.minimum_energy_to_reproduce)
+            if current_energy < self.minimum_energy_to_reproduce:
+                continue  # No tiene energía suficiente para reproducirse
 
             # Determinar compañero reproductivo
             # GENÉTICA UNIVERSAL: Solo buscar pareja si la requiere
@@ -145,6 +162,12 @@ class ConceptionSystem:
                         litter_size=litter_size,
                     )
                     
+                    # NUEVO: Gasto de energía por concepción
+                    # El acto de concebir y preparar el cuerpo cuesta energía
+                    energy_cost = self._calculate_conception_energy_cost(person, litter_size)
+                    if hasattr(person, 'spend_energy'):
+                        person.spend_energy(energy_cost)
+                    
                     # Registrar en memoria para cooldown posparto futuro
                     pending.register_memory_update(
                         person.entity_id,
@@ -164,6 +187,12 @@ class ConceptionSystem:
                         current_day=current_day,
                     )
                     
+                    # NUEVO: Gasto de energía por puesta de huevos
+                    # Poner huevos requiere mucha energía (cáscara, nutrientes)
+                    energy_cost = self._calculate_egg_laying_energy_cost(person, litter_size)
+                    if hasattr(person, 'spend_energy'):
+                        person.spend_energy(energy_cost)
+                    
                 else:
                     # ASEXUAL / SIN GESTACIÓN: Reproducción directa
                     self._asexual_reproduction(
@@ -173,6 +202,11 @@ class ConceptionSystem:
                         pending=pending,
                         current_day=current_day,
                     )
+                    
+                    # NUEVO: Gasto de energía por división/clonación
+                    energy_cost = self._calculate_asexual_energy_cost(person, litter_size)
+                    if hasattr(person, 'spend_energy'):
+                        person.spend_energy(energy_cost)
 
     def _lay_eggs(
         self,
@@ -309,7 +343,7 @@ class ConceptionSystem:
         cognitive_caps = CognitiveCapabilities.from_genome(person.genome)
         
         if not cognitive_caps.has_emotions:
-            return 1.0  # Sin emociones, no hay factores fisiológicos adquiridos
+            return 1.0  # Sin emociones, no hay factores fisiológicos adquiridos 
         
         modifier = 1.0
         
@@ -430,6 +464,87 @@ class ConceptionSystem:
         
         max_litter = getattr(repro_cfg, 'max_litter_size', 8)
         return min(litter_size, max_litter)
+
+    # =========================================================================
+    # CÁLCULOS DE COSTE ENERGÉTICO POR REPRODUCCIÓN
+    # =========================================================================
+
+    def _calculate_conception_energy_cost(self, person: Any, litter_size: int) -> float:
+        """Calcula el coste energético de concebir y preparar el embarazo.
+        
+        El coste depende de:
+        - Tamaño de la camada (más bebés = más preparación)
+        - Tamaño corporal del progenitor
+        
+        Args:
+            person: El agente que concibe.
+            litter_size: Tamaño de la camada.
+            
+        Returns:
+            Energía a gastar.
+        """
+        # Coste base por cada descendiente
+        cost = self.energy_cost_per_offspring * litter_size
+        
+        # Modificador por tamaño corporal
+        size_factor = self._get_size_factor(person)
+        cost *= size_factor
+        
+        return max(0.0, cost)
+
+    def _calculate_egg_laying_energy_cost(self, person: Any, litter_size: int) -> float:
+        """Calcula el coste energético de poner huevos.
+        
+        Poner huevos requiere producir cáscara, nutrientes y el esfuerzo físico.
+        Es más costoso que la concepción vivípara porque es un esfuerzo inmediato.
+        
+        Args:
+            person: El agente que pone huevos.
+            litter_size: Número de huevos.
+            
+        Returns:
+            Energía a gastar.
+        """
+        # Coste base por cada huevo
+        cost = self.energy_cost_per_egg * litter_size
+        
+        # Modificador por tamaño corporal
+        size_factor = self._get_size_factor(person)
+        cost *= size_factor
+        
+        return max(0.0, cost)
+
+    def _calculate_asexual_energy_cost(self, person: Any, litter_size: int) -> float:
+        """Calcula el coste energético de reproducción asexual.
+        
+        La división celular o clonación requiere energía metabólica.
+        
+        Args:
+            person: El agente que se divide.
+            litter_size: Número de descendientes.
+            
+        Returns:
+            Energía a gastar.
+        """
+        # Coste reducido comparado con reproducción sexual (no hay búsqueda de pareja)
+        cost = self.energy_cost_per_offspring * 0.5 * litter_size
+        
+        # Modificador por tamaño corporal
+        size_factor = self._get_size_factor(person)
+        cost *= size_factor
+        
+        return max(0.0, cost)
+
+    def _get_size_factor(self, person: Any) -> float:
+        """Obtiene el factor de tamaño basado en el genoma."""
+        try:
+            body_size = getattr(person.genome, 'body_size', None)
+            if body_size is not None:
+                return 0.5 + (body_size * 1.5)
+        except (AttributeError, TypeError):
+            pass
+        
+        return 1.0  # Por defecto: tamaño medio
 
     def _get_species_traits(self, species: str) -> Dict[str, Any]:
         """Obtiene rasgos reproductivos de la especie."""

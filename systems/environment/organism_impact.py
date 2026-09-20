@@ -89,6 +89,7 @@ class OrganismImpactCalculator:
         growth_rate = genome.get_trait_value("growth_rate") if genome.has_trait("growth_rate") else 0.5
         flight = genome.get_trait_value("flight") if genome.has_trait("flight") else 0.0
         swimming = genome.get_trait_value("swimming") if genome.has_trait("swimming") else 0.0
+        symbiosis = genome.get_trait_value("symbiosis") if genome.has_trait("symbiosis") else 0.0
         
         impact = TileImpact()
         
@@ -107,7 +108,7 @@ class OrganismImpactCalculator:
         # =====================================================================
         # HERBÍVOROS Y CONSUMIDORES
         # =====================================================================
-        if heterotrophy > 0.5 and photosynthesis < 0.3:
+        if heterotrophy > 0.5 and photosynthesis < 0.3 and symbiosis < 1.0:
             # Consumen vegetación
             consumption_rate = 0.015 * heterotrophy * metabolism
             impact.vegetation_delta -= consumption_rate
@@ -147,6 +148,26 @@ class OrganismImpactCalculator:
             impact.fertility_delta += 0.015 * growth_rate
         
         # =====================================================================
+        # ORGANISMOS SIMBIÓTICOS (hongos, líquenes, bacterias simbióticas)
+        # =====================================================================
+        if symbiosis > 0.5:
+            # Los organismos simbióticos mejoran la fertilidad del suelo
+            # más de lo que lo harían solo por descomposición.
+            # Las redes de micelio aportan nutrientes a las plantas cercanas.
+            impact.fertility_delta += 0.01 * symbiosis
+            
+            # Retienen más agua (el micelio actúa como esponja)
+            impact.water_delta += 0.005 * symbiosis
+            
+            # Producen materia orgánica (biomasa simbiótica)
+            impact.organic_matter_delta += 0.005 * symbiosis
+            
+            # Si el tile tiene vegetación, el symbiosis la potencia
+            # (las micorrizas mejoran el crecimiento de plantas)
+            if tile.vegetation > 0.3:
+                impact.vegetation_delta += 0.008 * symbiosis
+        
+        # =====================================================================
         # ORGANISMOS ACUÁTICOS
         # =====================================================================
         if swimming > 1.0:
@@ -171,6 +192,9 @@ class OrganismImpactCalculator:
     ) -> dict:
         """Calcula el impacto acumulado de todos los organismos.
         
+        Incluye el efecto simbiótico de redes de micelio que conectan
+        tiles adyacentes con vegetación.
+        
         Args:
             persons: Lista de todos los organismos.
             tile_map: Diccionario de tiles del mundo.
@@ -180,6 +204,9 @@ class OrganismImpactCalculator:
         """
         accumulated: dict = {}
         
+        # =====================================================================
+        # PASO 1: Acumular impactos individuales
+        # =====================================================================
         for person in persons:
             x, y = int(person.x), int(person.y)
             tile = tile_map.get((x, y))
@@ -206,5 +233,44 @@ class OrganismImpactCalculator:
             acc.slope_delta += impact.slope_delta
             acc.temperature_delta += impact.temperature_delta
             acc.urbanization_delta += impact.urbanization_delta
+        
+        # =====================================================================
+        # PASO 2: Efecto simbiótico de red (hongos conectan tiles vecinos)
+        # =====================================================================
+        # Identificar tiles con alta presencia simbiótica
+        symbiosis_by_tile: dict = {}
+        for person in persons:
+            symbiosis = person.genome.get_trait_value("symbiosis") if person.genome.has_trait("symbiosis") else 0.0
+            if symbiosis > 0.5:
+                x, y = int(person.x), int(person.y)
+                symbiosis_by_tile[(x, y)] = symbiosis_by_tile.get((x, y), 0.0) + symbiosis
+        
+        # Aplicar efecto a tiles adyacentes con vegetación
+        # Esto representa las redes de micelio que conectan plantas cercanas
+        for (x, y), total_symbiosis in symbiosis_by_tile.items():
+            # Buscar tiles adyacentes (8 direcciones)
+            for dx in [-1, 0, 1]:
+                for dy in [-1, 0, 1]:
+                    if dx == 0 and dy == 0:
+                        continue  # Saltar el tile central
+                    
+                    neighbor_key = (x + dx, y + dy)
+                    neighbor_tile = tile_map.get(neighbor_key)
+                    
+                    if neighbor_tile is None:
+                        continue
+                    
+                    # Solo aplicar efecto si el tile vecino tiene vegetación
+                    if neighbor_tile.vegetation > 0.3:
+                        # El hongo mejora la fertilidad del tile vecino
+                        symbiosis_boost = 0.003 * total_symbiosis
+                        
+                        if neighbor_key not in accumulated:
+                            accumulated[neighbor_key] = TileImpact()
+                        
+                        accumulated[neighbor_key].fertility_delta += symbiosis_boost
+                        
+                        # También mejora ligeramente la retención de agua
+                        accumulated[neighbor_key].water_delta += symbiosis_boost * 0.5
         
         return accumulated

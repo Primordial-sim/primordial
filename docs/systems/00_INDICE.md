@@ -24,6 +24,9 @@ El **Simulador de Vida** es un ecosistema artificial complejo donde agentes aut�
 - **Métricas multidimensionales** para análisis demográfico, genético y epidemiológico
 - **Interfaz visual en Godot** con controles en tiempo real vía WebSocket
 - **Sistema de eventos pub/sub** como infraestructura de extensibilidad
+- **Taxonomía y perfiles biológicos** para clasificación de especies y descripción ecológica
+- **Relaciones ecológicas emergentes** entre especies (depredación, mutualismo, competencia, herbivoría)
+- **Sistema de energía** con fotosíntesis, metabolismo, gasto por movimiento/reproducción e inanición
 
 ---
 
@@ -58,6 +61,8 @@ El **Simulador de Vida** es un ecosistema artificial complejo donde agentes aut�
 │  │  FASE 1: GENÉTICA Y REPRODUCCIÓN                        │    │
 │  │  Genome, TraitLibrary, SpeciesRegistry                  │    │
 │  │  ConceptionSystem, GestationSystem, EggSystem           │    │
+│  │  TaxonomicSystem, SpeciesProfile, ProfileInference      │    │
+│  │  SpeciesClassificationSystem                            │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
@@ -68,43 +73,50 @@ El **Simulador de Vida** es un ecosistema artificial complejo donde agentes aut�
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │  FASE 3: COMPORTAMIENTO Y COGNICIÓN                     │    │
+│  │  FASE 3: ECOLOGÍA Y ENERGÍA                             │    │
+│  │  EcologicalRelationshipSystem, EnergySystem             │    │
+│  │  RelationshipInference, EcologicalRelationship          │    │
+│  │  RelationshipTypes, RelationshipEffects                 │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  FASE 4: COMPORTAMIENTO Y COGNICIÓN                     │    │
 │  │  FreeWillSystem, CognitiveMemorySystem, BiasEngine      │    │
 │  │  CognitiveCapabilities, MovementCapabilities            │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │  FASE 4: RELACIONES Y ESTRUCTURA SOCIAL                 │    │
+│  │  FASE 5: RELACIONES Y ESTRUCTURA SOCIAL                 │    │
 │  │  CompatibilityEngine, MarriageSystem, ExperienceGen.    │    │
 │  │  NarrativeEngine, SocialPressure, ResidentialNucleus    │    │
 │  │  RelationshipEventType, RelationshipLogger              │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │  FASE 5: SALUD Y MORTALIDAD                             │    │
+│  │  FASE 6: SALUD Y MORTALIDAD                             │    │
 │  │  DiseaseSystem, Pathogen, ImmunologicalCapabilities     │    │
 │  │  MortalitySystem, DeathResolver                         │    │
 │  │  EpidemiologicalMap (carga viral ambiental)             │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │  FASE 6: TEMPORAL Y ENVEJECIMIENTO                      │    │
+│  │  FASE 7: TEMPORAL Y ENVEJECIMIENTO                      │    │
 │  │  TemporalSystem, AgingSystem                            │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │  FASE 7: GENEALOGÍA Y EVOLUCIÓN                         │    │
+│  │  FASE 8: GENEALOGÍA Y EVOLUCIÓN                         │    │
 │  │  GenealogySystem, AncestryQueries                       │    │
 │  │  EvolutionEngine, AdoptionSystem                        │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │  FASE 8: MÉTRICAS Y OBSERVACIÓN                         │    │
+│  │  FASE 9: MÉTRICAS Y OBSERVACIÓN                         │    │
 │  │  MetricsSystem                                          │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │  FASE 9: INFRAESTRUCTURA                                │    │
+│  │  FASE 10: INFRAESTRUCTURA                               │    │
 │  │  EventBus (pub/sub), Person (entidad central)           │    │
 │  │  Interfaz Godot, WebSocket, Herramientas CLI            │    │
 │  └─────────────────────────────────────────────────────────┘    │
@@ -284,69 +296,88 @@ El **Simulador de Vida** es un ecosistema artificial complejo donde agentes aut�
 
 ---
 
+### 19 - Taxonomía
+**Archivos**: `taxonomic_node.py`, `taxonomic_system.py`, `profile_enums.py`, `species_profile.py`, `profile_inference.py`, `species_classification.py`
+
+**Responsabilidad**: Clasificación jerárquica de especies (9 niveles: Domain → Subspecies), perfiles biológicos inferidos desde rasgos genéticos (dieta, hábitat, locomoción, estructura social, termorregulación, tamaño corporal), y sistema unificado de clasificación. La taxonomía es **informativa**: clasifica especies pero **no decide capacidades** (las capacidades salen del genoma).
+
+📄 [Documentación completa → 19_TAXONOMIA.md](./19_TAXONOMIA.md)
+
+---
+
+### 20 - Ecología
+**Archivos**: `relationship_types.py`, `relationship_effect.py`, `ecological_relationship.py`, `relationship_inference.py`
+
+**Responsabilidad**: Inferencia de relaciones ecológicas entre especies (Predation, Herbivory, Competition, Mutualism, Parasitism, Commensalism, Amensalism, Neutralism). Las relaciones **emergen** de la combinación de perfil biológico, rasgos genéticos y condiciones ambientales. Incluye 8 tipos de relación, 12 mecanismos de interacción, y cálculo de efectos sobre ambas especies.
+
+📄 [Documentación completa → 20_ECOLOGIA.md](./20_ECOLOGIA.md)
+
+---
+
+### 21 - Energía
+**Archivos**: `energy_system.py`, `person.py` (atributos de energía), `movement_resolver.py` (gasto por movimiento), `conception_system.py` (gasto por reproducción)
+
+**Responsabilidad**: Gestiona el metabolismo energético de todos los organismos: fotosíntesis para plantas, metabolismo basal, gasto por movimiento y reproducción, inanición y muerte por falta de energía, y sincronización con el sistema emocional.
+
+📄 [Documentación completa → 21_ENERGIA.md](./21_ENERGIA.md)
+
+---
+
 ## 🔄 Flujo de Ejecución por Tick
 
-```
+```text
 TICK DE SIMULACIÓN
    │
-   ├── FASE 0: INDEXACIÓN ESPACIAL
-   │   └── SpatialGrid.populate_from_state(state)
+   ├── FASE 0: INDEXACIÓN ESPACIAL (Pre-procesamiento)
+   │   └── SpatialGrid: indexación de agentes para búsquedas O(k)
    │
-   ├── FASE 1: TEMPORAL
-   │   ├── TemporalSystem: reloj global + metabolismo basal + hitos
-   │   └── AgingSystem: envejecimiento biológico multifactorial
+   ├── FASE 1: TEMPORAL ('temporal')
+   │   ├── TemporalSystem: reloj global y actualización de tiempos
+   │   └── AgingSystem: envejecimiento biológico y hitos de edad
    │
-   ├── FASE 2: ENTORNO
-   │   ├── EnvironmentSystem: clima y estaciones
-   │   ├── EnvironmentDynamics: cambios lentos (vegetación, erosión)
-   │   ├── CatastropheSystem: catástrofes naturales (8 tipos)
-   │   ├── FeedbackSystem: impacto organismo-entorno
-   │   └── DensitySystem: densidad poblacional
+   ├── FASE 2: AMBIENTAL ('environment')
+   │   ├── EnvironmentSystem: propagación de variables físicas y clima
+   │   ├── DensitySystem: cálculo del mapa de densidad poblacional
+   │   ├── EpidemiologicalSystem: propagación de carga viral ambiental
+   │   ├── SocialPressureCalculator: campo de presión social del tick anterior
+   │   └── CognitiveMemorySystem: actualización de memoria según estrés del entorno
    │
-   ├── FASE 3: COMPORTAMIENTO
-   │   ├── CognitiveMemorySystem: decaimiento de traumas + memoria episódica
-   │   └── FreeWillSystem: evolución de motivaciones + inhibición competitiva
+   ├── FASE 3: ECOLOGÍA Y ENERGÍA ('ecology')
+   │   ├── EcologicalRelationshipSystem: encuentros, depredación, herbivoría, mutualismo
+   │   └── EnergySystem: fotosíntesis, metabolismo basal, sincronización emocional e inanición
    │
-   ├── FASE 4: RELACIONES
-   │   ├── RelationshipManager: detección de nuevos encuentros
-   │   ├── MarriageSystem: formación de parejas
-   │   ├── ExperienceGenerator: experiencias cotidianas
-   │   └── RelationshipExperienceEngine: procesamiento de eventos (con BiasEngine)
+   ├── FASE 4: RELACIONES SOCIALES ('relationships')
+   │   ├── CompatibilityEngine: precálculo de compatibilidades
+   │   ├── MarriageSystem: formación de relaciones y parejas
+   │   ├── RelationshipManager: mantenimiento, rupturas y transiciones relacionales
+   │   ├── AdoptionSystem: reasignaciones familiares legales de huérfanos
+   │   └── ExperienceGenerator: generación de experiencias basadas en etiquetas
    │
-   ├── FASE 5: SALUD
-   │   ├── DiseaseSystem: progresión de infecciones + contagios + brotes
-   │   └── EpidemiologicalMap: propagación de carga viral ambiental
+   ├── FASE 5: MOVIMIENTO Y CONDUCTA ('behavior_and_movement')
+   │   ├── FreeWillSystem: decisiones autónomas, rebeldía y motivaciones
+   │   ├── MigrationSystem: cálculo de vectores de migración masiva
+   │   ├── MovementSystem: decisiones tácticas de desplazamiento (Utility AI)
+   │   └── MovementResolver: arbitraje de colisiones y gasto de energía por movimiento
    │
-   ├── FASE 6: REPRODUCCIÓN
-   │   ├── ConceptionSystem: intentos de concepción
-   │   ├── GestationSystem: progresión de embarazos
-   │   └── EggSystem: incubación de huevos
+   ├── FASE 6: SALUD ('health')
+   │   └── DiseaseSystem: interacciones inmunológicas, contagios, brotes y recuperaciones
    │
-   ├── FASE 7: ESTRUCTURA SOCIAL
-   │   ├── SocialPressureCalculator: presión ambiental
-   │   └── AdoptionSystem: reasignación de huérfanos
+   ├── FASE 7: REPRODUCCIÓN ('reproduction')
+   │   ├── ConceptionSystem: ventanas de fertilidad, concepciones y gasto de energía reproductiva
+   │   ├── EggSystem: incubación, mortalidad ambiental y eclosión de huevos (ovíparos)
+   │   └── GestationSystem: progresión de embarazos y encolado de nacimientos (vivíparos)
    │
-   ├── FASE 8: MOVIMIENTO
-   │   ├── MigrationSystem: asignación de destinos migratorios
-   │   ├── MovementSystem: decisiones tácticas (Utility AI)
-   │   └── MovementResolver: arbitraje de colisiones
+   ├── FASE 8: MORTALIDAD ('mortality')
+   │   ├── MortalitySystem: curvas de supervivencia (Gompertz) y fallecimientos
+   │   └── DeathResolver: purga de acciones de recién fallecidos del búfer
    │
-   ├── FASE 9: MORTALIDAD
-   │   ├── MortalitySystem: evaluación de riesgo de muerte
-   │   └── DeathResolver: purga de intenciones de fallecidos
+   ├── FASE 9: OBSERVADORES ('observers')
+   │   ├── GenealogySystem: sincronización del árbol genealógico
+   │   ├── MetricsSystem: métricas poblacionales macroscópicas
+   │   └── EvolutionEngine: snapshots evolutivos y motor evolutivo
    │
-   ├── FASE 10: GENEALOGÍA
-   │   └── GenealogySystem: sincronización de árbol genealógico
-   │
-   ├── FASE 11: EVOLUCIÓN (observador)
-   │   └── EvolutionEngine: snapshots evolutivos (si toca)
-   │
-   ├── FASE 12: MÉTRICAS (observador)
-   │   └── MetricsSystem: snapshots multidimensionales (si toca)
-   │
-   └── FASE 13: COMMIT
-       └── WorldState.apply_commit(): consolidar cambios pendientes
-```
+   └── [COMMIT]
+       └── WorldState.apply_commit(): consolidación del búfer transaccional en memoria
 
 ---
 
@@ -361,6 +392,16 @@ Genome (03) ──► Todas las capacidades derivadas:
                 ├── ReproductiveCapabilities (05)
                 ├── ImmunologicalCapabilities (09)
                 └── SocialCapabilities (11)
+
+Genome (03) ──► ProfileInference (19): perfiles biológicos desde rasgos
+            ──► RelationshipInference (20): inferencia de relaciones
+
+TaxonomicSystem (19) ──► SpeciesProfile (19): perfiles biológicos
+                     ──► SpeciesClassificationSystem (19): sistema unificado
+                     ──► RelationshipInference (20): consulta de perfiles
+
+EcologicalRelationship (20) ──► EcologicalRelationshipSystem (pendiente):
+                                 ejecución de relaciones en runtime
 
 WorldState (02) ──► Todos los sistemas (lectura)
 PendingChanges (02) ──► Todos los sistemas (escritura transaccional)
@@ -398,6 +439,12 @@ Interfaz (18) ──► SimulationEngine (WebSocket server)
 ### Flujos de datos clave
 
 ```
+Genome (03) ──► ProfileInference (19) ──► SpeciesProfile
+                                     ──► SpeciesClassificationSystem
+
+SpeciesProfile ──► RelationshipInference (20) ──► EcologicalRelationship
+Genome (03) ──► RelationshipInference (20) ──► EcologicalRelationship
+
 ConceptionSystem ──► pending.register_pregnancy_update()
                  ──► pending.new_eggs (para ovíparos)
                  ──► pending.register_birth() (para asexuales)
@@ -439,14 +486,14 @@ WorldState ──► EventBus.publish(PersonBornEvent, PersonDiedEvent, etc.)
 
 | Categoría | Cantidad |
 |-----------|----------|
-| **Documentos de sistema** | 19 (18 sistemas + 1 índice) |
-| **Archivos de código documentados** | ~85 |
-| **Clases principales** | ~110 |
-| **Tests unitarios** | ~200+ |
+| **Documentos de sistema** | 22 (21 sistemas + 1 índice) |
+| **Archivos de código documentados** | ~90 |
+| **Clases principales** | ~120 |
+| **Tests unitarios** | 342 |
 | **Tests de integración** | ~20+ |
-| **Líneas de código** | ~15,000+ |
-| **Rasgos genéticos** | 36 |
-| **Especies predefinidas** | 15 |
+| **Líneas de código** | ~16,000+ |
+| **Rasgos genéticos** | 42 |
+| **Especies predefinidas** | 16 |
 | **Tipos de biomas** | 15 |
 | **Tipos de catástrofes** | 8 |
 | **Fases de infección** | 5 |
@@ -457,6 +504,9 @@ WorldState ──► EventBus.publish(PersonBornEvent, PersonDiedEvent, etc.)
 | **Familias de patógenos** | 7+ |
 | **Niveles de severidad (catástrofes)** | 4 |
 | **Presets de hábitat** | 9 |
+| **Niveles taxonómicos** | 9 |
+| **Tipos de relación ecológica** | 8 |
+| **Mecanismos ecológicos** | 12 |
 
 ---
 
@@ -468,24 +518,29 @@ WorldState ──► EventBus.publish(PersonBornEvent, PersonDiedEvent, etc.)
 2. **Luego**: [02_ESTADO_MUNDO.md](./02_ESTADO_DEL_MUNDO.md) - comprende la arquitectura de datos
 3. **Después**: [03_GENETICA.md](./03_GENETICA.md) - el núcleo biológico
 4. **Entidad central**: [17_PERSONA.md](./17_PERSONA.md) - el corazón del simulador
-5. **Finalmente**: Explora los sistemas específicos según tu interés
+5. **Taxonomía**: [19_TAXONOMIA.md](./19_TAXONOMIA.md) - clasificación y perfiles
+6. **Ecología**: [20_ECOLOGIA.md](./20_ECOLOGIA.md) - relaciones entre especies
+7. **Finalmente**: Explora los sistemas específicos según tu interés
 
 ### Para entender un agente completo
 
 1. **Genética**: [03_GENETICA.md](./03_GENETICA.md) - qué puede hacer
-2. **Entidad**: [17_PERSONA.md](./17_PERSONA.md) - estado completo
-3. **Capacidades derivadas**: Movimiento (07), Cognición (08), Reproducción (05), Inmunidad (09), Social (11)
-4. **Comportamiento**: [08_COMPORTAMIENTO.md](./08_COMPORTAMIENTO.md) - qué decide hacer
-5. **Movimiento**: [07_MOVIMIENTO.md](./07_MOVIMIENTO.md) - cómo se desplaza
-6. **Relaciones**: [06_RELACIONES_SOCIALES.md](./06_RELACIONES_SOCIALES.md) - con quién interactúa
-7. **Salud**: [09_SALUD.md](./09_SALUD.md) - cómo enferma y se recupera
-8. **Muerte**: [10_MORTALIDAD.md](./10_MORTALIDAD.md) - cómo y por qué muere
+2. **Taxonomía**: [19_TAXONOMIA.md](./19_TAXONOMIA.md) - qué es y cómo vive
+3. **Entidad**: [17_PERSONA.md](./17_PERSONA.md) - estado completo
+4. **Capacidades derivadas**: Movimiento (07), Cognición (08), Reproducción (05), Inmunidad (09), Social (11)
+5. **Comportamiento**: [08_COMPORTAMIENTO.md](./08_COMPORTAMIENTO.md) - qué decide hacer
+6. **Movimiento**: [07_MOVIMIENTO.md](./07_MOVIMIENTO.md) - cómo se desplaza
+7. **Relaciones**: [06_RELACIONES_SOCIALES.md](./06_RELACIONES_SOCIALES.md) - con quién interactúa
+8. **Ecología**: [20_ECOLOGIA.md](./20_ECOLOGIA.md) - cómo interactúa con otras especies
+9. **Salud**: [09_SALUD.md](./09_SALUD.md) - cómo enferma y se recupera
+10. **Muerte**: [10_MORTALIDAD.md](./10_MORTALIDAD.md) - cómo y por qué muere
 
 ### Para analizar la simulación
 
 1. **Métricas**: [15_METRICAS.md](./15_METRICAS.md) - observación multidimensional
 2. **Evolución**: [13_EVOLUCION.md](./13_EVOLUCION.md) - análisis macroevolutivo
 3. **Genealogía**: [12_GENEALOGIA.md](./12_GENEALOGIA.md) - árboles familiares y linajes
+4. **Ecología**: [20_ECOLOGIA.md](./20_ECOLOGIA.md) - relaciones entre especies
 
 ### Para modificar el mundo
 
@@ -516,6 +571,8 @@ WorldState ──► EventBus.publish(PersonBornEvent, PersonDiedEvent, etc.)
 9. **Optimización espacial**: `SpatialGrid` reduce O(N²) a O(k)
 10. **Carga viral ambiental**: `EpidemiologicalMap` modela contaminación realista
 11. **Vocabulario común**: `RelationshipEventType` desacopla sistemas relacionales
+12. **Taxonomía informativa**: La taxonomía clasifica, no decide capacidades
+13. **Ecología emergente**: Las relaciones ecológicas emergen de perfil + genoma + entorno
 
 ### Patrones arquitectónicos
 
@@ -527,6 +584,7 @@ WorldState ──► EventBus.publish(PersonBornEvent, PersonDiedEvent, etc.)
 - **Spatial Grid**: Indexación espacial para búsquedas eficientes de vecinos
 - **Sparse Grid**: Solo almacenar datos donde hay actividad (EpidemiologicalMap)
 - **Pub/Sub**: EventBus para desacoplamiento de sistemas emisores y consumidores
+- **Inferencia desde genética**: Perfiles y relaciones se infieren desde rasgos, no se hardcodean
 
 ---
 
@@ -536,7 +594,10 @@ WorldState ──► EventBus.publish(PersonBornEvent, PersonDiedEvent, etc.)
 - [x] **Interfaz/API**: Documentación de CLI y API REST (✅ Completado en 18_INTERFAZ)
 - [x] **Entidad Persona**: Documentación de la entidad central (✅ Completado en 17_PERSONA)
 - [x] **Sistema de Eventos**: Documentación de infraestructura pub/sub (✅ Completado en 16_EVENTOS)
+- [x] **Taxonomía**: Documentación del sistema taxonómico (✅ Completado en 19_TAXONOMIA)
+- [x] **Ecología**: Documentación del sistema de relaciones ecológicas (✅ Completado en 20_ECOLOGIA)
 - [ ] **Visualización avanzada**: Gráficos evolutivos, visualización de relaciones
+- [ ] **EcologicalRelationshipSystem**: Orquestador que ejecuta relaciones en runtime
 
 ### Medio plazo (nuevos sistemas)
 - [ ] **Clima regional**: Frentes meteorológicos que se mueven
@@ -547,6 +608,7 @@ WorldState ──► EventBus.publish(PersonBornEvent, PersonDiedEvent, etc.)
 - [ ] **Religión**: Creencias, rituales, instituciones religiosas
 - [ ] **Tratamientos médicos**: Antibióticos, antivirales, vacunas
 - [ ] **Suscriptores del EventBus**: Conectar UI y logs al sistema de eventos
+- [ ] **Mecanismos ecológicos**: HuntMechanism, GrazingMechanism, PollinationMechanism
 
 ### Largo plazo (visiones ambiciosas)
 - [ ] **Multi-especie inteligente**: Diferentes especies con culturas propias
@@ -557,6 +619,7 @@ WorldState ──► EventBus.publish(PersonBornEvent, PersonDiedEvent, etc.)
 - [ ] **Extinciones masivas**: Eventos catastróficos globales
 - [ ] **Evolución cultural**: Transmisión de memes e ideas
 - [ ] **Sistema de salud pública**: Cuarentenas, vacunación masiva
+- [ ] **Especiación**: Aparición de nuevas especies por aislamiento ecológico
 
 ---
 
@@ -590,6 +653,43 @@ Cada documento de sistema sigue esta estructura:
 - **Introspección**: `getattr(obj, 'attr_name', default_value)`
 - **Búsquedas espaciales**: `spatial_grid.get_nearby_agents(agent, radius)`
 - **Carga viral**: `epidemiological_map.add_viral_load(x, y, amount)`
+- **Inferencia de perfiles**: `ProfileInference.infer(species)`
+- **Inferencia de relaciones**: `RelationshipInference.infer_relationships(a, b)`
+
+---
+
+---
+
+## 📋 Documentos de Planificación y Especificaciones
+
+Además de la documentación de sistemas, el proyecto mantiene documentos de planificación y especificaciones conceptuales en carpetas dedicadas.
+
+### Planificación
+
+📄 [SYSTEM_DEPENDENCIES.md](../planning/SYSTEM_DEPENDENCIES.md) - **Mapa de dependencias de sistemas**
+
+Análisis exhaustivo de qué sistemas consumen el núcleo genético y cuáles necesitan migración para ser agnósticos a especie. Incluye:
+- Clasificación de 17 sistemas (agnósticos, legacy, hardcodeados)
+- Plan de migración en 4 fases
+- Lista de conceptos humanos hardcodeados (marriage, pregnancy, gestation)
+- Rasgos genéticos usados vs no usados
+
+**Estado**: Documento de planificación activo para futuras sesiones de refactorización.
+
+---
+
+### Especificaciones
+
+📄 [GENETICS_CORE_SPEC.md](../specs/GENETICS_CORE_SPEC.md) - **Especificación del Núcleo Genético**
+
+Contrato conceptual del núcleo genético (cerrado y congelado en Agosto 2026). Define los principios fundamentales:
+- Conceptos: Trait, Allele, Gene, Genome
+- Modelos de expresión genética (7 modelos)
+- Reproducción sexual y asexual
+- Mutación y rangos
+- Límites del núcleo genético
+
+**Estado**: Documento conceptual atemporal. No habla de implementación.
 
 ---
 
@@ -603,7 +703,8 @@ Este simulador es un proyecto de investigación en sistemas complejos, vida arti
 - Teoría de juegos y evolución cultural
 - Epidemiología matemática
 - Genética de poblaciones
-- Ecología teórica (nichos ecológicos, hábitats)
+- Ecología teórica (nichos ecológicos, hábitats, relaciones interespecíficas)
+- Taxonomía biológica (sistema de clasificación de Linneo)
 
 ---
 
@@ -620,6 +721,17 @@ Para preguntas, sugerencias o contribuciones:
 
 ## 📋 Changelog del Índice
 
+### Versión 2.1 (Agosto 2026)
+- ✅ Añadido documento 19_TAXONOMIA.md (Sistema Taxonómico)
+- ✅ Añadido documento 20_ECOLOGIA.md (Sistema de Relaciones Ecológicas)
+- ✅ Actualizado diagrama de arquitectura con TaxonomicSystem y EcologicalRelationshipSystem
+- ✅ Añadida nueva fase FASE 3: ECOLOGÍA Y RELACIONES ENTRE ESPECIES
+- ✅ Actualizadas estadísticas: 42 rasgos genéticos, 16 especies predefinidas, 21 documentos
+- ✅ Añadidas nuevas métricas: niveles taxonómicos, tipos de relación ecológica, mecanismos ecológicos
+- ✅ Actualizado flujo de dependencias con TaxonomicSystem y RelationshipInference
+- ✅ Actualizada guía de navegación con Taxonomía y Ecología
+- ✅ Añadidos principios: Taxonomía informativa, Ecología emergente
+
 ### Versión 2.0 (Agosto 2026)
 - ✅ Añadidos documentos 16_EVENTOS, 17_PERSONA, 18_INTERFAZ_Y_HERRAMIENTAS
 - ✅ Corregidos nombres de archivos con typos (03_GENETICA, 06_RELACIONES_SOCIALES, 10_MORTALIDAD, 12_GENEALOGIA)
@@ -629,11 +741,16 @@ Para preguntas, sugerencias o contribuciones:
 - ✅ Actualizado diagrama de interacción con nuevas dependencias
 - ✅ Actualizada fecha a Agosto 2026
 
-### Versión 1.0 (Diciembre 2024)
-- Versión inicial con 15 documentos de sistemas
+### Versión 2.2 (Agosto 2026)
+- ✅ Añadido documento 21_ENERGIA.md (Sistema de Energía)
+- ✅ Actualizada FASE 3: ahora incluye EnergySystem junto a EcologicalRelationshipSystem
+- ✅ Actualizado diagrama de arquitectura con EnergySystem
+- ✅ Actualizadas estadísticas: 342 tests, 22 documentos
+- ✅ Añadido flujo de energía en dependencias entre sistemas
+- ✅ Actualizada guía de navegación con Energía
 
 ---
 
 *Documento: 00_INDICE.md*
-*Versión: 2.0*
+*Versión: 2.2*
 *Última actualización: Agosto 2026*

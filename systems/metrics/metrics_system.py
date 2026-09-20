@@ -33,15 +33,18 @@ class MetricsSystem:
         self, 
         config: SimulationConfig,
         genealogy_system: Any = None,
+        ecology_system: Any = None,
     ) -> None:
         """Inicializa el sistema de métricas con la configuración central.
         
         Args:
             config: Configuración maestra de la simulación.
             genealogy_system: Sistema de genealogía opcional para métricas de linajes.
+            ecology_system: Sistema de ecología opcional para métricas de relaciones ecológicas.
         """
         self.config = config
         self.genealogy_system = genealogy_system
+        self.ecology_system = ecology_system
         self.history: List[Dict[str, Any]] = []
         self.last_snapshot_day: float = -1.0
         self.last_population: int = 0
@@ -135,6 +138,17 @@ class MetricsSystem:
                 "active_lineages": 0,
                 "extinct_lineages": 0,
                 "max_generation": 0,
+            },
+
+            # NUEVO: Ecología (relaciones entre especies)
+            "ecology": {
+                "total_encounters": 0,
+                "total_relationships_executed": 0,
+                "total_predations": 0,
+                "total_herbivory": 0,
+                "total_mutualism": 0,
+                "total_competition": 0,
+                "cached_relationship_pairs": 0,
             },
             
             # CORRECCIÓN (Punto 8): Estado social (sin literales frágiles)
@@ -275,6 +289,9 @@ class MetricsSystem:
         # 5. MÉTRICAS GENEALÓGICAS (Punto 17)
         self._calculate_genealogy_metrics(snapshot)
         
+        # 6. MÉTRICAS DE ECOLOGÍA (relaciones entre especies)
+        self._calculate_ecology_metrics(snapshot)
+        
         # 6. AÑADIR AL HISTORIAL CON GESTIÓN DE MEMORIA (Punto 21)
         self.history.append(snapshot)
         
@@ -331,6 +348,21 @@ class MetricsSystem:
         snapshot["genealogy"]["active_lineages"] = active_lineages
         snapshot["genealogy"]["extinct_lineages"] = extinct_lineages
         snapshot["genealogy"]["max_generation"] = max_generation
+
+    def _calculate_ecology_metrics(self, snapshot: Dict[str, Any]) -> None:
+        """Calcula métricas de relaciones ecológicas si el sistema de ecología está disponible."""
+        if not self.ecology_system:
+            return
+        
+        summary = self.ecology_system.get_summary()
+        
+        snapshot["ecology"]["total_encounters"] = summary.get("total_encounters", 0)
+        snapshot["ecology"]["total_relationships_executed"] = summary.get("total_relationships_executed", 0)
+        snapshot["ecology"]["total_predations"] = summary.get("total_predations", 0)
+        snapshot["ecology"]["total_herbivory"] = summary.get("total_herbivory", 0)
+        snapshot["ecology"]["total_mutualism"] = summary.get("total_mutualism", 0)
+        snapshot["ecology"]["total_competition"] = summary.get("total_competition", 0)
+        snapshot["ecology"]["cached_relationship_pairs"] = summary.get("cached_relationship_pairs", 0)
 
     def export_to_json(self, filepath: str = "simulation_metrics.json") -> None:
         """Exporta la serie temporal de métricas a un archivo JSON en disco."""

@@ -102,6 +102,10 @@ historico_evolucion.json
 logs/
 *.log
 simulacion.txt
+reporte_*.csv
+reporte_*.json
+*_simulacion_*.csv
+*_simulacion_*.json
 
 # Datos temporales (carpeta data/)
 data/*.json

@@ -1,0 +1,134 @@
+# Changelog
+
+Todos los cambios notables de **Primordial** se documentarán en este archivo.
+
+El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
+y este proyecto adhiere al [Versionamiento Semántico](https://semver.org/lang/es/).
+
+## [Unreleased]
+
+### Planeado
+- Mecanismos ecológicos adicionales: `AmbushMechanism`, `PackHuntingMechanism`, `TerritorialDisplayMechanism`
+- Integración completa entre `InfectionMechanism` y `DiseaseSystem`
+- Documentación actualizada de métricas ecológicas en `20_ECOLOGIA.md`
+- Tests específicos para métricas de ecología
+- Interfaz gráfica en Godot 4.x
+- Empaquetado como aplicación instalable
+
+## [0.3.0] - 2026-09-21
+
+### Añadido
+- **Profesionalización del repositorio**:
+  - README.md completo con descripción del proyecto, características, instalación y roadmap
+  - Archivo `LICENSE` (MIT) para uso open source
+  - `pyproject.toml` con metadatos del proyecto y configuración de empaquetado
+  - `CONTRIBUTING.md` con guía para contribuidores
+  - `CODE_OF_CONDUCT.md` basado en Contributor Covenant v2.0
+  - Plantillas de GitHub Issues: Bug Report y Feature Request
+  - Plantilla de Pull Request con checklist de revisión
+- **Organización GitHub**: Migración del repositorio a `primordial-sim/primordial`
+- **Naming**: Renombrado del proyecto a "Primordial"
+
+### Cambiado
+- Movido `exportar_proyecto.py` a `tools/` para limpieza de estructura
+- Actualizado `.gitignore` para prevenir commits de reportes CSV temporales
+- Añadidas métricas de ecología al `MetricsSystem`:
+  - Total de encuentros ecológicos
+  - Total de relaciones ejecutadas (por tipo)
+  - Contadores de depredaciones, herbivoría, mutualismo y competencia
+  - Parejas de relaciones cacheadas
+
+### Eliminado
+- Reportes CSV temporales (`reporte_simulacion_*.csv`) del control de versiones
+
+## [0.2.0] - 2026-09-05
+
+### Añadido
+- **Sistema de ecología evolutiva**:
+  - 8 tipos de relaciones ecológicas: Depredación, Herbivoría, Mutualismo, Competencia, Parasitismo, Comensalismo, Amensalismo, Neutralismo
+  - Inferencia automática de relaciones desde perfiles biológicos
+  - Sistema de inferencia ecológica (`EcologicalRelationshipSystem`)
+- **Mecanismos de interacción ecológica**:
+  - `HuntMechanism` - Caza activa con persecución
+  - `PackHuntingMechanism` - Caza coordinada en manada
+  - `GrazingMechanism` - Pastoreo de vegetación
+  - `PollinationMechanism` - Polinización mutualista
+  - `SeedDispersalMechanism` - Dispersión de semillas
+  - `ScavengingMechanism` - Carroñeo
+  - `InfectionMechanism` - Infección parasitaria
+  - `ResourceConsumptionMechanism` - Competencia por recursos
+  - `MechanismFactory` - Despacho dinámico de mecanismos
+- **Sistema de energía**:
+  - Gestión de energía por organismo
+  - Fotosíntesis para productores
+  - Metabolismo y gasto energético
+  - Inanición y muerte por falta de energía
+- **Detección ecológica**:
+  - Detección de amenazas (presas detectan depredadores)
+  - Detección de presas (carnívoros buscan presas)
+  - Detección de vegetación (herbívoros buscan plantas)
+- **Optimización de rendimiento**:
+  - `SpatialGrid` para búsquedas espaciales O(1)
+  - Eliminación de relaciones bidireccionales duplicadas
+  - Caché de relaciones ecológicas inferidas
+
+### Cambiado
+- Refactorización de sistemas de movimiento para usar `SpatialGrid`
+- Mejora de rendimiento en fase de ecología (~19% más rápido)
+
+## [0.1.0] - 2026-06-12
+
+### Añadido
+- **Versión inicial del proyecto**:
+  - Motor de simulación multi-agente con arquitectura de fases
+  - Sistema genético universal con 20+ rasgos heredables
+  - Sistema de taxonomía y clasificación de especies
+  - Mundo con tiles y biomas dinámicos
+- **Sistemas de simulación**:
+  - Sistema temporal (envejecimiento, estaciones)
+  - Sistema ambiental (biomas, presión social)
+  - Sistema de movimiento y pathfinding
+  - Sistema de relaciones sociales (amistad, matrimonio, divorcio)
+  - Sistema de reproducción (concepción, gestación, nacimiento)
+  - Sistema de mortalidad (curvas de supervivencia Gompertz)
+  - Sistema de epidemiología (patógenos, contagios)
+  - Sistema de genealogía (linajes, generaciones)
+- **Métricas poblacionales**:
+  - Recolección de métricas multidimensionales
+  - Exportación a JSON para análisis
+- **Testing**:
+  - Suite inicial de tests unitarios
+  - Tests de integración básicos
+
+---
+
+## 📖 Convenciones de versionado
+
+Este proyecto sigue el [Versionamiento Semántico](https://semver.org/lang/es/):
+
+- **MAJOR** (X.0.0): Cambios incompatibles con versiones anteriores
+- **MINOR** (0.X.0): Nuevas funcionalidades compatibles
+- **PATCH** (0.0.X): Correcciones de bugs compatibles
+
+### Tipos de cambios documentados
+
+| Tipo | Descripción |
+|------|-------------|
+| **Añadido** | Nuevas funcionalidades |
+| **Cambiado** | Modificaciones en funcionalidades existentes |
+| **Obsoleto** | Funcionalidades que serán eliminadas pronto |
+| **Eliminado** | Funcionalidades removidas |
+| **Corregido** | Bugs corregidos |
+| **Seguridad** | Parches de seguridad |
+
+---
+
+## 🔗 Enlaces
+
+- [Comparar versiones](https://github.com/primordial-sim/primordial/compare)
+- [Ver todos los commits](https://github.com/primordial-sim/primordial/commits/main)
+
+[Unreleased]: https://github.com/primordial-sim/primordial/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/primordial-sim/primordial/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/primordial-sim/primordial/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/primordial-sim/primordial/releases/tag/v0.1.0

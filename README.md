@@ -42,13 +42,49 @@ Cada organismo tiene un genoma único con más de 20 rasgos heredables que deter
 
 El objetivo final es crear **Primordial** como una **aplicación de escritorio completa** con interfaz gráfica desarrollada en Godot donde el usuario pueda:
 
+- **Crear mundos a medida** desde la interfaz: mapa, biomas, especies y genomas iniciales
 - Observar la simulación en tiempo real con representación visual 2D
-- Controlar parámetros de la simulación desde la interfaz
+- **Modificar cualquier variable del mundo en plena simulación**: probabilidad de embarazo, edad máxima, radios de detección, tasas de mutación...
 - Guardar y cargar estados del mundo
 - Exportar estadísticas y métricas
 - Instalar como aplicación independiente sin necesidad de Python
 
 Actualmente el **motor de simulación está completamente funcional** y la interfaz gráfica está en desarrollo activo.
+
+---
+
+## 👤 Tu rol: arquitecto de mundos
+
+En **Primordial** el usuario no es un espectador: es el **arquitecto del mundo**. La experiencia tiene dos momentos:
+
+### 🌍 1. Creación del mundo
+
+Antes de encender la simulación, tú defines las condiciones iniciales del universo que quieres observar:
+
+- **El escenario**: tamaño del mapa, biomas, clima y estaciones
+- **Los habitantes**: especies iniciales, poblaciones, perfiles biológicos y genomas
+- **Las reglas del juego**: fertilidad, longevidad, metabolismos, radios de detección, probabilidad de mutación...
+
+Puedes partir de un escenario predefinido o diseñar tu propio mundo desde cero.
+
+### 🎛️ 2. Intervención durante la simulación
+
+Con el mundo ya en marcha, puedes **modificar cualquier variable en tiempo real**, sin pausar ni reiniciar:
+
+| Variable ajustable (ejemplos) | Qué ocurre al tocarla |
+|-------------------------------|------------------------|
+| Probabilidad de embarazo | Explosión o colapso demográfico |
+| Edad máxima de una especie | Cambia el relevo generacional y el ritmo evolutivo |
+| Radio de detección de enemigos | Huidas más eficaces... o más estrés crónico |
+| Tasa de mutación | Evolución acelerada o estancamiento |
+| Metabolismo y coste energético | Ecosistemas más o menos exigentes |
+| Frecuencia de catástrofes | Pone a prueba la resiliencia del ecosistema |
+
+### 🔬 Experimentar → observar → comprender
+
+Cada cambio que haces se convierte en un **experimento vivo**: modificas un parámetro, observas cómo responde el ecosistema a lo largo de las generaciones y descubres qué equilibrios emergen. Primordial es a la vez **juguete, laboratorio y microscopio** de vida artificial.
+
+> *"Tú pones las reglas. La vida hace el resto."*
 
 ---
 
@@ -183,8 +219,8 @@ La simulación recolecta métricas multidimensionales automáticamente:
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/tu-usuario/simulador-vida.git
-cd simulador-vida
+git clone https://github.com/primordial-sim/primordial.git
+cd primordial
 
 # Crear entorno virtual
 python -m venv venv
@@ -275,7 +311,7 @@ python -m pytest tests/unit/test_ecological_mechanisms.py -v
 ## 📁 Estructura del proyecto
 
 ```
-simulador-vida/
+primordial/
 ├── launcher.py              # Punto de entrada (modo consola)
 ├── pyproject.toml           # Configuración del proyecto
 ├── pytest.ini               # Configuración de tests
@@ -313,7 +349,8 @@ simulador-vida/
 │   ├── 00_INDICE.md         # Índice de documentación
 │   ├── systems/             # Documentación por sistema
 │   ├── planning/            # Planificación y roadmap
-│   └── specs/               # Especificaciones
+│   ├── specs/               # Especificaciones
+│   └── assets/              # Imágenes y recursos del README
 │
 ├── godot/                   # Frontend visual (Godot) - En desarrollo
 ├── scenarios/               # Escenarios predefinidos
@@ -375,10 +412,12 @@ El motor opera en un **ciclo de fases secuenciales** que se ejecutan en cada tic
 - [x] Epidemiología con patógenos
 - [x] Catástrofes naturales
 - [x] 372 tests pasando
+- [x] Profesionalización del repositorio (licencia, guías de comunidad, plantillas)
 
 ### 🚧 En progreso
 
 - [ ] Interfaz gráfica en Godot
+- [ ] Editor de mundos y panel de control de parámetros en vivo
 - [ ] Mecanismos adicionales (emboscada, caza en manada, territorial)
 - [ ] Integración InfectionMechanism ↔ DiseaseSystem
 - [ ] Empaquetado como aplicación instalable
@@ -389,7 +428,7 @@ El motor opera en un **ciclo de fases secuenciales** que se ejecutan en cada tic
 - [ ] Coevolución depredador-presa
 - [ ] Extinciones y eventos cascada
 - [ ] API web para visualización remota
-- [ ] Editor de escenarios visual
+- [ ] Editor de escenarios visual avanzado
 - [ ] Modo sandbox con control directo de organismos
 
 ---
@@ -399,7 +438,9 @@ El motor opera en un **ciclo de fases secuenciales** que se ejecutan en cada tic
 La aplicación final incluirá una interfaz gráfica desarrollada en **Godot 4.x**:
 
 **Características planificadas**:
+- **Editor de mundos**: diseño del mapa, biomas y poblaciones iniciales antes de simular
 - Visualización en tiempo real del mundo con tiles y organismos
+- **Panel de control en vivo**: modificación de cualquier parámetro (reproducción, longevidad, detección, mutaciones...) sin reiniciar la simulación
 - Panel de estadísticas poblacionales
 - Control de velocidad de simulación (play, pause, fast-forward)
 - Inspección de organismos individuales (genoma, energía, relaciones)
@@ -424,13 +465,17 @@ La documentación técnica completa está en [`docs/`](docs/):
 
 ## 🤝 Contribuir
 
-Las contribuciones son bienvenidas. Por favor:
+Las contribuciones son bienvenidas. Por favor, lee [`CONTRIBUTING.md`](CONTRIBUTING.md) para conocer el proceso completo y nuestras directrices.
+
+Resumen rápido:
 
 1. Fork el proyecto
 2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
 3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
+
+Por favor, sigue nuestro [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) en todas tus interacciones.
 
 ---
 
@@ -468,14 +513,6 @@ El desarrollo ha seguido una metodología colaborativa humano-IA donde las decis
 
 **Hecho con ❤️, 🐍 Python y 🤖 IA**
 
-[Reportar Bug](https://github.com/tu-usuario/simulador-vida/issues) · [Sugerir Feature](https://github.com/tu-usuario/simulador-vida/issues) · [Documentación](docs/00_INDICE.md)
-
-</div>
-
-<div align="center">
-
-**Hecho con ❤️ y 🐍 Python**
-
-[Reportar Bug](https://github.com/tu-usuario/simulador-vida/issues) · [Sugerir Feature](https://github.com/tu-usuario/simulador-vida/issues) · [Documentación](docs/00_INDICE.md)
+[Reportar Bug](https://github.com/primordial-sim/primordial/issues) · [Sugerir Feature](https://github.com/primordial-sim/primordial/issues) · [Documentación](docs/00_INDICE.md)
 
 </div>

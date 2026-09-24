@@ -1,3 +1,18 @@
+<div align="center">
+
+![Primordial - Open Source Life Simulator](docs/assets/social_preview.png)
+
+**Multi-agent simulation engine with emergent genetics, ecological relationships, and natural evolution**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![Status](https://img.shields.io/badge/status-in%20development-orange.svg)]()
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+</div>
+
+---
+
 # 🌍 Primordial
 
 **Primordial** es un motor de simulación multi-agente que modela ecosistemas complejos con genética emergente, relaciones ecológicas, comportamiento social y evolución natural. El objetivo final es crear una **aplicación completa con interfaz gráfica** que cualquier usuario pueda instalar y usar sin conocimientos de programación.

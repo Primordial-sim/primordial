@@ -6,9 +6,14 @@ El mecanismo describe CÓMO se ejecuta la relación, no QUÉ relación es.
 Arquitectura:
     BaseMechanism (abstracta)
     ├── HuntMechanism          → Depredación activa
+    ├── AmbushMechanism        → Emboscada sigilosa
+    ├── PackHuntingMechanism   → Caza coordinada en manada
     ├── GrazingMechanism       → Pastoreo / herbivoría
+    ├── FilterFeedingMechanism → Filtrado de agua
     ├── PollinationMechanism   → Polinización (mutualismo)
     ├── ResourceConsumptionMechanism → Competencia
+    ├── TerritorialDisplayMechanism  → Exhibición territorial
+    ├── ChemicalSuppressionMechanism → Supresión química (alelopatía)
     ├── ScavengingMechanism    → Carroñeo
     └── InfectionMechanism     → Parasitismo
 
@@ -137,6 +142,325 @@ class BaseMechanism(ABC):
             "success_rate": round(self.success_rate, 3),
         }
 
+    @staticmethod
+    def _get_trait(person: 'Person', trait_name: str, default: float = 0.5) -> float:
+        """Lee un rasgo del genoma en escala [0, 1] con 0.5 neutro.
+        
+        Coherente con el uso de ``body_size`` en HuntMechanism y de
+        ``get_immunity()`` en InfectionMechanism. Si el rasgo no existe
+        o no es numérico, retorna el valor por defecto.
+        
+        Args:
+            person: El organismo cuyo rasgo se consulta.
+            trait_name: Identificador del rasgo (ej: "camouflage").
+            default: Valor por defecto si el rasgo no existe.
+            
+        Returns:
+            Valor del rasgo acotado a [0.0, 1.0].
+        """
+        genome = getattr(person, "genome", None)
+        value = getattr(genome, trait_name, default)
+        if not isinstance(value, (int, float)):
+            return default
+        return max(0.0, min(1.0, float(value)))
+    
+class AmbushMechanism(BaseMechanism):
+    """Mecanismo de emboscada sigilosa (depredación por sorpresa).
+    
+    El depredador espera oculto y ataca por sorpresa. A diferencia de la
+    caza activa, el éxito depende del sigilo del atacante y de la capacidad
+    de detección de la presa, no de la persecución.
+    
+    La probabilidad de éxito depende de:
+    - Intensidad de la relación
+    - Camuflaje e instinto depredador del emboscador
+    - Visión, oído y olfato de la presa (detección temprana)
+    
+    Coste: si la emboscada falla, el emboscador pierde la energía invertida
+    en el acecho (una fracción de la ganancia potencial).
+    """
+    
+    def _calculate_success_probability(
+        self,
+        person_a: 'Person',
+        person_b: 'Person',
+        relationship: 'EcologicalRelationship',
+    ) -> float:
+        """Probabilidad basada en sigilo del atacante vs detección de la presa."""
+        base_prob = relationship.intensity * 0.75
+        
+        stealth = (
+            self._get_trait(person_a, "camouflage")
+            + self._get_trait(person_a, "predatory_instinct")
+        ) / 2.0
+        detection = (
+            self._get_trait(person_b, "vision")
+            + self._get_trait(person_b, "hearing")
+            + self._get_trait(person_b, "smell")
+        ) / 3.0
+        
+        prob = base_prob + stealth * 0.15 - detection * 0.15
+        return max(0.05, min(0.90, prob))
+    
+    def _apply_effects(
+        self,
+        person_a: 'Person',
+        person_b: 'Person',
+        relationship: 'EcologicalRelationship',
+        pending: 'PendingChanges',
+        success: bool,
+    ) -> None:
+        """Si éxito: presa muere, depredador gana energía. Si fallo: coste de acecho."""
+        if success:
+            pending.register_death(
+                entity_id=person_b.entity_id,
+                reason="predation",
+            )
+            if relationship.effect_on_a:
+                energy_gain = relationship.effect_on_a.energy_change
+                if energy_gain > 0:
+                    person_a.add_energy(energy_gain)
+        else:
+            # La presa escapa: el emboscador pierde lo invertido en el acecho
+            if relationship.effect_on_a and relationship.effect_on_a.energy_change > 0:
+                stakeout_cost = relationship.effect_on_a.energy_change * 0.1
+                person_a.spend_energy(stakeout_cost)
+
+
+class PackHuntingMechanism(BaseMechanism):
+    """Mecanismo de caza coordinada en manada.
+    
+    La cooperación entre individuos permite abatir presas mayores que las
+    que un solo depredador podría cazar. La coordinación se modela mediante
+    los rasgos ``pack_behavior`` y ``cooperation`` del atacante.
+    
+    La probabilidad de éxito depende de:
+    - Intensidad de la relación
+    - Coordinación de manada del atacante
+    - Tamaño relativo, cuya penalización se reduce con la coordinación
+    
+    Coste: el botín se reparte entre la manada, por lo que la ganancia
+    individual es menor que en la caza en solitario.
+    """
+    
+    def _calculate_success_probability(
+        self,
+        person_a: 'Person',
+        person_b: 'Person',
+        relationship: 'EcologicalRelationship',
+    ) -> float:
+        """Probabilidad basada en coordinación de manada y tamaño relativo."""
+        pack = (
+            self._get_trait(person_a, "pack_behavior")
+            + self._get_trait(person_a, "cooperation")
+        ) / 2.0
+        
+        base_prob = relationship.intensity * 0.55 + pack * 0.25
+        
+        size_a = self._get_trait(person_a, "body_size")
+        size_b = self._get_trait(person_b, "body_size")
+        size_diff = size_b - size_a  # Positivo si la presa es mayor
+        
+        if size_diff > 0:
+            # La manada compensa el tamaño de la presa
+            size_term = -size_diff * 0.30 * (1.0 - 0.75 * pack)
+        else:
+            size_term = -size_diff * 0.20  # Presa menor: bonus
+        
+        return max(0.05, min(0.90, base_prob + size_term))
+    
+    def _apply_effects(
+        self,
+        person_a: 'Person',
+        person_b: 'Person',
+        relationship: 'EcologicalRelationship',
+        pending: 'PendingChanges',
+        success: bool,
+    ) -> None:
+        """Si éxito: presa muere, ganancia individual reducida (botín repartido)."""
+        if success:
+            pending.register_death(
+                entity_id=person_b.entity_id,
+                reason="predation",
+            )
+            if relationship.effect_on_a:
+                energy_gain = relationship.effect_on_a.energy_change
+                if energy_gain > 0:
+                    # El botín se reparte entre los miembros de la manada
+                    person_a.add_energy(energy_gain * 0.7)
+        # Si falla: la presa escapa, sin efectos
+
+
+class TerritorialDisplayMechanism(BaseMechanism):
+    """Mecanismo de exhibición territorial (competencia ritualizada).
+    
+    Los competidores resuelven el conflicto mediante exhibiciones
+    (posturas, vocalizaciones, marcas) sin contacto físico. Nadie muere:
+    el perdedor se retira del territorio.
+    
+    En este mecanismo, ``success`` significa "el organismo A gana la
+    exhibición". La probabilidad compara el poder de exhibición de ambos
+    (territorialidad, agresividad y tamaño).
+    
+    Coste: ambos pagan el coste de la exhibición (menor que el combate
+    directo); el perdedor añade el coste de retirada y estrés.
+    """
+    
+    def _calculate_success_probability(
+        self,
+        person_a: 'Person',
+        person_b: 'Person',
+        relationship: 'EcologicalRelationship',
+    ) -> float:
+        """Probabilidad de que A gane la exhibición (poder relativo)."""
+        power_a = (
+            self._get_trait(person_a, "territoriality")
+            + self._get_trait(person_a, "aggressiveness")
+            + self._get_trait(person_a, "body_size")
+        ) / 3.0
+        power_b = (
+            self._get_trait(person_b, "territoriality")
+            + self._get_trait(person_b, "aggressiveness")
+            + self._get_trait(person_b, "body_size")
+        ) / 3.0
+        
+        prob = 0.5 + (power_a - power_b) * 0.4
+        return max(0.10, min(0.90, prob))
+    
+    def _apply_effects(
+        self,
+        person_a: 'Person',
+        person_b: 'Person',
+        relationship: 'EcologicalRelationship',
+        pending: 'PendingChanges',
+        success: bool,
+    ) -> None:
+        """Ambos pagan exhibición; el perdedor paga retirada y estrés. Sin muertes."""
+        cost_a = abs(relationship.effect_on_a.energy_change) if relationship.effect_on_a else 0.0
+        cost_b = abs(relationship.effect_on_b.energy_change) if relationship.effect_on_b else 0.0
+        
+        display_ratio = 0.4   # Coste de exhibir sin combatir
+        retreat_ratio = 0.6   # Coste añadido de retirada y estrés
+        
+        if success:  # A gana la exhibición
+            person_a.spend_energy(cost_a * display_ratio)
+            person_b.spend_energy(cost_b * (display_ratio + retreat_ratio))
+        else:  # B gana la exhibición
+            person_a.spend_energy(cost_a * (display_ratio + retreat_ratio))
+            person_b.spend_energy(cost_b * display_ratio)
+
+
+class ChemicalSuppressionMechanism(BaseMechanism):
+    """Mecanismo de supresión química (alelopatía).
+    
+    El organismo A libera compuestos tóxicos al entorno que inhiben el
+    crecimiento o la actividad de B. Es una competencia indirecta: no hay
+    contacto ni persecución.
+    
+    La probabilidad de éxito depende de:
+    - Intensidad de la relación
+    - Potencia química del productor (rasgo ``venom``)
+    - Inmunidad del organismo objetivo
+    
+    Coste: producir toxinas consume energía siempre; si la supresión falla,
+    el productor pierde solo la mitad del coste. La muerte del objetivo no
+    se registra aquí: emerge del sistema de energía por inanición.
+    """
+    
+    def _calculate_success_probability(
+        self,
+        person_a: 'Person',
+        person_b: 'Person',
+        relationship: 'EcologicalRelationship',
+    ) -> float:
+        """Probabilidad basada en potencia química vs inmunidad del objetivo."""
+        base_prob = relationship.intensity * 0.7
+        potency = self._get_trait(person_a, "venom")
+        resistance = self._get_trait(person_b, "immunity")
+        
+        prob = base_prob + potency * 0.15 - resistance * 0.15
+        return max(0.05, min(0.85, prob))
+    
+    def _apply_effects(
+        self,
+        person_a: 'Person',
+        person_b: 'Person',
+        relationship: 'EcologicalRelationship',
+        pending: 'PendingChanges',
+        success: bool,
+    ) -> None:
+        """Productor paga coste de toxinas; objetivo pierde energía si hay efecto."""
+        if relationship.effect_on_a and relationship.effect_on_a.energy_change < 0:
+            production_cost = abs(relationship.effect_on_a.energy_change)
+        else:
+            production_cost = 0.5
+        
+        if success:
+            person_a.spend_energy(production_cost)
+            if relationship.effect_on_b:
+                damage = abs(relationship.effect_on_b.energy_change)
+                if damage > 0:
+                    person_b.spend_energy(damage)
+        else:
+            # Toxinas liberadas pero sin efecto: mitad del coste
+            person_a.spend_energy(production_cost * 0.5)
+class FilterFeedingMechanism(BaseMechanism):
+    """Mecanismo de filtrado (alimentación por filtro).
+    
+    El organismo A filtra microorganismos y partículas nutritivas del agua
+    o del sustrato. Es un mecanismo pasivo: casi siempre obtiene algo de
+    alimento cuando hay encuentro con el recurso.
+    
+    La probabilidad de éxito depende de:
+    - Intensidad de la relación
+    - Capacidad de desplazamiento en el medio (``swimming``, ``mobility``)
+    
+    El organismo B (recurso filtrado) pierde energía si la relación define
+    un efecto sobre él; si se agota, muere como en el pastoreo.
+    """
+    
+    def _calculate_success_probability(
+        self,
+        person_a: 'Person',
+        person_b: 'Person',
+        relationship: 'EcologicalRelationship',
+    ) -> float:
+        """Probabilidad alta: el filtrado es pasivo y casi siempre obtiene algo."""
+        base_prob = relationship.intensity * 0.9
+        flow_access = (
+            self._get_trait(person_a, "swimming")
+            + self._get_trait(person_a, "mobility")
+        ) / 2.0
+        
+        prob = base_prob + flow_access * 0.05
+        return max(0.10, min(0.95, prob))
+    
+    def _apply_effects(
+        self,
+        person_a: 'Person',
+        person_b: 'Person',
+        relationship: 'EcologicalRelationship',
+        pending: 'PendingChanges',
+        success: bool,
+    ) -> None:
+        """Filtrador gana energía; el recurso pierde energía y puede agotarse."""
+        if success:
+            if relationship.effect_on_a:
+                energy_gain = relationship.effect_on_a.energy_change
+                if energy_gain > 0:
+                    person_a.add_energy(energy_gain)
+            
+            if relationship.effect_on_b:
+                damage = abs(relationship.effect_on_b.energy_change)
+                if damage > 0:
+                    person_b.spend_energy(damage)
+                    
+                    if person_b.energy <= 0:
+                        pending.register_death(
+                            entity_id=person_b.entity_id,
+                            reason="consumed",
+                        )
+        # Si falla: corriente sin nutrientes suficientes, sin efectos
 
 class HuntMechanism(BaseMechanism):
     """Mecanismo de caza activa (depredación).
@@ -424,15 +748,15 @@ class MechanismFactory:
         """Inicializa el registro de mecanismos."""
         cls._mechanisms = {
             MechanismType.HUNT: HuntMechanism(),
-            MechanismType.AMBUSH: HuntMechanism(),  # Similar a caza
-            MechanismType.PACK_HUNTING: HuntMechanism(),  # Similar a caza
+            MechanismType.AMBUSH: AmbushMechanism(),
+            MechanismType.PACK_HUNTING: PackHuntingMechanism(),
             MechanismType.GRAZING: GrazingMechanism(),
-            MechanismType.FILTER_FEEDING: GrazingMechanism(),  # Similar a pastoreo
+            MechanismType.FILTER_FEEDING: FilterFeedingMechanism(),
             MechanismType.POLLINATION: PollinationMechanism(),
             MechanismType.SEED_DISPERSAL: PollinationMechanism(),  # Similar a polinización
             MechanismType.RESOURCE_CONSUMPTION: ResourceConsumptionMechanism(),
-            MechanismType.TERRITORIAL_DISPLAY: ResourceConsumptionMechanism(),  # Similar a competencia
-            MechanismType.CHEMICAL_SUPPRESSION: ResourceConsumptionMechanism(),  # Similar a competencia
+            MechanismType.TERRITORIAL_DISPLAY: TerritorialDisplayMechanism(),
+            MechanismType.CHEMICAL_SUPPRESSION: ChemicalSuppressionMechanism(),
             MechanismType.SCAVENGING: ScavengingMechanism(),
             MechanismType.INFECTION: InfectionMechanism(),
         }

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://primordial-sim.github.io/primordial/sitemap.xml

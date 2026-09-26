@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Primordial - Open Source Life Simulator</title>
+    <meta name="description" content="Motor de simulación multi-agente con genética emergente, relaciones ecológicas y evolución natural">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .hero {
+            text-align: center;
+            padding: 60px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .hero img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+        
+        h1 {
+            font-size: 3em;
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        .tagline {
+            font-size: 1.3em;
+            color: #4a5568;
+            margin-bottom: 30px;
+        }
+        
+        .badges {
+            margin: 30px 0;
+        }
+        
+        .badges img {
+            margin: 0 5px;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 15px 35px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-card h3 {
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .feature-card p {
+            color: #4a5568;
+        }
+        
+        .section {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            margin: 30px 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .section h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+        
+        .install-code {
+            background: #2d3748;
+            color: #68d391;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 3em;
+            font-weight: 700;
+            color: #667eea;
+            display: block;
+        }
+        
+        .stat-label {
+            color: #4a5568;
+            font-size: 1.1em;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            margin-top: 60px;
+        }
+        
+        footer a {
+            color: white;
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+            
+            .tagline {
+                font-size: 1.1em;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <img src="https://raw.githubusercontent.com/primordial-sim/primordial/main/docs/assets/social_preview.png" alt="Primordial">
+            <h1>🌍 Primordial</h1>
+            <p class="tagline">Motor de simulación multi-agente con genética emergente, relaciones ecológicas y evolución natural</p>
+            
+            <div class="badges">
+                <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
+                <img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13+">
+                <img src="https://img.shields.io/badge/status-active-orange.svg" alt="Status">
+                <img src="https://img.shields.io/badge/tests-414%20passed-brightgreen.svg" alt="Tests">
+            </div>
+            
+            <div class="cta-buttons">
+                <a href="https://github.com/primordial-sim/primordial" class="btn">⭐ Ver en GitHub</a>
+                <a href="https://github.com/primordial-sim/primordial/blob/main/docs/00_INDICE.md" class="btn btn-secondary">📚 Documentación</a>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <span class="stat-number">12</span>
+                <span class="stat-label">Mecanismos ecológicos</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number">414</span>
+                <span class="stat-label">Tests pasando</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number">20+</span>
+                <span class="stat-label">Rasgos genéticos</span>
+            </div>
+            <div class="stat">
+                <span class="stat-number">8</span>
+                <span class="stat-label">Tipos de relaciones</span>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <h3>🧬 Genética Emergente</h3>
+                <p>Cada organismo tiene un genoma único con 20+ rasgos heredables. Las poblaciones evolucionan naturalmente sin intervención.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🌿 Ecología Real</h3>
+                <p>8 tipos de relaciones ecológicas que emergen de la combinación de perfil biológico, genoma y entorno.</p>
+            </div>
+            <div class="feature-card">
+                <h3>🎛️ Control en Vivo</h3>
+                <p>Crea mundos y modifica cualquier parámetro durante la simulación: probabilidad de embarazo, edad máxima, radios de detección...</p>
+            </div>
+            <div class="feature-card">
+                <h3>🦠 Epidemiología</h3>
+                <p>Sistema completo de enfermedades con patógenos, contagios, mutaciones, inmunidad y recuperación.</p>
+            </div>
+            <div class="feature-card">
+                <h3>👥 Relaciones Sociales</h3>
+                <p>Matrimonios, familias, adopciones, genealogía completa con linajes y árboles familiares.</p>
+            </div>
+            <div class="feature-card">
+                <h3>📊 Métricas Multidimensionales</h3>
+                <p>Análisis demográfico, genético, epidemiológico, espacial, cognitivo y genealógico en tiempo real.</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🚀 Instalación rápida</h2>
+            <div class="install-code">
+                git clone https://github.com/primordial-sim/primordial.git<br>
+                cd primordial<br>
+                python -m venv venv<br>
+                venv\Scripts\activate<br>
+                pip install -e .<br>
+                python launcher.py
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🎯 Tu rol: arquitecto de mundos</h2>
+            <p>En Primordial no eres un espectador: eres el <strong>arquitecto del mundo</strong>. Creas las condiciones iniciales y luego puedes modificar cualquier variable en tiempo real mientras observas cómo el ecosistema responde a tus cambios.</p>
+            <p style="margin-top: 15px; font-style: italic; color: #667eea;">"Tú pones las reglas. La vida hace el resto."</p>
+        </div>
+
+        <footer>
+            <p><strong>Hecho con ❤️, 🐍 Python y 🤖 IA</strong></p>
+            <p style="margin-top: 10px;">
+                <a href="https://github.com/primordial-sim/primordial">GitHub</a> · 
+                <a href="https://github.com/primordial-sim/primordial/blob/main/LICENSE">Licencia MIT</a> · 
+                <a href="https://github.com/primordial-sim/primordial/issues">Reportar Bug</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>

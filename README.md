@@ -20,7 +20,7 @@
 <div align="center">
 
 ![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)
-![Tests](https://img.shields.io/badge/tests-396%20passed-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-399%20passed-brightgreen.svg)
 ![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)
 ![Status](https://img.shields.io/badge/status-active-orange.svg)
 
@@ -127,10 +127,10 @@ La simulación modela **8 tipos de relaciones ecológicas** que emergen automát
 | 🍖 **Scavenging** | Carroñeo | ✅ |
 | 🦠 **Infection** | Infección parasitaria | ✅ |
 | ⚔️ **Resource Consumption** | Competencia por recursos | ✅ |
-| 🏳️ **Territorial Display** | Exhibición territorial | 🚧 |
-| 🕳️ **Ambush** | Emboscada sigilosa | 🚧 |
-| 🧪 **Chemical Suppression** | Alelopatía | 🚧 |
-| 🌊 **Filter Feeding** | Filtrado de agua | 🚧 |
+| 🏳️ **Territorial Display** | Exhibición territorial | ✅ |
+| 🕳️ **Ambush** | Emboscada sigilosa | ✅ |
+| 🧪 **Chemical Suppression** | Alelopatía | ✅ |
+| 🌊 **Filter Feeding** | Filtrado de agua | ✅ |
 
 ### ⚡ Sistema de Energía
 
@@ -284,7 +284,7 @@ python launcher.py -p 150 -e resultados/mi_simulacion.json
 
 ## 🧪 Testing
 
-El proyecto cuenta con **396 tests** organizados en tres niveles:
+El proyecto cuenta con **399 tests** organizados en tres niveles:
 
 | Tipo | Descripción | Cantidad |
 |------|-------------|----------|
@@ -340,7 +340,7 @@ primordial/
 ├── entities/                # Entidades del mundo
 │   └── person/              # Organismos (clase Person)
 │
-├── tests/                   # Suite de tests (396 tests)
+├── tests/                   # Suite de tests (399 tests)
 │   ├── unit/                # Tests unitarios
 │   ├── integration/         # Tests de integración
 │   └── benchmarks/          # Tests de rendimiento
@@ -411,14 +411,13 @@ El motor opera en un **ciclo de fases secuenciales** que se ejecutan en cada tic
 - [x] Sistema de matrimonios y adopciones
 - [x] Epidemiología con patógenos
 - [x] Catástrofes naturales
-- [x] 396 tests pasando
+- [x] 399 tests pasando
 - [x] Profesionalización del repositorio (licencia, guías de comunidad, plantillas)
 
 ### 🚧 En progreso
 
 - [ ] Interfaz gráfica en Godot
 - [ ] Editor de mundos y panel de control de parámetros en vivo
-- [ ] Mecanismos adicionales (emboscada, caza en manada, territorial)
 - [ ] Integración InfectionMechanism ↔ DiseaseSystem
 - [ ] Empaquetado como aplicación instalable
 

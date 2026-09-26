@@ -69,13 +69,13 @@ El **Sistema de Relaciones Ecológicas** gestiona las interacciones entre especi
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ 1. ENTRADA: DOS ESPECIES                                        │
-│    ├── SpeciesDefinition A (ej: "bird")                          │
-│    └── SpeciesDefinition B (ej: "insect")                        │
+│    ├── SpeciesDefinition A (ej: "bird")                         │
+│    └── SpeciesDefinition B (ej: "insect")                       │
 └───────────────────────────┬─────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ 2. CONSULTA DE PERFILES (SpeciesClassificationSystem)            │
+│ 2. CONSULTA DE PERFILES (SpeciesClassificationSystem)           │
 │    ├── Dieta: ¿Es carnívoro? ¿Es herbívoro?                     │
 │    ├── Hábitat: ¿Terrestre? ¿Acuático? ¿Aéreo?                  │
 │    ├── Tamaño corporal: ¿Pequeño? ¿Mediano? ¿Grande?            │
@@ -103,12 +103,12 @@ El **Sistema de Relaciones Ecológicas** gestiona las interacciones entre especi
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ 5. SALIDA: EcologicalRelationship                               │
-│    ├── species_a_id, species_b_id                                │
-│    ├── relationship_type (PREDATION, MUTUALISM, etc.)            │
-│    ├── mechanism (HUNT, GRAZING, POLLINATION, etc.)              │
-│    ├── intensity [0.0, 1.0]                                      │
-│    ├── effect_on_a: RelationshipEffect                           │
-│    └── effect_on_b: RelationshipEffect                           │
+│    ├── species_a_id, species_b_id                               │
+│    ├── relationship_type (PREDATION, MUTUALISM, etc.)           │
+│    ├── mechanism (HUNT, GRAZING, POLLINATION, etc.)             │
+│    ├── intensity [0.0, 1.0]                                     │
+│    ├── effect_on_a: RelationshipEffect                          │
+│    └── effect_on_b: RelationshipEffect                          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -450,34 +450,34 @@ El orquestador ejecuta las relaciones ecológicas durante la simulación. Se int
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ 1. DETECCIÓN DE ENCUENTROS (SpatialGrid)                         │
+│ 1. DETECCIÓN DE ENCUENTROS (SpatialGrid)                        │
 │    └── Para cada agente, buscar vecinos en radio 2              │
 └───────────────────────────┬─────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ 2. INFERENCIA DE RELACIONES (con caché)                          │
-│    └── Relaciones inferidas una vez por par de especies          │
+│ 2. INFERENCIA DE RELACIONES (con caché)                         │
+│    └── Relaciones inferidas una vez por par de especies         │
 └───────────────────────────┬─────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ 3. VERIFICACIÓN DE CONDICIONES AMBIENTALES                       │
-│    └── BiomeConditionChecker: bioma + estación                   │
+│ 3. VERIFICACIÓN DE CONDICIONES AMBIENTALES                      │
+│    └── BiomeConditionChecker: bioma + estación                  │
 └───────────────────────────┬─────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ 4. EJECUCIÓN DEL MECANISMO                                       │
-│    └── MechanismFactory despacha al mecanismo correcto           │
+│ 4. EJECUCIÓN DEL MECANISMO                                      │
+│    └── MechanismFactory despacha al mecanismo correcto          │
 └───────────────────────────┬─────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│ 5. APLICACIÓN DE EFECTOS                                         │
-│    ├── Energía: add_energy() / spend_energy()                    │
-│    ├── Muerte: pending.register_death()                          │
-│    └── Estadísticas: actualizar contadores                       │
+│ 5. APLICACIÓN DE EFECTOS                                        │
+│    ├── Energía: add_energy() / spend_energy()                   │
+│    ├── Muerte: pending.register_death()                         │
+│    └── Estadísticas: actualizar contadores                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -548,34 +548,79 @@ Efecto sobre insect: RelationshipEffect(death_prob=51%)
 
 ---
 
+## 🧬 Rasgos genéticos usados por cada mecanismo
+
+Cada mecanismo lee rasgos específicos del genoma en escala [0, 1] mediante `BaseMechanism._get_trait()`:
+
+| Mecanismo | Relación | Rasgos de A | Rasgos de B | Probabilidad | Efectos |
+|-----------|----------|-------------|-------------|--------------|---------|
+| 🎯 `HuntMechanism` | PREDATION | `body_size` | `body_size` | [0.05, 0.85] | B muere; A gana energía |
+| 🕳️ `AmbushMechanism` | PREDATION | `camouflage`, `predatory_instinct` | `vision`, `hearing`, `smell` | [0.05, 0.90] | B muere; A gana energía. Fallo: A paga 10% de acecho |
+| 🐺 `PackHuntingMechanism` | PREDATION | `pack_behavior`, `cooperation`, `body_size` | `body_size` | [0.05, 0.90] | B muere; A gana 70% de la energía (botín repartido) |
+| 🌿 `GrazingMechanism` | HERBIVORY | — | — | intensity·0.9 | A gana energía; B pierde energía y puede morir |
+| 🌊 `FilterFeedingMechanism` | HERBIVORY | `swimming`, `mobility` | — | [0.10, 0.95] | A gana energía; B pierde energía y puede morir |
+| 🌸 `PollinationMechanism` | MUTUALISM | — | — | 0.95 | Ambos ganan energía |
+| ⚔️ `ResourceConsumptionMechanism` | COMPETITION | — | — | 1.0 | Ambos pierden energía |
+| 🏳️ `TerritorialDisplayMechanism` | COMPETITION | `territoriality`, `aggressiveness`, `body_size` | mismos rasgos | [0.10, 0.90] | Sin muertes: el perdedor paga retirada + estrés |
+| 🧪 `ChemicalSuppressionMechanism` | AMENSALISM | `venom` | `immunity` | [0.05, 0.85] | A paga coste de toxinas; B pierde energía |
+| 🍖 `ScavengingMechanism` | PREDATION | — | — | intensity·0.8 | A gana energía; B no afectado |
+| 🦠 `InfectionMechanism` | PARASITISM | — | `get_immunity()` | [0.05, 0.70] | A gana energía; B pierde energía y puede ser infectado |
+
+> **Nota**: en `TerritorialDisplayMechanism`, `success` significa "A gana la exhibición", no "la interacción ocurrió" (la exhibición siempre ocurre).
+
+---
+
+## 🦠 Puente epidemiológico: parasitismo → DiseaseSystem
+
+Desde la versión 3.0 de este documento, `InfectionMechanism` está integrado con `DiseaseSystem`:
+
+1. **Inoculación**: si la infección tiene éxito y el huésped no alberga una infección activa de la misma familia, se crea un patógeno con `Pathogen.create_random_variant("Parasite_{especie_de_A}")` y se registra con `pending.register_infection()`.
+2. **Sin reinfección**: si el huésped ya tiene un patógeno de la familia `Parasite_{especie}`, solo se aplica el coste energético.
+3. **Ciclo epidemiológico completo**: el patógeno inoculado entra en las fases de `DiseaseSystem` (expuesto → incubando → contagioso → sintomático → recuperándose), con mutación, contagio por carga viral e inmunidad específica.
+4. **Muerte por enfermedad**: la letalidad del patógeno puede matar al huésped desde `DiseaseSystem`, no desde el mecanismo.
+
+```
+┌──────────────────────┐   éxito    ┌──────────────────────────────┐
+│  InfectionMechanism  │───────────▶│ pending.register_infection() │
+│  (ecología)          │            └──────────────┬───────────────┘
+└──────────────────────┘                           ▼
+                                       ┌──────────────────────────────┐
+                                       │        DiseaseSystem         │
+                                       │ fases, contagio, mutación,   │
+                                       │ recuperación, letalidad      │
+                                       └──────────────────────────────┘
+```
+
+---
+
 ## 🔗 Interacción con otros sistemas
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│              SpeciesClassificationSystem                         │
-│         Taxonomía + Perfiles + Especies                          │
+┌────────────────────────────────────────────────────────────────┐
+│              SpeciesClassificationSystem                       │
+│         Taxonomía + Perfiles + Especies                        │
 └────────────────────┬───────────────────────────────────────────┘
                      │ proporciona perfiles
                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              RelationshipInference                                │
-│    Infiere relaciones desde perfil + genoma                     │
+┌────────────────────────────────────────────────────────────────┐
+│              RelationshipInference                             │
+│    Infiere relaciones desde perfil + genoma                    │
 └────────────────────┬───────────────────────────────────────────┘
                      │ produce
                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              EcologicalRelationship                               │
-│    Objeto con tipo, mecanismo, intensidad, efectos              │
+┌────────────────────────────────────────────────────────────────┐
+│              EcologicalRelationship                            │
+│    Objeto con tipo, mecanismo, intensidad, efectos             │
 └────────────────────┬───────────────────────────────────────────┘
                      │ usado por
                      ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│              EcologicalRelationshipSystem (implementado)         │
+│              EcologicalRelationshipSystem (implementado)        │
 │    Ejecuta relaciones durante la simulación                     │
-│    ├── Detección de encuentros (SpatialGrid) ✅                  │
-│    ├── Verificación de biomas (BiomeConditionChecker) ✅         │
-│    ├── Ejecución de mecanismos (MechanismFactory) ✅             │
-│    └── Aplicación de efectos (energía, muerte) ✅                │
+│    ├── Detección de encuentros (SpatialGrid) ✅                 │
+│    ├── Verificación de biomas (BiomeConditionChecker) ✅        │
+│    ├── Ejecución de mecanismos (MechanismFactory) ✅            │
+│    └── Aplicación de efectos (energía, muerte) ✅               │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -587,7 +632,7 @@ Efecto sobre insect: RelationshipEffect(death_prob=51%)
 |---------|-------|
 | Tipos de relación | 8 |
 | Mecanismos de interacción | 12 |
-| Mecanismos implementados | 6 (Hunt, Grazing, Pollination, ResourceConsumption, Scavenging, Infection) |
+| Mecanismos implementados | 12 (todos los tipos de `MechanismType`) |
 | Niveles de intensidad | 4 (WEAK, MODERATE, STRONG, EXTREME) |
 | Atributos de efecto | 7 |
 | Relaciones inferidas por defecto | 17 (con 8 especies) |
@@ -601,6 +646,7 @@ Efecto sobre insect: RelationshipEffect(death_prob=51%)
 ## 🚨 Consideraciones y limitaciones
 
 ### Principios fundamentales
+
 - **Relaciones como objetos**: Cada relación es un objeto inmutable, no una regla fija
 - **Emergencia desde genética**: Las relaciones emergen de perfil + genoma, no de tablas hardcodeadas
 - **Inteligencia como defensa**: La inteligencia y sociabilidad protegen a las presas
@@ -608,11 +654,13 @@ Efecto sobre insect: RelationshipEffect(death_prob=51%)
 - **Mecanismos modulares**: Cada tipo de interacción tiene su propia lógica encapsulada
 
 ### Limitaciones actuales
+
 - **Duplicados bidireccionales**: Competition y Mutualism aparecen dos veces (A→B y B→A)
 - **Procesamiento periódico**: Las relaciones se ejecutan cada 3 días, no cada tick
 - **Sin memoria de interacciones**: Los organismos no recuerdan encuentros previos
 
 ### Errores comunes
+
 - ❌ Asumir que las relaciones son simétricas (Predation no lo es)
 - ❌ Usar `can_interact()` para Predation (usar `_can_predation_habitat_interact()`)
 - ❌ Ignorar la intensidad (relaciones con intensity < 0.5 se descartan)
@@ -629,6 +677,7 @@ Efecto sobre insect: RelationshipEffect(death_prob=51%)
 ### ¿Por qué la inteligencia protege de la depredación?
 
 **Realismo biológico**: Los humanos no somos presas de aves rapaces porque:
+
 - Usamos herramientas y fuego
 - Vivimos en grupos coordinados
 - Tenemos estrategias de defensa
@@ -648,25 +697,28 @@ Esto se modela con `intelligence_bonus = intelligence * 0.25` y `sociability_bon
 ## 🔮 Futuras extensiones
 
 ### Completadas ✅
+
 - [x] `EcologicalRelationshipSystem`: Orquestador que ejecuta relaciones durante la simulación
 - [x] `BiomeConditionChecker`: Verificación de biomas y estaciones
 - [x] Integración con `SpatialGrid` para detección de encuentros
-- [x] Mecanismos de ejecución: `HuntMechanism`, `GrazingMechanism`, etc.
+- [x] Mecanismos de ejecución: los 12 mecanismos de `MechanismType` con implementación específica
 - [x] `MechanismFactory`: Despacho dinámico de mecanismos
+- [x] Parasitismo integrado con `DiseaseSystem` (inoculación de patógenos reales)
 
 ### Planificadas (corto plazo)
+
 - [ ] Eliminación de duplicados bidireccionales
 - [ ] Efectos sobre poblaciones (mortalidad, natalidad)
 - [ ] Cadenas tróficas completas
-- [ ] Parasitismo integrado con `DiseaseSystem`
 
 ### Planificadas (medio plazo)
-- [ ] `AmbushMechanism`, `PackHuntingMechanism`, `TerritorialDisplayMechanism`
+
 - [ ] Memoria de interacciones entre organismos
 - [ ] Coevolución (depredador-presa)
 - [ ] Extinción de especies
 
 ### Posibles (largo plazo)
+
 - [ ] Especiación por aislamiento ecológico
 - [ ] Extinciones masivas por colapso de cadenas tróficas
 - [ ] Efectos cascada en el ecosistema
@@ -677,17 +729,22 @@ Esto se modela con `intelligence_bonus = intelligence * 0.25` y `sociability_bon
 ## 📋 Changelog
 
 ### Versión 2.0 (Agosto 2026)
+
 - ✅ Añadida sección de Mecanismos de Ejecución
 - ✅ Añadida sección de EcologicalRelationshipSystem
 - ✅ Actualizado diagrama de interacción (sistema implementado)
 - ✅ Actualizadas limitaciones y extensiones futuras
 - ✅ Añadidos 6 mecanismos implementados
 
-### Versión 1.0 (Agosto 2026)
-- Versión inicial con inferencia de relaciones
+### Versión 3.0 (Septiembre 2026)
+
+- ✅ Catálogo de rasgos genéticos por mecanismo (12 mecanismos)
+- ✅ Puente epidemiológico: el parasitismo inocula patógenos reales vía `DiseaseSystem`
+- ✅ Métricas actualizadas: 12 mecanismos implementados
+- ✅ Roadmap: mecanismos y parasitismo movidos a "Completadas"
 
 ---
 
 *Documento: 20_ECOLOGIA.md*
-*Versión: 2.0*
-*Última actualización: Agosto 2026*
+*Versión: 3.0*
+*Última actualización: Septiembre 2026*

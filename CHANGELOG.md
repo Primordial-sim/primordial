@@ -7,10 +7,21 @@ y este proyecto adhiere al [Versionamiento Semántico](https://semver.org/lang/e
 
 ## [Unreleased]
 
+### Añadido
+- **Mecanismos ecológicos con implementación específica** (antes placeholders en `MechanismFactory`):
+  - `AmbushMechanism`: emboscada sigilosa (camuflaje e instinto depredador vs visión, oído y olfato de la presa)
+  - `PackHuntingMechanism`: caza en manada; la coordinación (`pack_behavior`, `cooperation`) compensa presas mayores y el botín se reparte (70% individual)
+  - `TerritorialDisplayMechanism`: competencia ritualizada sin muertes; el perdedor paga retirada y estrés
+  - `ChemicalSuppressionMechanism`: alelopatía; la muerte del objetivo emerge por inanición, no se registra directamente
+  - `FilterFeedingMechanism`: filtrado pasivo de nutrientes; el recurso agotado muere como en el pastoreo
+- **Puente epidemiológico**: `InfectionMechanism` inocula ahora patógenos reales en el huésped vía `DiseaseSystem`, con familia `Parasite_{especie}` y sin reinfección de familias activas
+- 27 tests nuevos de mecanismos (la suite pasa de 372 a 399 tests)
+
+### Cambiado
+- `MechanismFactory`: `AMBUSH`, `PACK_HUNTING`, `FILTER_FEEDING`, `TERRITORIAL_DISPLAY` y `CHEMICAL_SUPPRESSION` despachan ahora sus mecanismos específicos en lugar de placeholders
+- Documentación `20_ECOLOGIA.md` actualizada a la versión 3.0 con el catálogo de rasgos por mecanismo y el puente epidemiológico
+
 ### Planeado
-- Mecanismos ecológicos adicionales: `AmbushMechanism`, `PackHuntingMechanism`, `TerritorialDisplayMechanism`
-- Integración completa entre `InfectionMechanism` y `DiseaseSystem`
-- Documentación actualizada de métricas ecológicas en `20_ECOLOGIA.md`
 - Tests específicos para métricas de ecología
 - Interfaz gráfica en Godot 4.x
 - Empaquetado como aplicación instalable

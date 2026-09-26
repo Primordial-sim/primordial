@@ -506,6 +506,51 @@ class TestInfectionMechanism:
         finally:
             random.random = original_random
 
+    def test_successful_infection_registers_pathogen(self, mechanism, parasite, host, parasitism_relationship, pending, monkeypatch):
+        """Infección exitosa inocula un patógeno en el huésped."""
+        monkeypatch.setattr(random, "random", lambda: 0.0)  # Siempre éxito
+        
+        # Mock de active_infections vacío
+        host.active_infections = {}
+        
+        outcome = mechanism.execute(parasite, host, parasitism_relationship, pending)
+        
+        assert outcome == InteractionOutcome.SUCCESS
+        pending.register_infection.assert_called_once()
+        
+        # Verificar que el patógeno tiene la familia correcta
+        call_args = pending.register_infection.call_args
+        registered_pathogen = call_args[0][1]
+        assert registered_pathogen.family == f"Parasite_{parasite.species}"
+    
+    def test_already_infected_host_not_reinfected(self, mechanism, parasite, host, parasitism_relationship, pending, monkeypatch):
+        """Si el huésped ya tiene esa familia de patógenos, no se reinfecta."""
+        monkeypatch.setattr(random, "random", lambda: 0.0)  # Siempre éxito
+        
+        # Mock de active_infections con un patógeno de la misma familia
+        parasite_family = f"Parasite_{parasite.species}"
+        host.active_infections = {
+            f"{parasite_family}_000001": MagicMock()
+        }
+        
+        outcome = mechanism.execute(parasite, host, parasitism_relationship, pending)
+        
+        assert outcome == InteractionOutcome.SUCCESS
+        pending.register_infection.assert_not_called()
+        # Pero el huésped sí pierde energía
+        host.spend_energy.assert_called()
+    
+    def test_failed_infection_no_pathogen(self, mechanism, parasite, host, parasitism_relationship, pending, monkeypatch):
+        """Infección fallida: no se inocula patógeno."""
+        monkeypatch.setattr(random, "random", lambda: 1.0)  # Siempre fallo
+        
+        host.active_infections = {}
+        
+        outcome = mechanism.execute(parasite, host, parasitism_relationship, pending)
+        
+        assert outcome == InteractionOutcome.FAILURE
+        pending.register_infection.assert_not_called()
+
 
 class TestMechanismFactory:
     """Tests para MechanismFactory."""
@@ -633,6 +678,7 @@ class TestMechanismStatistics:
             assert stats["success_rate"] == 0.0
         finally:
             random.random = original_random
+
 
 class TestAmbushMechanism:
     """Tests para AmbushMechanism (emboscada sigilosa)."""
@@ -943,7 +989,7 @@ class TestChemicalSuppressionMechanism:
         assert 0.05 <= prob <= 0.85
     
     def test_venom_and_immunity_modulate(self, mechanism, relationship):
-        """Más venomo aumenta el éxito; más inmunidad lo reduce."""
+        """Más veneno aumenta el éxito; más inmunidad lo reduce."""
         potent = MagicMock()
         potent.genome.venom = 0.9
         weak = MagicMock()

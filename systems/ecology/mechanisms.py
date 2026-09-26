@@ -33,6 +33,8 @@ from systems.ecology.relationship_types import (
     InteractionOutcome,
 )
 
+from systems.diseases.pathogen import Pathogen
+
 if TYPE_CHECKING:
     from entities.person.person import Person
     from core.state.pending_changes import PendingChanges
@@ -701,7 +703,16 @@ class InfectionMechanism(BaseMechanism):
         pending: 'PendingChanges',
         success: bool,
     ) -> None:
-        """Parásito gana energía, huésped pierde energía."""
+        """Parásito gana energía, huésped pierde energía y puede infectarse.
+        
+        Si la infección tiene éxito, además del coste energético, se inocula
+        un patógeno real en el huésped. Esto conecta el parasitismo ecológico
+        con el sistema epidemiológico (DiseaseSystem).
+        
+        La familia del patógeno se deriva de la especie del parásito
+        (ej: "Parasite_wolf"). Si el huésped ya tiene una infección activa
+        de esa familia, no se reinfecta (solo paga el coste energético).
+        """
         if success:
             # Parásito gana energía
             if relationship.effect_on_a:
@@ -714,6 +725,23 @@ class InfectionMechanism(BaseMechanism):
                 energy_loss = abs(relationship.effect_on_b.energy_change)
                 if energy_loss > 0:
                     person_b.spend_energy(energy_loss)
+            
+            # Inocular patógeno si el huésped no está ya infectado
+            parasite_family = f"Parasite_{person_a.species}"
+            
+            # Verificar si el huésped ya tiene una infección activa de esa familia
+            already_infected = False
+            if hasattr(person_b, 'active_infections'):
+                for path_id in person_b.active_infections.keys():
+                    if path_id.startswith(f"{parasite_family}_"):
+                        already_infected = True
+                        break
+            
+            # Si no está infectado, inocular el patógeno
+            if not already_infected:
+                pathogen = Pathogen.create_random_variant(parasite_family)
+                if hasattr(pending, 'register_infection'):
+                    pending.register_infection(person_b.entity_id, pathogen)
 
 
 class MechanismFactory:

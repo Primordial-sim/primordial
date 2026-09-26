@@ -20,7 +20,7 @@
 <div align="center">
 
 ![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)
-![Tests](https://img.shields.io/badge/tests-399%20passed-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-414%20passed-brightgreen.svg)
 ![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)
 ![Status](https://img.shields.io/badge/status-active-orange.svg)
 
@@ -284,7 +284,7 @@ python launcher.py -p 150 -e resultados/mi_simulacion.json
 
 ## 🧪 Testing
 
-El proyecto cuenta con **399 tests** organizados en tres niveles:
+El proyecto cuenta con **414 tests** organizados en tres niveles:
 
 | Tipo | Descripción | Cantidad |
 |------|-------------|----------|
@@ -340,7 +340,7 @@ primordial/
 ├── entities/                # Entidades del mundo
 │   └── person/              # Organismos (clase Person)
 │
-├── tests/                   # Suite de tests (399 tests)
+├── tests/                   # Suite de tests (414 tests)
 │   ├── unit/                # Tests unitarios
 │   ├── integration/         # Tests de integración
 │   └── benchmarks/          # Tests de rendimiento
@@ -411,14 +411,13 @@ El motor opera en un **ciclo de fases secuenciales** que se ejecutan en cada tic
 - [x] Sistema de matrimonios y adopciones
 - [x] Epidemiología con patógenos
 - [x] Catástrofes naturales
-- [x] 399 tests pasando
+- [x] 414 tests pasando
 - [x] Profesionalización del repositorio (licencia, guías de comunidad, plantillas)
 
 ### 🚧 En progreso
 
 - [ ] Interfaz gráfica en Godot
 - [ ] Editor de mundos y panel de control de parámetros en vivo
-- [ ] Integración InfectionMechanism ↔ DiseaseSystem
 - [ ] Empaquetado como aplicación instalable
 
 ### 🔮 Futuro
@@ -437,6 +436,7 @@ El motor opera en un **ciclo de fases secuenciales** que se ejecutan en cada tic
 La aplicación final incluirá una interfaz gráfica desarrollada en **Godot 4.x**:
 
 **Características planificadas**:
+
 - **Editor de mundos**: diseño del mapa, biomas y poblaciones iniciales antes de simular
 - Visualización en tiempo real del mundo con tiles y organismos
 - **Panel de control en vivo**: modificación de cualquier parámetro (reproducción, longevidad, detección, mutaciones...) sin reiniciar la simulación

@@ -9,6 +9,7 @@ y este proyecto adhiere al [Versionamiento Semántico](https://semver.org/lang/e
 
 ### Añadido
 - `robots.txt`, `sitemap.xml` y `404.html` personalizada para GitHub Pages (SEO y experiencia de usuario)
+- `core/config/parameter_registry.py`: registry validado de parámetros con auto-descubrimiento, validación de tipos y rangos, historial de cambios y reseteo (20 tests)
 
 ## [0.4.0] - 2026-09-25
 

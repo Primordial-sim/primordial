@@ -10,6 +10,7 @@ y este proyecto adhiere al [Versionamiento Semántico](https://semver.org/lang/e
 ### Añadido
 - `robots.txt`, `sitemap.xml` y `404.html` personalizada para GitHub Pages (SEO y experiencia de usuario)
 - `core/config/parameter_registry.py`: registry validado de parámetros con auto-descubrimiento, validación de tipos y rangos, historial de cambios y reseteo (20 tests)
+- `EcologyConfig` nueva en `SimulationConfig` con el primer parámetro migrado end-to-end al `ParameterRegistry`: el intervalo de procesamiento ecológico pasa a leerse en caliente desde `config.ecology.process_interval_days`, con 3 tests de integración que demuestran el circuito completo (registry → config → sistema en el tick siguiente)
 
 ## [0.4.0] - 2026-09-25
 

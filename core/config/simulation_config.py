@@ -532,6 +532,17 @@ class AgingConfig:
         self.longevity_genetic_factor: float = 1.0
         self.father_reproductive_wear_ratio: float = 0.5
 
+class EcologyConfig:
+    """Parámetros del sistema de relaciones ecológicas.
+
+    Hasta ahora estos valores vivían hardcodeados dentro de
+    EcologicalRelationshipSystem. Al existir aquí, el ParameterRegistry
+    puede descubrirlos, validarlos y modificarlos en caliente.
+    """
+
+    def __init__(self) -> None:
+        # Días entre pasadas de procesamiento ecológico (optimización)
+        self.process_interval_days: float = 3.0
 
 class SimulationConfig:
     """Configuración maestra que agrupa y expone todos los subsistemas."""
@@ -554,6 +565,7 @@ class SimulationConfig:
         self.movement = MovementConfig()
         self.relationships = RelationshipsConfig()
         self.aging = AgingConfig()
+        self.ecology = EcologyConfig()
 
     def set_parameter(self, category: str, key: str, value: Any) -> bool:
         """Modifica un parámetro en caliente durante la ejecución."""

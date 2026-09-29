@@ -186,7 +186,7 @@ class PhaseScheduler:
         egg_system = EggSystem(self.config)
 
         # Sistema de ecología (compartido con MetricsSystem para métricas)
-        ecological_system = EcologicalRelationshipSystem()
+        ecological_system = EcologicalRelationshipSystem(self.config)
 
         # Definición estructurada del ciclo biológico y físico
         phases = [

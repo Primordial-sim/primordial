@@ -28,6 +28,7 @@ from core.taxonomy.species_classification import SpeciesClassificationSystem
 from systems.ecology.mechanisms import MechanismFactory
 
 if TYPE_CHECKING:
+    from core.config.simulation_config import SimulationConfig
     from core.state.world_state import WorldState
     from core.state.pending_changes import PendingChanges
     from systems.environment.environment_context import EnvironmentContext
@@ -47,7 +48,12 @@ class EcologicalRelationshipSystem:
     
     _logger = logging.getLogger("EcologicalRelationshipSystem")
     
-    def __init__(self) -> None:
+    def __init__(self, config: Optional['SimulationConfig'] = None) -> None:
+        # Config opcional: habilita lectura en caliente de parámetros.
+        # Sin config inyectada, el sistema conserva sus valores por defecto
+        # (compatibilidad total con tests y usos existentes).
+        self.config = config
+
         # Sistema de clasificación (taxonomía + perfiles)
         self.classification = SpeciesClassificationSystem.get_default()
         
@@ -59,6 +65,8 @@ class EcologicalRelationshipSystem:
         
         # Contador para procesamiento periódico (no cada tick)
         self._process_counter: float = 0.0
+        # Respaldo sin config inyectada; la fuente de verdad es
+        # config.ecology.process_interval_days (ver _get_process_interval)
         self.process_interval: float = 3.0  # Cada 3 días
         
         # Cache de relaciones inferidas entre pares de especies
@@ -74,6 +82,19 @@ class EcologicalRelationshipSystem:
         self._total_mutualism: int = 0
         self._total_competition: int = 0
     
+    def _get_process_interval(self) -> float:
+        """Devuelve el intervalo de procesamiento leyendo la config en caliente.
+
+        Permite que el ParameterRegistry (GUI, triggers, mods) modifique
+        ``ecology.process_interval_days`` en plena simulación y que el
+        cambio surta efecto en el siguiente tick.
+        """
+        if self.config is not None:
+            ecology_cfg = getattr(self.config, 'ecology', None)
+            if ecology_cfg is not None:
+                return getattr(ecology_cfg, 'process_interval_days', self.process_interval)
+        return self.process_interval
+
     # =========================================================================
     # MÉTODO PRINCIPAL
     # =========================================================================
@@ -96,13 +117,13 @@ class EcologicalRelationshipSystem:
         if not state.has_tile_map():
             return
         
-        # Procesar solo cada N días para optimización
+        # Procesar solo cada N días para optimización (lectura en caliente)
         self._process_counter += delta_days
-        if self._process_counter < self.process_interval:
+        if self._process_counter < self._get_process_interval():
             return
-        
+
         self._process_counter = 0.0
-        
+
         # Obtener todos los agentes vivos
         persons = list(state.get_all_persons())
         if not persons:

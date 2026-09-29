@@ -11,11 +11,12 @@ Principio: "El entorno es un resultado emergente de la vida que contiene."
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from systems.environment.organism_impact import OrganismImpactCalculator, TileImpact
 
 if TYPE_CHECKING:
+    from core.config.simulation_config import SimulationConfig
     from core.state.world_state import WorldState
     from core.state.pending_changes import PendingChanges
     from systems.environment.environment_context import EnvironmentContext
@@ -24,16 +25,25 @@ if TYPE_CHECKING:
 class FeedbackSystem:
     """Sistema que aplica el impacto de los organismos al entorno."""
     
-    def __init__(self) -> None:
+    def __init__(self, config: Optional['SimulationConfig'] = None) -> None:
+        self.config = config
         self.logger = logging.getLogger(self.__class__.__name__)
         self.impact_calculator = OrganismImpactCalculator()
         
         # Contador para procesamiento periódico (no cada tick)
         self._process_counter: float = 0.0
-        self.process_interval: float = 5.0  # Cada 5 días
+        self.process_interval: float = 5.0  # Respaldo; la fuente de verdad es config.feedback.process_interval_days
         
         # Factor de escala para los impactos (ajustable)
         self.impact_scale: float = 1.0
+
+    def _get_process_interval(self) -> float:
+        """Devuelve el intervalo de procesamiento leyendo la config en caliente."""
+        if self.config is not None:
+            feedback_cfg = getattr(self.config, 'feedback', None)
+            if feedback_cfg is not None:
+                return getattr(feedback_cfg, 'process_interval_days', self.process_interval)
+        return self.process_interval
     
     def process(
         self,
@@ -53,9 +63,9 @@ class FeedbackSystem:
         if not state.has_tile_map():
             return
         
-        # Procesar solo cada N días para optimización
+        # Procesar solo cada N días para optimización (lectura en caliente)
         self._process_counter += delta_days
-        if self._process_counter < self.process_interval:
+        if self._process_counter < self._get_process_interval():
             return
         
         self._process_counter = 0.0

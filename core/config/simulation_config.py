@@ -550,6 +550,18 @@ class EnergyConfig:
         self.photosynthesis_rate: float = 5.0        # Energía/día en condiciones óptimas
         self.photosynthesis_light_factor: float = 1.0  # Factor de luz (0-1)
 
+class FeedbackConfig:
+    """Parámetros del sistema de retroalimentación organismos-entorno.
+
+    Hasta ahora estos valores vivían hardcodeados dentro de FeedbackSystem.
+    Al existir aquí, el ParameterRegistry puede descubrirlos, validarlos
+    y modificarlos en caliente.
+    """
+
+    def __init__(self) -> None:
+        # Días entre pasadas de procesamiento de feedback
+        self.process_interval_days: float = 5.0
+
 class EcologyConfig:
     """Parámetros del sistema de relaciones ecológicas.
 
@@ -585,6 +597,7 @@ class SimulationConfig:
         self.aging = AgingConfig()
         self.ecology = EcologyConfig()
         self.energy = EnergyConfig()
+        self.feedback = FeedbackConfig()
 
     def set_parameter(self, category: str, key: str, value: Any) -> bool:
         """Modifica un parámetro en caliente durante la ejecución."""

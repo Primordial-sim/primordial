@@ -61,7 +61,7 @@ class EnvironmentSystem:
         self.resource_grid: Dict[Tuple[int, int], Dict[str, float]] = {}
         self.danger_zones: Dict[Tuple[int, int], float] = {}
         self.dynamics = EnvironmentDynamics()
-        self.feedback_system = FeedbackSystem()
+        self.feedback_system = FeedbackSystem(self.config)
 
     def process(
         self,

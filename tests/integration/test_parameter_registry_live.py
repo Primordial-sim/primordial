@@ -12,6 +12,7 @@ from core.config.parameter_registry import ParameterRegistry, ParameterSpec
 from core.config.simulation_config import SimulationConfig
 from systems.ecology.ecological_relationship_system import EcologicalRelationshipSystem
 from systems.energy.energy_system import EnergySystem
+from systems.environment.feedback_system import FeedbackSystem
 
 
 def make_empty_state():
@@ -148,3 +149,48 @@ class TestLiveEnergyEditing:
 
         assert registry.set("energy.basal_metabolic_rate", 5.0) is False
         assert config.energy.basal_metabolic_rate == 0.1
+
+# ---------------------------------------------------------------------------
+# Feedback: intervalo de procesamiento en caliente
+# ---------------------------------------------------------------------------
+
+def make_feedback_state():
+    """Estado mock con tile_map pero sin organismos."""
+    state = MagicMock()
+    state.has_tile_map = MagicMock(return_value=True)
+    state.tile_map = MagicMock()
+    state.tile_map.tiles = {}
+    state.get_all_persons = MagicMock(return_value=[])
+    return state
+
+
+class TestLiveFeedbackEditing:
+    """El sistema de feedback responde a cambios en caliente de FeedbackConfig."""
+
+    def test_registry_change_alters_feedback_gate(self):
+        """Reducir el intervalo en caliente hace que el sistema procese antes."""
+        config = SimulationConfig()
+        registry = ParameterRegistry(config)
+        registry.auto_discover("feedback")
+        system = FeedbackSystem(config)
+        state = make_feedback_state()
+
+        # Intervalo por defecto 5.0: con 3 días no cruza la puerta
+        system.process(state, MagicMock(), 3.0, MagicMock())
+        assert system._process_counter == 3.0
+
+        # Cambio en caliente vía registry
+        assert registry.set("feedback.process_interval_days", 1.0) is True
+
+        # El siguiente tick cruza la puerta y resetea el contador
+        system.process(state, MagicMock(), 3.0, MagicMock())
+        assert system._process_counter == 0.0
+
+    def test_feedback_without_config_keeps_default(self):
+        """Sin config inyectada, el sistema se comporta como antes."""
+        system = FeedbackSystem()
+        state = make_feedback_state()
+
+        system.process(state, MagicMock(), 3.0, MagicMock())
+
+        assert system._process_counter == 3.0

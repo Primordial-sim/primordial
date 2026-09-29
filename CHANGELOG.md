@@ -13,6 +13,7 @@ y este proyecto adhiere al [Versionamiento Semántico](https://semver.org/lang/e
 - `core/config/parameter_registry.py`: registry validado de parámetros con auto-descubrimiento, validación de tipos y rangos, historial de cambios y reseteo (20 tests)
 - `EcologyConfig` nueva en `SimulationConfig` con el primer parámetro migrado end-to-end al `ParameterRegistry`: el intervalo de procesamiento ecológico pasa a leerse en caliente desde `config.ecology.process_interval_days`, con 3 tests de integración que demuestran el circuito completo (registry → config → sistema en el tick siguiente)
 - `EnergyConfig` nueva en `SimulationConfig` con 5 parámetros de metabolismo energético (basal, inanición, fotosíntesis); el sistema los lee en caliente vía `ParameterRegistry` con 3 tests de integración que demuestran el efecto en vivo sobre el gasto energético (suite pasa de 437 a 440 tests)
+- `FeedbackConfig` nueva en `SimulationConfig` con el intervalo de procesamiento del sistema de retroalimentación organismos-entorno; migrado a lectura en caliente vía `ParameterRegistry` con 2 tests de integración (suite pasa de 440 a 442 tests)
 
 ## [0.4.0] - 2026-09-25
 

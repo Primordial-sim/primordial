@@ -67,6 +67,20 @@ class EnergySystem:
         self._total_energy_processed: int = 0
         self._total_photosynthesis_events: int = 0
     
+    def _get_param(self, name: str, default: float) -> float:
+        """Lee un parámetro de energía desde la config en caliente.
+
+        Permite que el ParameterRegistry modifique los valores de
+        EnergyConfig en plena simulación y que el cambio surta efecto
+        en el siguiente tick.
+        """
+        if self.config is not None:
+            energy_cfg = getattr(self.config, 'energy', None)
+            if energy_cfg is not None:
+                return getattr(energy_cfg, name, default)
+        return default
+
+    
     def process(
         self,
         state: 'WorldState',
@@ -186,7 +200,7 @@ class EnergySystem:
             Cantidad de energía generada.
         """
         # Energía base por fotosíntesis
-        energy = self.photosynthesis_rate * delta_days
+        energy = self._get_param('photosynthesis_rate', self.photosynthesis_rate) * delta_days
         
         # Modificador por luz (simplificado: asumimos luz diurna promedio)
         # En el futuro se puede consultar la hora del día y la estación
@@ -274,7 +288,7 @@ class EnergySystem:
         
         return 0.7  # Por defecto
 
-        # =========================================================================
+    # =========================================================================
     # SINCRONIZACIÓN CON EMOCIONES
     # =========================================================================
 
@@ -342,7 +356,7 @@ class EnergySystem:
             Cantidad de energía a gastar.
         """
         # Coste base
-        cost = self.basal_metabolic_rate * delta_days
+        cost = self._get_param('basal_metabolic_rate', self.basal_metabolic_rate) * delta_days
         
         # Modificador por tamaño corporal (basado en genoma)
         size_factor = self._get_size_factor(person)
@@ -414,12 +428,16 @@ class EnergySystem:
         if starvation_days <= 0:
             return False
         
+        # Leer umbrales en caliente desde la config
+        threshold = self._get_param('starvation_death_threshold', self.starvation_death_threshold)
+        damage_rate = self._get_param('starvation_damage_rate', self.starvation_damage_rate)
+
         # Calcular probabilidad de muerte basada en días de inanición
-        if starvation_days < self.starvation_death_threshold:
-            risk_factor = starvation_days / self.starvation_death_threshold
-            death_probability = risk_factor * self.starvation_damage_rate * delta_days
+        if starvation_days < threshold:
+            risk_factor = starvation_days / threshold
+            death_probability = risk_factor * damage_rate * delta_days
         else:
-            days_over = starvation_days - self.starvation_death_threshold
+            days_over = starvation_days - threshold
             death_probability = 0.5 + (days_over * 0.1)
         
         # Tirada aleatoria

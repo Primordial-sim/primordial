@@ -6,9 +6,12 @@ Demuestra el circuito completo:
 
 from unittest.mock import MagicMock
 
+import pytest
+
 from core.config.parameter_registry import ParameterRegistry, ParameterSpec
 from core.config.simulation_config import SimulationConfig
 from systems.ecology.ecological_relationship_system import EcologicalRelationshipSystem
+from systems.energy.energy_system import EnergySystem
 
 
 def make_empty_state():
@@ -70,3 +73,78 @@ class TestLiveParameterEditing:
 
         assert registry.set("ecology.process_interval_days", 7.0) is True
         assert config.ecology.process_interval_days == 7.0
+
+# ---------------------------------------------------------------------------
+# Energía: parámetros vivos de metabolismo
+# ---------------------------------------------------------------------------
+
+def make_energy_person():
+    """Organismo mock no fotosintético, sano y sin inanición."""
+    person = MagicMock()
+    person.genome.body_size = 0.5  # size_factor = 0.5 + 0.5*1.5 = 1.25
+    person.genome.get_trait_value = MagicMock(return_value=0.8)  # diet > 0.1 → no fotosintético
+    person.is_pregnant = False
+    person.is_sick = False
+    person._emotions = {}
+    person.starvation_days = 0.0
+    return person
+
+
+def make_energy_state(persons):
+    state = MagicMock()
+    state.get_all_persons = MagicMock(return_value=persons)
+    return state
+
+
+class TestLiveEnergyEditing:
+    """El metabolismo responde a cambios en caliente de EnergyConfig."""
+
+    def test_auto_discover_energy_parameters(self):
+        """auto_discover encuentra los 5 parámetros de energía."""
+        config = SimulationConfig()
+        registry = ParameterRegistry(config)
+
+        discovered = registry.auto_discover("energy")
+
+        assert discovered == 5
+        assert "energy.basal_metabolic_rate" in registry.specs
+        assert "energy.photosynthesis_light_factor" in registry.specs
+
+    def test_registry_change_alters_metabolic_cost(self):
+        """Subir el metabolismo en caliente aumenta el gasto del siguiente tick."""
+        config = SimulationConfig()
+        registry = ParameterRegistry(config)
+        registry.auto_discover("energy")
+        system = EnergySystem(config)
+        person = make_energy_person()
+        state = make_energy_state([person])
+
+        # Tick 1: 0.1 (basal) * 1.0 (delta) * 1.25 (size) = 0.125
+        system.process(state, MagicMock(), 1.0, MagicMock())
+        first_cost = person.spend_energy.call_args[0][0]
+        assert first_cost == pytest.approx(0.125)
+
+        # Cambio en caliente
+        assert registry.set("energy.basal_metabolic_rate", 0.4) is True
+
+        # Tick 2: 0.4 * 1.0 * 1.25 = 0.5
+        system.process(state, MagicMock(), 1.0, MagicMock())
+        second_cost = person.spend_energy.call_args[0][0]
+        assert second_cost == pytest.approx(0.5)
+
+    def test_registry_validates_energy_parameter(self):
+        """Un spec con rango protege un parámetro real de energía."""
+        config = SimulationConfig()
+        registry = ParameterRegistry(config)
+        registry.register(ParameterSpec(
+            path="energy.basal_metabolic_rate",
+            category="energy",
+            description="Energía gastada por día en reposo",
+            value_type=float,
+            min_value=0.0,
+            max_value=1.0,
+            default_value=0.1,
+        ))
+
+        assert registry.set("energy.basal_metabolic_rate", 5.0) is False
+        assert config.energy.basal_metabolic_rate == 0.1

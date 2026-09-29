@@ -532,6 +532,24 @@ class AgingConfig:
         self.longevity_genetic_factor: float = 1.0
         self.father_reproductive_wear_ratio: float = 0.5
 
+class EnergyConfig:
+    """Parámetros del sistema de metabolismo energético.
+
+    Hasta ahora estos valores vivían hardcodeados dentro de EnergySystem.
+    Al existir aquí, el ParameterRegistry puede descubrirlos, validarlos
+    y modificarlos en caliente.
+    """
+
+    def __init__(self) -> None:
+        # Metabolismo basal
+        self.basal_metabolic_rate: float = 0.1       # Energía/día en reposo
+        self.starvation_death_threshold: float = 30.0  # Días sin energía antes de morir
+        self.starvation_damage_rate: float = 0.05    # Daño por día de inanición
+
+        # Fotosíntesis
+        self.photosynthesis_rate: float = 5.0        # Energía/día en condiciones óptimas
+        self.photosynthesis_light_factor: float = 1.0  # Factor de luz (0-1)
+
 class EcologyConfig:
     """Parámetros del sistema de relaciones ecológicas.
 
@@ -566,6 +584,7 @@ class SimulationConfig:
         self.relationships = RelationshipsConfig()
         self.aging = AgingConfig()
         self.ecology = EcologyConfig()
+        self.energy = EnergyConfig()
 
     def set_parameter(self, category: str, key: str, value: Any) -> bool:
         """Modifica un parámetro en caliente durante la ejecución."""

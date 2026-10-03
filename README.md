@@ -22,7 +22,7 @@
 <div align="center">
 
 ![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)
-![Tests](https://img.shields.io/badge/tests-442%20passed-brightgreen.svg)
+![Tests](https://img.shields.io/badge/tests-445%20passed-brightgreen.svg)
 ![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)
 ![Status](https://img.shields.io/badge/status-active-orange.svg)
 
@@ -286,7 +286,7 @@ python launcher.py -p 150 -e resultados/mi_simulacion.json
 
 ## 🧪 Testing
 
-El proyecto cuenta con **442 tests** organizados en tres niveles:
+El proyecto cuenta con **445 tests** organizados en tres niveles:
 
 | Tipo | Descripción | Cantidad |
 |------|-------------|----------|
@@ -342,7 +342,7 @@ primordial/
 ├── entities/                # Entidades del mundo
 │   └── person/              # Organismos (clase Person)
 │
-├── tests/                   # Suite de tests (442 tests)
+├── tests/                   # Suite de tests (445 tests)
 │   ├── unit/                # Tests unitarios
 │   ├── integration/         # Tests de integración
 │   └── benchmarks/          # Tests de rendimiento
@@ -413,7 +413,7 @@ El motor opera en un **ciclo de fases secuenciales** que se ejecutan en cada tic
 - [x] Sistema de matrimonios y adopciones
 - [x] Epidemiología con patógenos
 - [x] Catástrofes naturales
-- [x] 442 tests pasando
+- [x] 445 tests pasando
 - [x] Profesionalización del repositorio (licencia, guías de comunidad, plantillas)
 
 ### 🚧 En progreso

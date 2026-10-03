@@ -13,7 +13,7 @@ from core.config.simulation_config import SimulationConfig
 from systems.ecology.ecological_relationship_system import EcologicalRelationshipSystem
 from systems.energy.energy_system import EnergySystem
 from systems.environment.feedback_system import FeedbackSystem
-
+from systems.movement.migration_system import MigrationSystem
 
 def make_empty_state():
     """Estado mock con mapa pero sin organismos: cruza la puerta del
@@ -194,3 +194,47 @@ class TestLiveFeedbackEditing:
         system.process(state, MagicMock(), 3.0, MagicMock())
 
         assert system._process_counter == 3.0
+
+# ---------------------------------------------------------------------------
+# Migration: umbral de llegada en caliente
+# ---------------------------------------------------------------------------
+
+class TestLiveMigrationEditing:
+    """El sistema de migración responde a cambios en caliente de MigrationConfig."""
+
+    def test_auto_discover_migration_parameters(self):
+        """auto_discover encuentra el parámetro de migración."""
+        config = SimulationConfig()
+        registry = ParameterRegistry(config)
+
+        discovered = registry.auto_discover("migration")
+
+        assert discovered == 1
+        assert "migration.arrival_threshold" in registry.specs
+
+    def test_registry_change_alters_migration_threshold(self):
+        """Cambiar el umbral en caliente se refleja en el helper."""
+        config = SimulationConfig()
+        registry = ParameterRegistry(config)
+        registry.auto_discover("migration")
+        system = MigrationSystem(config)
+
+        # Valor por defecto
+        assert system._get_param('arrival_threshold', 5.0) == 5.0
+
+        # Cambio en caliente vía registry
+        assert registry.set("migration.arrival_threshold", 10.0) is True
+
+        # El helper lee el nuevo valor
+        assert system._get_param('arrival_threshold', 5.0) == 10.0
+
+    def test_migration_without_config_keeps_default(self):
+        """Sin config inyectada, el sistema usa el valor por defecto."""
+        # MigrationSystem requiere config, así que simulamos el fallback
+        config = SimulationConfig()
+        # Eliminamos el atributo migration para simular config incompleta
+        delattr(config, 'migration')
+        system = MigrationSystem(config)
+
+        # Debe usar el valor por defecto (5.0)
+        assert system._get_param('arrival_threshold', 5.0) == 5.0

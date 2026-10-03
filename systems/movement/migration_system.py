@@ -48,6 +48,15 @@ class MigrationSystem:
         # CORRECCIÓN: Rastrear cuándo se estableció el destino actual para reevaluación
         self._target_set_day: Dict[int, float] = {}
 
+    def _get_param(self, name: str, default: float) -> float:
+        """Lee un parámetro de migración desde la config en caliente."""
+        if self.config is not None:
+            migration_cfg = getattr(self.config, 'migration', None)
+            if migration_cfg is not None:
+                return getattr(migration_cfg, name, default)
+        return default
+
+    
     def process(
         self,
         state: WorldState,
@@ -109,8 +118,8 @@ class MigrationSystem:
                         # Destino sigue válido: continuar hacia él
                         dist = math.hypot(person.x - tx, person.y - ty)
                 
-                        # GENÉTICA UNIVERSAL: Umbral de llegada ajustado por speed
-                        arrival_threshold = self.arrival_threshold * capabilities.movement_speed
+                        # GENÉTICA UNIVERSAL: Umbral de llegada ajustado por speed (lectura en caliente)
+                        arrival_threshold = self._get_param('arrival_threshold', self.arrival_threshold) * capabilities.movement_speed
                 
                         if dist <= arrival_threshold:
                             # CORRECCIÓN: Establecimiento al llegar
@@ -122,8 +131,8 @@ class MigrationSystem:
                     # Aún no toca reevaluar: continuar hacia el destino
                     dist = math.hypot(person.x - tx, person.y - ty)
                 
-                    # GENÉTICA UNIVERSAL: Umbral de llegada ajustado por speed
-                    arrival_threshold = self.arrival_threshold * capabilities.movement_speed
+                    # GENÉTICA UNIVERSAL: Umbral de llegada ajustado por speed (lectura en caliente)
+                    arrival_threshold = self._get_param('arrival_threshold', self.arrival_threshold) * capabilities.movement_speed
                 
                     if dist <= arrival_threshold:
                         self._handle_arrival(person, tx, ty, current_day, pending, fw_cfg)

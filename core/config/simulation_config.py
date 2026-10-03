@@ -259,7 +259,6 @@ class FreeWillConfig:
             "fertility_desire"
         ]
 
-            
         # =====================================================================
         # UMBRALES DE ACCIÓN (AUMENTADOS PARA REDUCIR FRECUENCIA)
         # =====================================================================
@@ -384,7 +383,6 @@ class FreeWillConfig:
         self.migration_radius: int = 12
         self.fertility_rebellion_children_threshold: int = 3
         self.fertility_rebellion_temperament_threshold: float = 0.7
-
 
 class MortalityConfig:
     """Reglas de la curva de Gompertz y selección natural."""
@@ -550,6 +548,18 @@ class EnergyConfig:
         self.photosynthesis_rate: float = 5.0        # Energía/día en condiciones óptimas
         self.photosynthesis_light_factor: float = 1.0  # Factor de luz (0-1)
 
+class MigrationConfig:
+    """Parámetros del sistema de migraciones a larga distancia.
+
+    Hasta ahora estos valores vivían hardcodeados dentro de MigrationSystem.
+    Al existir aquí, el ParameterRegistry puede descubrirlos, validarlos
+    y modificarlos en caliente.
+    """
+
+    def __init__(self) -> None:
+        # Umbral de distancia para considerar que un agente ha llegado a su destino
+        self.arrival_threshold: float = 5.0
+
 class FeedbackConfig:
     """Parámetros del sistema de retroalimentación organismos-entorno.
 
@@ -598,6 +608,7 @@ class SimulationConfig:
         self.ecology = EcologyConfig()
         self.energy = EnergyConfig()
         self.feedback = FeedbackConfig()
+        self.migration = MigrationConfig()
 
     def set_parameter(self, category: str, key: str, value: Any) -> bool:
         """Modifica un parámetro en caliente durante la ejecución."""

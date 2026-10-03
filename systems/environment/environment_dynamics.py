@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Optional, List
 from systems.environment.catastrophe_system import CatastropheSystem
 
 if TYPE_CHECKING:
+    from core.config.simulation_config import SimulationConfig
     from core.state.world_state import WorldState
     from systems.environment.world_config import WorldConfig
     from systems.environment.environment_system import Season, Weather
@@ -27,9 +28,14 @@ if TYPE_CHECKING:
 class EnvironmentDynamics:
     """Gestiona los cambios lentos del entorno."""
     
-    def __init__(self, world_config: Optional['WorldConfig'] = None) -> None:
+    def __init__(
+        self,
+        world_config: Optional['WorldConfig'] = None,
+        config: Optional['SimulationConfig'] = None,
+    ) -> None:
         self.logger = logging.getLogger(self.__class__.__name__)
         self.world_config = world_config
+        self.config = config
         
         # Contadores de tiempo para cada escala
         self._medium_scale_counter: float = 0.0
@@ -41,6 +47,15 @@ class EnvironmentDynamics:
         
         # Sistema de catástrofes (delegado)
         self.catastrophe_system = CatastropheSystem(world_config)
+    
+    def _get_param(self, name: str, default: float) -> float:
+        """Lee un parámetro de dinámica ambiental desde la config en caliente."""
+        if self.config is not None:
+            dynamics_cfg = getattr(self.config, 'environment_dynamics', None)
+            if dynamics_cfg is not None:
+                return getattr(dynamics_cfg, name, default)
+        return default
+
     
     def process(
         self,
@@ -79,13 +94,13 @@ class EnvironmentDynamics:
         
         # Escala media: vegetación y fertilidad
         self._medium_scale_counter += delta_days
-        if self._medium_scale_counter >= self.medium_scale_interval:
+        if self._medium_scale_counter >= self._get_param('medium_scale_interval', self.medium_scale_interval):
             self._process_medium_scale(state, current_season)
             self._medium_scale_counter = 0.0
         
         # Escala lenta: erosión y geología
         self._slow_scale_counter += delta_days
-        if self._slow_scale_counter >= self.slow_scale_interval:
+        if self._slow_scale_counter >= self._get_param('slow_scale_interval', self.slow_scale_interval):
             self._process_slow_scale(state)
             self._slow_scale_counter = 0.0
         

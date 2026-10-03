@@ -60,7 +60,7 @@ class EnvironmentSystem:
         self.biome_map: Dict[Tuple[int, int], BiomeType] = {}
         self.resource_grid: Dict[Tuple[int, int], Dict[str, float]] = {}
         self.danger_zones: Dict[Tuple[int, int], float] = {}
-        self.dynamics = EnvironmentDynamics()
+        self.dynamics = EnvironmentDynamics(world_config=None, config=self.config)
         self.feedback_system = FeedbackSystem(self.config)
 
     def process(

@@ -14,6 +14,7 @@ from systems.ecology.ecological_relationship_system import EcologicalRelationshi
 from systems.energy.energy_system import EnergySystem
 from systems.environment.feedback_system import FeedbackSystem
 from systems.movement.migration_system import MigrationSystem
+from systems.environment.environment_dynamics import EnvironmentDynamics
 
 def make_empty_state():
     """Estado mock con mapa pero sin organismos: cruza la puerta del
@@ -238,3 +239,48 @@ class TestLiveMigrationEditing:
 
         # Debe usar el valor por defecto (5.0)
         assert system._get_param('arrival_threshold', 5.0) == 5.0
+
+# ---------------------------------------------------------------------------
+# Environment Dynamics: intervalos de escalas temporal en caliente
+# ---------------------------------------------------------------------------
+
+class TestLiveEnvironmentDynamicsEditing:
+    """La dinámica ambiental responde a cambios en caliente de EnvironmentDynamicsConfig."""
+
+    def test_auto_discover_environment_dynamics_parameters(self):
+        """auto_discover encuentra los 2 parámetros de dinámica ambiental."""
+        config = SimulationConfig()
+        registry = ParameterRegistry(config)
+
+        discovered = registry.auto_discover("environment_dynamics")
+
+        assert discovered == 2
+        assert "environment_dynamics.medium_scale_interval" in registry.specs
+        assert "environment_dynamics.slow_scale_interval" in registry.specs
+
+    def test_registry_change_alters_environment_intervals(self):
+        """Cambiar los intervalos en caliente se refleja en el helper."""
+        config = SimulationConfig()
+        registry = ParameterRegistry(config)
+        registry.auto_discover("environment_dynamics")
+        system = EnvironmentDynamics(config=config)
+
+        # Valores por defecto
+        assert system._get_param('medium_scale_interval', 15.0) == 15.0
+        assert system._get_param('slow_scale_interval', 180.0) == 180.0
+
+        # Cambio en caliente vía registry
+        assert registry.set("environment_dynamics.medium_scale_interval", 30.0) is True
+        assert registry.set("environment_dynamics.slow_scale_interval", 365.0) is True
+
+        # El helper lee los nuevos valores
+        assert system._get_param('medium_scale_interval', 15.0) == 30.0
+        assert system._get_param('slow_scale_interval', 180.0) == 365.0
+
+    def test_environment_dynamics_without_config_keeps_default(self):
+        """Sin config inyectada, el sistema usa los valores por defecto."""
+        system = EnvironmentDynamics()
+
+        # Debe usar los valores por defecto
+        assert system._get_param('medium_scale_interval', 15.0) == 15.0
+        assert system._get_param('slow_scale_interval', 180.0) == 180.0

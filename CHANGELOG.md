@@ -15,6 +15,7 @@ y este proyecto adhiere al [Versionamiento Semántico](https://semver.org/lang/e
 - `EnergyConfig` nueva en `SimulationConfig` con 5 parámetros de metabolismo energético (basal, inanición, fotosíntesis); el sistema los lee en caliente vía `ParameterRegistry` con 3 tests de integración que demuestran el efecto en vivo sobre el gasto energético (suite pasa de 437 a 440 tests)
 - `FeedbackConfig` nueva en `SimulationConfig` con el intervalo de procesamiento del sistema de retroalimentación organismos-entorno; migrado a lectura en caliente vía `ParameterRegistry` con 2 tests de integración (suite pasa de 440 a 442 tests)
 - `MigrationConfig` nueva en `SimulationConfig` con el umbral de llegada (`arrival_threshold`) del sistema de migraciones; migrado a lectura en caliente vía `ParameterRegistry` con 3 tests de integración (suite pasa de 442 a 445 tests)
+- `EnvironmentDynamicsConfig` nueva en `SimulationConfig` con los intervalos de escala media (15d) y lenta (180d) de la dinámica ambiental; migrados a lectura en caliente vía `ParameterRegistry` con 3 tests de integración (suite pasa de 445 a 448 tests)
 
 ## [0.4.0] - 2026-09-25
 

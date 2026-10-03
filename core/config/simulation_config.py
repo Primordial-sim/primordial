@@ -548,6 +548,21 @@ class EnergyConfig:
         self.photosynthesis_rate: float = 5.0        # Energía/día en condiciones óptimas
         self.photosynthesis_light_factor: float = 1.0  # Factor de luz (0-1)
 
+class EnvironmentDynamicsConfig:
+    """Parámetros de la dinámica ambiental del mundo.
+
+    Hasta ahora estos valores vivían hardcodeados dentro de EnvironmentDynamics.
+    Al existir aquí, el ParameterRegistry puede descubrirlos, validarlos
+    y modificarlos en caliente.
+"""
+
+    def __init__(self) -> None:
+        # Escala media: vegetación y fertilidad (en días)
+        self.medium_scale_interval: float = 15.0
+        
+        # Escala lenta: erosión y geología (en días)
+        self.slow_scale_interval: float = 180.0
+
 class MigrationConfig:
     """Parámetros del sistema de migraciones a larga distancia.
 
@@ -609,6 +624,7 @@ class SimulationConfig:
         self.energy = EnergyConfig()
         self.feedback = FeedbackConfig()
         self.migration = MigrationConfig()
+        self.environment_dynamics = EnvironmentDynamicsConfig()
 
     def set_parameter(self, category: str, key: str, value: Any) -> bool:
         """Modifica un parámetro en caliente durante la ejecución."""

@@ -4,7 +4,7 @@ Demuestra el circuito completo:
     registry.set() -> SimulationConfig -> sistema leyéndolo en el siguiente tick
 """
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
 import pytest
 
@@ -15,6 +15,7 @@ from systems.energy.energy_system import EnergySystem
 from systems.environment.feedback_system import FeedbackSystem
 from systems.movement.migration_system import MigrationSystem
 from systems.environment.environment_dynamics import EnvironmentDynamics
+from systems.relationships.experience_generator import ExperienceGenerator
 
 def make_empty_state():
     """Estado mock con mapa pero sin organismos: cruza la puerta del
@@ -284,3 +285,47 @@ class TestLiveEnvironmentDynamicsEditing:
         # Debe usar los valores por defecto
         assert system._get_param('medium_scale_interval', 15.0) == 15.0
         assert system._get_param('slow_scale_interval', 180.0) == 180.0
+
+
+# ---------------------------------------------------------------------------
+# Experience: intervalo de log en caliente
+# ---------------------------------------------------------------------------
+
+class TestLiveExperienceEditing:
+    """El generador de experiencias responde a cambios en caliente de ExperienceConfig."""
+
+    def test_auto_discover_experience_parameters(self):
+        """auto_discover encuentra el parámetro de experiencia."""
+        config = SimulationConfig()
+        registry = ParameterRegistry(config)
+
+        discovered = registry.auto_discover("experience")
+
+        assert discovered == 1
+        assert "experience.log_interval" in registry.specs
+
+    def test_registry_change_alters_experience_log_interval(self):
+        """Cambiar el intervalo de log en caliente se refleja en el helper."""
+        config = SimulationConfig()
+        registry = ParameterRegistry(config)
+        registry.auto_discover("experience")
+        system = ExperienceGenerator(config=config, relationship_engine=None)
+
+        # Valor por defecto
+        assert system._get_param('log_interval', 365) == 365
+
+        # Cambio en caliente vía registry
+        assert registry.set("experience.log_interval", 730) is True
+
+        # El helper lee el nuevo valor
+        assert system._get_param('log_interval', 365) == 730
+
+    def test_experience_without_config_keeps_default(self):
+        """Sin config inyectada, el sistema usa el valor por defecto."""
+        config = Mock()
+        # Simular config sin el atributo experience
+        delattr(config, 'experience')
+        system = ExperienceGenerator(config=config, relationship_engine=None)
+
+        # Debe usar el valor por defecto
+        assert system._get_param('log_interval', 365) == 365

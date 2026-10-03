@@ -60,6 +60,17 @@ class ExperienceGenerator:
         self._tick_counter = 0
         self._log_interval = 365
 
+    def _get_param(self, name: str, default: int) -> int:
+        """Lee un parámetro de experiencia desde la config en caliente."""
+        if self.config is not None:
+            experience_cfg = getattr(self.config, 'experience', None)
+            if experience_cfg is not None:
+                value = getattr(experience_cfg, name, default)
+                # Verificar que el valor sea del tipo esperado (protección contra mocks)
+                if isinstance(value, int):
+                    return value
+        return default
+
     def _get_rich_context(self, label: str, experience_type: str) -> str:
         """Obtiene un contexto enriquecido basado en la etiqueta y el tipo de experiencia."""
         rich_contexts = {
@@ -118,7 +129,7 @@ class ExperienceGenerator:
         current_day = getattr(state, 'world_days_elapsed', 0.0)
         self._tick_counter += 1
         
-        if self._tick_counter % self._log_interval == 0:
+        if self._tick_counter % self._get_param('log_interval', self._log_interval) == 0:
             self.logger.info(f"📊 ExperienceGenerator tick {current_day:.0f}: Procesando {len(state.get_all_persons())} agentes")
         
         for person in state.get_all_persons():
@@ -137,7 +148,7 @@ class ExperienceGenerator:
         if not social_caps.has_social_awareness:
             return
         
-        should_log = self._tick_counter % self._log_interval == 0
+        should_log = self._tick_counter % self._get_param('log_interval', self._log_interval) == 0
         
         # CORRECCIÓN CRÍTICA: _relationships es ahora Dict[int, Relationship]
         # Hay que usar .values() para obtener los objetos Relationship

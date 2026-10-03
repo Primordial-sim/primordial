@@ -548,6 +548,18 @@ class EnergyConfig:
         self.photosynthesis_rate: float = 5.0        # Energía/día en condiciones óptimas
         self.photosynthesis_light_factor: float = 1.0  # Factor de luz (0-1)
 
+class ExperienceConfig:
+    """Parámetros del generador de experiencias relacionales.
+
+    Hasta ahora estos valores vivían hardcodeados dentro de ExperienceGenerator.
+    Al existir aquí, el ParameterRegistry puede descubrirlos, validarlos
+    y modificarlos en caliente.
+    """
+
+    def __init__(self) -> None:
+        # Intervalo de ticks entre logs de experiencia (en ticks, no días)
+        self.log_interval: int = 365
+
 class EnvironmentDynamicsConfig:
     """Parámetros de la dinámica ambiental del mundo.
 
@@ -625,6 +637,7 @@ class SimulationConfig:
         self.feedback = FeedbackConfig()
         self.migration = MigrationConfig()
         self.environment_dynamics = EnvironmentDynamicsConfig()
+        self.experience = ExperienceConfig()
 
     def set_parameter(self, category: str, key: str, value: Any) -> bool:
         """Modifica un parámetro en caliente durante la ejecución."""

@@ -17,6 +17,7 @@ y este proyecto adhiere al [Versionamiento Semántico](https://semver.org/lang/e
 - `MigrationConfig` nueva en `SimulationConfig` con el umbral de llegada (`arrival_threshold`) del sistema de migraciones; migrado a lectura en caliente vía `ParameterRegistry` con 3 tests de integración (suite pasa de 442 a 445 tests)
 - `EnvironmentDynamicsConfig` nueva en `SimulationConfig` con los intervalos de escala media (15d) y lenta (180d) de la dinámica ambiental; migrados a lectura en caliente vía `ParameterRegistry` con 3 tests de integración (suite pasa de 445 a 448 tests)
 - `ExperienceConfig` nueva en `SimulationConfig` con el intervalo de logs (`log_interval`) del generador de experiencias relacionales; migrado a lectura en caliente vía `ParameterRegistry` con 3 tests de integración y protección robusta contra mocks (suite pasa de 448 a 451 tests)
+- Nuevo `ParentalInfluenceSystem` que modela la transmisión de rasgos de personalidad (temperamento, sociabilidad, estrés) de padres a hijos, con plasticidad decreciente por edad y clima emocional; integrado en `PhaseScheduler` con 7 tests unitarios (suite pasa de 451 a 458 tests)
 
 ## [0.4.0] - 2026-09-25
 

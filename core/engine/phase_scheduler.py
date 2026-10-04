@@ -84,6 +84,7 @@ from systems.evolution.evolution_engine import EvolutionEngine
 from systems.free_will.free_will_system import FreeWillSystem
 from systems.genealogy.ancestry_queries import AncestryQueries
 from systems.genealogy.genealogy_system import GenealogySystem
+from systems.behavior.parental_influence_system import ParentalInfluenceSystem
 from systems.metrics.metrics_system import MetricsSystem
 from systems.mortality.death_resolver import DeathResolver
 from systems.mortality.mortality_system import MortalitySystem
@@ -319,6 +320,10 @@ class PhaseScheduler:
                 name="observers",
                 systems=[
                     genealogy_system,
+                    ParentalInfluenceSystem(
+                        config=self.config,
+                        genealogy_system=genealogy_system,
+                    ),
                     MetricsSystem(
                         self.config, 
                         genealogy_system=genealogy_system,

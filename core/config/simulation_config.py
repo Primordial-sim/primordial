@@ -178,7 +178,6 @@ class ReproductionConfig:
             }
         }
 
-
 class MovementConfig:
     """Parámetros de desplazamiento espacial."""
     
@@ -611,12 +610,29 @@ class EcologyConfig:
         # Días entre pasadas de procesamiento ecológico (optimización)
         self.process_interval_days: float = 3.0
 
+class ParentalInfluenceConfig:
+    """Parámetros del sistema de influencia parental.
+
+    Controla cómo el carácter de los padres afecta la personalidad del hijo
+    durante su etapa de desarrollo (plasticidad, clima emocional, etc.).
+    """
+
+    def __init__(self) -> None:
+        # Edad máxima (en días) hasta la cual el agente es altamente plástico a la influencia
+        self.max_influence_age_days: float = 5000.0
+        
+        # Plasticidad base al nacer (tasa de cambio máxima por tick)
+        self.base_personality_plasticity: float = 0.05
+        
+        # Intervalo de días simulados entre logs de influencia (para evitar spam)
+        self.log_interval_days: float = 365.0
+
+
 class SimulationConfig:
     """Configuración maestra que agrupa y expone todos los subsistemas."""
 
     def __init__(self) -> None:
         self.logger = logging.getLogger("SimulationConfig")
-        
         self.engine = EngineConfig()
         self.time = TimeConfig()
         self.reproduction = ReproductionConfig()
@@ -638,6 +654,7 @@ class SimulationConfig:
         self.migration = MigrationConfig()
         self.environment_dynamics = EnvironmentDynamicsConfig()
         self.experience = ExperienceConfig()
+        self.parental_influence = ParentalInfluenceConfig()
 
     def set_parameter(self, category: str, key: str, value: Any) -> bool:
         """Modifica un parámetro en caliente durante la ejecución."""

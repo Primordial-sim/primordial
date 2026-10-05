@@ -286,7 +286,7 @@ python launcher.py -p 150 -e resultados/mi_simulacion.json
 
 ## 🧪 Testing
 
-El proyecto cuenta con **458 tests** organizados en tres niveles:
+El proyecto cuenta con **460 tests** organizados en tres niveles:
 
 | Tipo | Descripción | Cantidad |
 |------|-------------|----------|
@@ -342,7 +342,7 @@ primordial/
 ├── entities/                # Entidades del mundo
 │   └── person/              # Organismos (clase Person)
 │
-├── tests/                   # Suite de tests (458 tests)
+├── tests/                   # Suite de tests (460 tests)
 │   ├── unit/                # Tests unitarios
 │   ├── integration/         # Tests de integración
 │   └── benchmarks/          # Tests de rendimiento
@@ -413,7 +413,7 @@ El motor opera en un **ciclo de fases secuenciales** que se ejecutan en cada tic
 - [x] Sistema de matrimonios y adopciones
 - [x] Epidemiología con patógenos
 - [x] Catástrofes naturales
-- [x] 458 tests pasando
+- [x] 460 tests pasando
 - [x] Profesionalización del repositorio (licencia, guías de comunidad, plantillas)
 
 ### 🚧 En progreso

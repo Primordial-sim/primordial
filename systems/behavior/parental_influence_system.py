@@ -179,27 +179,62 @@ class ParentalInfluenceSystem:
         influence_factor: float, 
         current_day: float
     ) -> List[ParentalInfluenceEvent]:
-        """Aplica la deriva de rasgos de personalidad del hijo hacia los del padre."""
+        """Aplica la deriva de rasgos emocionales del hijo hacia los del padre.
+        
+        Como el Genome es inmutable, la influencia parental afecta:
+        - emotions["stress"] (nivel de estrés actual)
+        - emotions["happiness"] (nivel de felicidad actual)
+        - _learned_traits (nuevo diccionario para rasgos adquiridos)
+        """
         events = []
         
-        # Rasgos a evaluar (ajustar según los atributos reales de tu entidad Person)
-        traits_to_check = ['temperament', 'sociability', 'stress_level']
+        # 1. Influencia en emociones (stress y happiness)
+        if hasattr(child, '_emotions') and hasattr(parent, '_emotions'):
+            for emotion_key in ['stress', 'happiness']:
+                child_val = child._emotions.get(emotion_key, 0.5)
+                parent_val = parent._emotions.get(emotion_key, 0.5)
+                
+                delta = (parent_val - child_val) * influence_factor
+                
+                if abs(delta) > 0.001:
+                    new_val = max(0.0, min(1.0, child_val + delta))
+                    child._emotions[emotion_key] = new_val
+                    
+                    events.append(ParentalInfluenceEvent(
+                        child_id=child.entity_id,
+                        parent_id=parent.entity_id,
+                        trait_modified=f"emotion_{emotion_key}",
+                        delta=delta,
+                        reason=f"parental_influence_{emotion_key}"
+                    ))
         
-        for trait in traits_to_check:
-            child_val = getattr(child, trait, 0.5)
-            parent_val = getattr(parent, trait, 0.5)
+                # 2. Influencia en rasgos aprendidos (nuevo mecanismo)
+        if not hasattr(child, '_learned_traits'):
+            child._learned_traits = {}
+        
+        # Rasgos que pueden aprenderse (ej: preferencias, hábitos)
+        learned_traits = ['diet_preference', 'migration_affinity', 'social_comfort']
+        
+        for trait in learned_traits:
+            child_val = child._learned_traits.get(trait, 0.5)
             
-            # El hijo se mueve hacia el valor del padre, escalado por el factor de influencia
+            # El padre transmite su valor genético como referencia
+            parent_val = 0.5
+            if hasattr(parent, '_genome'):
+                genome_val = getattr(parent._genome, trait, None)
+                if isinstance(genome_val, (int, float)):
+                    parent_val = float(genome_val)
+            
             delta = (parent_val - child_val) * influence_factor
             
             if abs(delta) > 0.001:
                 new_val = max(0.0, min(1.0, child_val + delta))
-                setattr(child, trait, new_val)
+                child._learned_traits[trait] = new_val
                 
                 events.append(ParentalInfluenceEvent(
                     child_id=child.entity_id,
                     parent_id=parent.entity_id,
-                    trait_modified=trait,
+                    trait_modified=f"learned_{trait}",
                     delta=delta,
                     reason=f"parental_influence_{trait}"
                 ))

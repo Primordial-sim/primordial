@@ -19,6 +19,7 @@ y este proyecto adhiere al [Versionamiento Semántico](https://semver.org/lang/e
 - `ExperienceConfig` nueva en `SimulationConfig` con el intervalo de logs (`log_interval`) del generador de experiencias relacionales; migrado a lectura en caliente vía `ParameterRegistry` con 3 tests de integración y protección robusta contra mocks (suite pasa de 448 a 451 tests)
 - Nuevo `ParentalInfluenceSystem` que modela la transmisión de rasgos de personalidad (temperamento, sociabilidad, estrés) de padres a hijos, con plasticidad decreciente por edad y clima emocional; integrado en `PhaseScheduler` con 7 tests unitarios (suite pasa de 451 a 458 tests)
 - Tests de integración real para `ParentalInfluenceSystem` que verifican el flujo extremo a extremo con objetos `Person` y `Genome` reales (suite pasa de 458 a 460 tests)
+- **Refactorización arquitectónica de la Interfaz Gráfica (Godot)**: Implementación de un marco de visualización fijo mediante `SubViewportContainer` (800x800px) con límites estrictos de cámara (`_clamp_camera_position`) para evitar el renderizado de espacio vacío. Integración del `PresetEngine` para el control bidireccional de parámetros de simulación en tiempo real vía WebSocket.
 
 ## [0.4.0] - 2026-09-25
 

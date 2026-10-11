@@ -433,21 +433,25 @@ El motor opera en un **ciclo de fases secuenciales** que se ejecutan en cada tic
 
 ---
 
-## 🖥️ Interfaz Gráfica (En Desarrollo)
+## 🖥️ Interfaz Gráfica (En Desarrollo Activo)
 
-La aplicación final incluirá una interfaz gráfica desarrollada en **Godot 4.x**:
+La aplicación incluye una interfaz gráfica desarrollada en **Godot 4.x**, diseñada no solo como un visor, sino como una herramienta de observación y experimentación científica:
 
-**Características planificadas**:
+**Arquitectura y características actuales**:
 
-- **Editor de mundos**: diseño del mapa, biomas y poblaciones iniciales antes de simular
-- Visualización en tiempo real del mundo con tiles y organismos
-- **Panel de control en vivo**: modificación de cualquier parámetro (reproducción, longevidad, detección, mutaciones...) sin reiniciar la simulación
-- Panel de estadísticas poblacionales
-- Control de velocidad de simulación (play, pause, fast-forward)
-- Inspección de organismos individuales (genoma, energía, relaciones)
-- Gráficos de evolución y métricas
-- Guardar/cargar estados del mundo
-- Exportación de reportes
+- **Desacoplamiento total**: El motor de simulación (Python) envía datos puros vía WebSocket. Godot se encarga exclusivamente de la visualización y captura de inputs, permitiendo escalar la simulación a alta velocidad sin afectar el framerate de la interfaz.
+- **Marco de visualización fijo**: El mundo se renderiza dentro de un `SubViewportContainer` centrado (800x800 px), actuando como una ventana estable que no se deforma ni se desplaza con el zoom o el paneo.
+- **Cámara con límites estrictos**: El movimiento de la cámara está acotado dinámicamente (`_clamp_camera_position`) para impedir que el usuario vea espacio vacío más allá de los bordes de la rejilla del mundo.
+- **Panel de control en vivo (Preset Engine)**: Modificación bidireccional de parámetros macro (fertilidad, mortalidad, migración, mutación, etc.) en tiempo real a través de sliders, sin necesidad de pausar o reiniciar.
+- **Inspección y análisis**: Selección de individuos, visualización de su genoma, estado, relaciones y estadísticas agregadas.
+- **Controles de simulación**: Play, pausa, avance paso a paso y multiplicadores de velocidad (1x, 2x, 5x, 10x).
+
+**Próximos pasos en la UI**:
+
+- [ ] Editor visual de mundos y carga de escenarios predefinidos (JSON/YAML).
+- [ ] Sistema de capas visuales superponibles (enfermedades, linajes, densidad de población).
+- [ ] Gráficos de evolución temporal y explorador genealógico interactivo.
+- [ ] Empaquetado final como aplicación de escritorio independiente.
 
 ---
 

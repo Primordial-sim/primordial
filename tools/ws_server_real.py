@@ -31,6 +31,9 @@ if TYPE_CHECKING:
 # Import real (solo lo que se usa en tiempo de ejecución)
 from core.engine.simulation_engine import SimulationEngine
 from core.engine.scenario_loader import ScenarioLoader
+from core.config.simulation_config import SimulationConfig
+from core.config.parameter_registry import ParameterRegistry
+from core.config.preset_engine import PresetEngine, register_all_presets
 
 # =============================================================================
 # CONFIGURACIÓN
@@ -38,12 +41,8 @@ from core.engine.scenario_loader import ScenarioLoader
 
 HOST = "localhost"
 PORT = 8765
+TICK_INTERVAL = 0.1  # Intervalo entre ticks en segundos (0.1 = 10 FPS)
 
-# Intervalo entre ticks en segundos (0.1 = 10 FPS)
-TICK_INTERVAL = 0.1
-
-# Configuración por defecto (si no se especifica escenario)
-DEFAULT_SPECIES_ID = "human"
 DEFAULT_POPULATION_SIZE = 50
 DEFAULT_WORLD_WIDTH = 100
 DEFAULT_WORLD_HEIGHT = 100
@@ -70,7 +69,6 @@ class RealSimulationServer:
         self.connected_clients: Set[Any] = set()
         self.scenario = scenario
         
-        # Crear el motor de simulación
         logger.info("🔧 Creando motor de simulación...")
         
         if scenario is not None:
@@ -87,11 +85,17 @@ class RealSimulationServer:
                 max_ticks=None,
             )
         
-        # Inicializar la simulación (sin ejecutar ticks)
         self.engine.initialize()
         logger.info("✅ Motor de simulación inicializado")
         
-        # Variables de control
+        # --- NUEVO: Inicializar el sistema de Presets ---
+        self.config = self.engine.config if hasattr(self.engine, 'config') else SimulationConfig()
+        self.registry = ParameterRegistry(self.config)
+        self.preset_engine = PresetEngine(registry=self.registry)
+        register_all_presets(self.preset_engine)
+        logger.info("✅ Motor de Presets inicializado y vinculado a la configuración")
+        # ------------------------------------------------
+        
         self._running = True
         self._paused = False
         self._tick_interval = TICK_INTERVAL
@@ -103,17 +107,12 @@ class RealSimulationServer:
         logger.info(f"✅ {client_id} conectado. Total: {len(self.connected_clients)}")
         
         try:
-            # Enviar el estado inicial al nuevo cliente
             initial_state = self.engine.get_visualization_state()
             await websocket.send(json.dumps(initial_state))
             
-            # Mantener la conexión abierta para recibir comandos
             while self._running:
                 try:
-                    message = await asyncio.wait_for(
-                        websocket.recv(),
-                        timeout=1.0
-                    )
+                    message = await asyncio.wait_for(websocket.recv(), timeout=1.0)
                     await self._handle_client_message(websocket, message)
                 except asyncio.TimeoutError:
                     pass
@@ -160,6 +159,32 @@ class RealSimulationServer:
                         logger.info("⏭️  Avanzado 1 tick (paso a paso)")
                     except Exception as e:
                         logger.error(f"Error en step: {e}")
+
+            elif command == "get_presets":
+                presets_data = []
+                for preset_id, preset_def in self.preset_engine.get_all_presets().items():
+                    presets_data.append({
+                        "id": preset_id,
+                        "name": preset_def.name.replace("_", " ").title(),
+                        "description": preset_def.description,
+                        "value": self.preset_engine.get_preset_value(preset_id)
+                    })
+                
+                await websocket.send(json.dumps({
+                    "type": "presets_config",
+                    "presets": presets_data
+                }))
+                
+            elif command == "set_preset":
+                preset_id = data.get("id")
+                value = float(data.get("value", 50.0))
+                
+                try:
+                    self.preset_engine.set_preset_value(preset_id, value)
+                    logger.info(f"🎛️ Preset '{preset_id}' cambiado a {value}%")
+                    await self._broadcast_status(f"preset_updated:{preset_id}:{value}")
+                except Exception as e:
+                    logger.error(f"❌ Error al cambiar preset {preset_id}: {e}")
                 
         except json.JSONDecodeError:
             logger.warning(f"Mensaje inválido recibido: {message}")
@@ -169,7 +194,6 @@ class RealSimulationServer:
     async def _broadcast_status(self, status: str) -> None:
         """Envía un mensaje de estado a todos los clientes conectados."""
         message = json.dumps({"type": "status", "status": status})
-        
         for client in list(self.connected_clients):
             try:
                 await client.send(message)
@@ -185,14 +209,12 @@ class RealSimulationServer:
             if not self._paused:
                 try:
                     state = self.engine.step()
-                    
                     if self.connected_clients:
                         message = json.dumps(state)
                         await asyncio.gather(
                             *[client.send(message) for client in self.connected_clients],
                             return_exceptions=True
                         )
-                        
                 except Exception as e:
                     logger.error(f"Error en tick de simulación: {e}", exc_info=True)
             
@@ -215,21 +237,9 @@ class RealSimulationServer:
 
 
 def main() -> None:
-    """Punto de entrada del servidor."""
-    parser = argparse.ArgumentParser(
-        description="Servidor WebSocket para el simulador de vida"
-    )
-    parser.add_argument(
-        "--scenario", "-s",
-        type=str,
-        help="Ruta al archivo JSON del escenario",
-    )
-    parser.add_argument(
-        "--port", "-p",
-        type=int,
-        default=PORT,
-        help=f"Puerto del servidor (por defecto: {PORT})",
-    )
+    parser = argparse.ArgumentParser(description="Servidor WebSocket para el simulador de vida")
+    parser.add_argument("--scenario", "-s", type=str, help="Ruta al archivo JSON del escenario")
+    parser.add_argument("--port", "-p", type=int, default=PORT, help=f"Puerto del servidor (por defecto: {PORT})")
     args = parser.parse_args()
     
     scenario = None

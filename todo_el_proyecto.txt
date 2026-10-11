@@ -1,0 +1,1914 @@
+================================================================================
+ARCHIVO: .\godot\simulador-vida\.gitattributes
+================================================================================
+
+# Normalize EOL for all files that Git considers text files.
+* text=auto eol=lf
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\.gitignore
+================================================================================
+
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\main.tscn
+================================================================================
+
+[gd_scene format=3 uid="uid://bjfcek6l66nif"]
+
+[ext_resource type="Script" uid="uid://d2by4wyvf0nib" path="res://scripts/websocket_client.gd" id="1_ig7tw"]
+[ext_resource type="Script" uid="uid://bcd6p12mwy66c" path="res://scripts/world_renderer.gd" id="2_0xm2m"]
+[ext_resource type="Script" uid="uid://cprl63j6jk6jv" path="res://scripts/camera_controller.gd" id="3_h2yge"]
+[ext_resource type="Script" uid="uid://up7bvcasvcht" path="res://scripts/ui_renderer.gd" id="4_1bvp3"]
+
+[node name="Node2D" type="Node2D" unique_id=1554940637]
+script = ExtResource("1_ig7tw")
+
+[node name="World" type="Node2D" parent="." unique_id=607188551]
+script = ExtResource("2_0xm2m")
+
+[node name="Camera2D" type="Camera2D" parent="World" unique_id=193168515]
+script = ExtResource("3_h2yge")
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=515958807]
+
+[node name="UIRenderer" type="Control" parent="UI" unique_id=665660088]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4_1bvp3")
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\project.godot
+================================================================================
+
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="SimuladorVida"
+run/main_scene="uid://bjfcek6l66nif"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/mode=2
+window/stretch/mode="canvas_items"
+
+[physics]
+
+3d/physics_engine="Jolt Physics"
+
+[rendering]
+
+rendering_device/driver.windows="d3d12"
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\camera_controller.gd
+================================================================================
+
+extends Camera2D
+## Controlador de cámara: zoom con rueda, paneo con clic derecho, centrar con C.
+
+# =============================================================================
+# CONFIGURACIÓN
+# =============================================================================
+
+const MIN_ZOOM: float = 0.2
+const MAX_ZOOM: float = 10.0
+const ZOOM_STEP: float = 0.1
+const PAN_SPEED: float = 1.0
+
+# =============================================================================
+# ESTADO
+# =============================================================================
+
+var _is_panning: bool = false
+var _pan_start: Vector2 = Vector2.ZERO
+var _camera_start: Vector2 = Vector2.ZERO
+
+# Dimensiones del mundo (dinámicas)
+var _world_width: int = 100
+var _world_height: int = 100
+var _cell_size: float = 10.0
+
+# =============================================================================
+# API PÚBLICA
+# =============================================================================
+
+func set_world_dimensions(width: int, height: int) -> void:
+    """Establece las dimensiones del mundo para centrar correctamente."""
+    _world_width = width
+    _world_height = height
+
+func set_cell_size(size: float) -> void:
+    """Establece el tamaño de celda para calcular el centro del mundo."""
+    _cell_size = size
+
+func reset_view() -> void:
+    """Centra la cámara y resetea el zoom."""
+    var world_pixel_width: float = float(_world_width) * _cell_size
+    var world_pixel_height: float = float(_world_height) * _cell_size
+    position = Vector2(world_pixel_width / 2.0, world_pixel_height / 2.0)
+    zoom = Vector2.ONE
+
+# =============================================================================
+# CICLO DE VIDA
+# =============================================================================
+
+func _ready() -> void:
+    make_current()
+    reset_view()
+
+func _unhandled_input(event: InputEvent) -> void:
+    """Maneja zoom y paneo."""
+    
+    # ZOOM: Rueda del ratón
+    if event is InputEventMouseButton:
+        var mouse_event: InputEventMouseButton = event
+        
+        if mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP:
+            _zoom_in()
+        elif mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+            _zoom_out()
+        elif mouse_event.button_index == MOUSE_BUTTON_RIGHT:
+            if mouse_event.pressed:
+                _is_panning = true
+                _pan_start = mouse_event.position
+                _camera_start = position
+            else:
+                _is_panning = false
+    
+    # PANO: Movimiento del ratón con clic derecho
+    if event is InputEventMouseMotion and _is_panning:
+        var motion: InputEventMouseMotion = event
+        var delta: Vector2 = (motion.position - _pan_start) / zoom
+        position = _camera_start - delta * PAN_SPEED
+    
+    # CENTRAR: Tecla C
+    if event is InputEventKey:
+        var key_event: InputEventKey = event
+        if key_event.pressed and key_event.keycode == KEY_C:
+            reset_view()
+
+# =============================================================================
+# ZOOM
+# =============================================================================
+
+func _zoom_in() -> void:
+    var new_zoom: float = zoom.x + ZOOM_STEP
+    new_zoom = clamp(new_zoom, MIN_ZOOM, MAX_ZOOM)
+    zoom = Vector2(new_zoom, new_zoom)
+
+func _zoom_out() -> void:
+    var new_zoom: float = zoom.x - ZOOM_STEP
+    new_zoom = clamp(new_zoom, MIN_ZOOM, MAX_ZOOM)
+    zoom = Vector2(new_zoom, new_zoom)
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\camera_controller.gd.uid
+================================================================================
+
+uid://cprl63j6jk6jv
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\ui_renderer.gd
+================================================================================
+
+extends Control
+## Dibuja la interfaz de usuario. NO captura eventos del ratón.
+## Los botones se detectan desde websocket_client.gd.
+
+# =============================================================================
+# CONFIGURACIÓN GENERAL
+# =============================================================================
+
+const COLOR_HEALTHY: Color = Color(0.298, 0.686, 0.314)
+const COLOR_SICK: Color = Color(0.957, 0.263, 0.212)
+const COLOR_PREGNANT: Color = Color(1.0, 0.757, 0.027)
+const COLOR_YOUNG: Color = Color(0.129, 0.588, 0.953)
+const COLOR_SENIOR: Color = Color(0.620, 0.620, 0.620)
+const BACKGROUND_COLOR: Color = Color(0.1, 0.1, 0.15)
+const TOP_BAR_HEIGHT: float = 50.0
+const LEGEND_POSITION: Vector2 = Vector2(10, 60)
+const LEGEND_SPACING: float = 20.0
+
+# Colores de los botones
+const COLOR_BUTTON_ACTIVE: Color = Color(0.2, 0.6, 0.9)
+const COLOR_BUTTON_INACTIVE: Color = Color(0.3, 0.3, 0.35)
+const COLOR_BUTTON_HOVER: Color = Color(0.4, 0.4, 0.5)
+const COLOR_BUTTON_PAUSED: Color = Color(0.9, 0.5, 0.2)
+
+# =============================================================================
+# CONFIGURACIÓN DEL INSPECTOR DE AGENTES
+# =============================================================================
+
+const INSPECTOR_WIDTH: float = 250.0
+const INSPECTOR_PADDING: float = 10.0
+const INSPECTOR_LINE_HEIGHT: float = 16.0
+const INSPECTOR_BG_COLOR: Color = Color(0.12, 0.12, 0.18, 0.95)
+const INSPECTOR_BORDER_COLOR: Color = Color(0.4, 0.4, 0.5)
+const INSPECTOR_TITLE_COLOR: Color = Color(0.9, 0.9, 1.0)
+const INSPECTOR_LABEL_COLOR: Color = Color(0.7, 0.7, 0.75)
+const INSPECTOR_VALUE_COLOR: Color = Color(0.9, 0.9, 0.9)
+
+# =============================================================================
+# ESTADO
+# =============================================================================
+
+var _is_connected: bool = false
+var _tick_count: int = 0
+var _current_day: float = 0.0
+var _agent_count: int = 0
+var _stats: Dictionary = {}
+var _overlapping_count: int = 0
+var _unique_cells: int = 0
+
+# Estado de controles
+var _is_paused: bool = false
+var _current_speed: float = 1.0
+
+# Áreas de botones (para detección de clics externa)
+var _button_areas: Array = []
+
+# Estado del inspector de agentes
+var _inspector_visible: bool = false
+var _inspector_agent: Dictionary = {}
+
+# Estado de especies (para leyenda)
+var _species_counts: Dictionary = {}
+
+# =============================================================================
+# CICLO DE VIDA
+# =============================================================================
+
+func _ready() -> void:
+    set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+# =============================================================================
+# API PÚBLICA
+# =============================================================================
+
+func update_connection_status(connected: bool) -> void:
+    _is_connected = connected
+    queue_redraw()
+
+func update_tick_info(tick: int, day: float, agent_count: int) -> void:
+    _tick_count = tick
+    _current_day = day
+    _agent_count = agent_count
+    queue_redraw()
+
+func update_stats(stats: Dictionary) -> void:
+    _stats = stats
+    queue_redraw()
+
+func update_occupancy_info(overlapping: int, unique_cells: int) -> void:
+    _overlapping_count = overlapping
+    _unique_cells = unique_cells
+    queue_redraw()
+
+func update_control_state(is_paused: bool, speed: float) -> void:
+    _is_paused = is_paused
+    _current_speed = speed
+    queue_redraw()
+
+func update_species_counts(species_counts: Dictionary) -> void:
+    """Actualiza el conteo de especies para la leyenda."""
+    _species_counts = species_counts
+    queue_redraw()
+
+# =============================================================================
+# API DEL INSPECTOR DE AGENTES
+# =============================================================================
+
+func show_agent_inspector(agent_data: Dictionary) -> void:
+    _inspector_visible = true
+    _inspector_agent = agent_data
+    queue_redraw()
+
+func hide_agent_inspector() -> void:
+    _inspector_visible = false
+    _inspector_agent = {}
+    queue_redraw()
+
+func is_inspector_visible() -> bool:
+    return _inspector_visible
+
+func update_selected_agent(agent_data: Dictionary) -> void:
+    if _inspector_visible and int(agent_data.get("id", -1)) == int(_inspector_agent.get("id", -1)):
+        _inspector_agent = agent_data
+        queue_redraw()
+
+# =============================================================================
+# API PARA DETECCIÓN DE BOTONES (usada por websocket_client)
+# =============================================================================
+
+func get_button_at_position(pos: Vector2) -> Dictionary:
+    """Verifica si una posición está sobre un botón."""
+    for button_info in _button_areas:
+        if button_info["rect"].has_point(pos):
+            return {"action": button_info["action"], "speed": button_info["speed"]}
+    return {}
+
+func get_top_bar_height() -> float:
+    return TOP_BAR_HEIGHT
+
+# =============================================================================
+# DIBUJADO
+# =============================================================================
+
+func _draw() -> void:
+    var viewport_size: Vector2 = get_viewport_rect().size
+    
+    _button_areas.clear()
+    
+    # Barra superior
+    draw_rect(
+        Rect2(Vector2.ZERO, Vector2(viewport_size.x, TOP_BAR_HEIGHT)),
+        Color(0.15, 0.15, 0.2, 0.95)
+    )
+    
+    draw_line(
+        Vector2(0, TOP_BAR_HEIGHT),
+        Vector2(viewport_size.x, TOP_BAR_HEIGHT),
+        Color(0.3, 0.3, 0.4),
+        1.0
+    )
+    
+    _draw_status_bar()
+    _draw_controls()
+    _draw_legend()
+    _draw_stats(viewport_size)
+    _draw_occupancy_info(viewport_size)
+    
+    if _inspector_visible:
+        _draw_agent_inspector(viewport_size)
+
+func _draw_status_bar() -> void:
+    var status_text: String = ""
+    var status_color: Color = Color.WHITE
+    
+    if _is_connected:
+        status_text = "✅ Conectado | Tick: %d | Día: %.1f | Agentes: %d" % [
+            _tick_count, _current_day, _agent_count
+        ]
+        status_color = Color(0.5, 1.0, 0.5)
+    else:
+        status_text = "❌ Desconectado - Intentando reconectar..."
+        status_color = Color(1.0, 0.5, 0.5)
+    
+    draw_string(
+        ThemeDB.fallback_font,
+        Vector2(10, 20),
+        status_text,
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        13,
+        status_color
+    )
+
+func _draw_controls() -> void:
+    """Dibuja los botones de control y registra sus áreas."""
+    var x_offset: float = 10.0
+    var y_offset: float = 28.0
+    var button_height: float = 18.0
+    var button_spacing: float = 4.0
+    
+    # Botón Play/Pause
+    var pause_label: String = "⏸ PAUSA" if _is_paused else "▶ PLAY"
+    var pause_color: Color = COLOR_BUTTON_PAUSED if _is_paused else COLOR_BUTTON_ACTIVE
+    var pause_width: float = 80.0
+    var pause_rect: Rect2 = Rect2(Vector2(x_offset, y_offset), Vector2(pause_width, button_height))
+    _draw_button(pause_rect, pause_label, pause_color)
+    _button_areas.append({"rect": pause_rect, "action": "pause", "speed": 0.0})
+    x_offset += pause_width + button_spacing
+    
+    # Separador
+    draw_line(
+        Vector2(x_offset, y_offset + 2),
+        Vector2(x_offset, y_offset + button_height - 2),
+        Color(0.5, 0.5, 0.6),
+        1.0
+    )
+    x_offset += 8.0
+    
+    # Etiqueta "Velocidad:"
+    draw_string(
+        ThemeDB.fallback_font,
+        Vector2(x_offset, y_offset + 14),
+        "Vel:",
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        11,
+        Color(0.7, 0.7, 0.7)
+    )
+    x_offset += 30.0
+    
+    # Botones de velocidad
+    var speeds: Array = [1.0, 2.0, 5.0, 10.0]
+    var button_width: float = 32.0
+    
+    for speed in speeds:
+        var label: String = "%dx" % int(speed)
+        var color: Color = COLOR_BUTTON_ACTIVE if abs(_current_speed - speed) < 0.01 else COLOR_BUTTON_INACTIVE
+        var rect: Rect2 = Rect2(Vector2(x_offset, y_offset), Vector2(button_width, button_height))
+        _draw_button(rect, label, color)
+        _button_areas.append({"rect": rect, "action": "speed", "speed": speed})
+        x_offset += button_width + button_spacing
+    
+    # Separador
+    draw_line(
+        Vector2(x_offset, y_offset + 2),
+        Vector2(x_offset, y_offset + button_height - 2),
+        Color(0.5, 0.5, 0.6),
+        1.0
+    )
+    x_offset += 8.0
+    
+    # Etiqueta de atajos
+    draw_string(
+        ThemeDB.fallback_font,
+        Vector2(x_offset, y_offset + 14),
+        "[Espacio] Play/Pause  [1-4] Velocidad  [N] Paso  [C] Centrar  [ESC] Deseleccionar",
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        11,
+        Color(0.6, 0.6, 0.65)
+    )
+
+func _draw_button(rect: Rect2, label: String, color: Color) -> void:
+    """Dibuja un botón rectangular con etiqueta."""
+    draw_rect(rect, color)
+    draw_rect(rect, Color(color.r * 1.5, color.g * 1.5, color.b * 1.5), false, 1.0)
+    
+    var text_size: int = 11
+    var font: Font = ThemeDB.fallback_font
+    var text_width: float = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size).x
+    var text_x: float = rect.position.x + (rect.size.x - text_width) / 2.0
+    var text_y: float = rect.position.y + rect.size.y / 2.0 + text_size / 3.0
+    
+    draw_string(
+        font,
+        Vector2(text_x, text_y),
+        label,
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        text_size,
+        Color.WHITE
+    )
+
+func _draw_legend() -> void:
+    var y_offset: float = LEGEND_POSITION.y
+    
+    draw_string(
+        ThemeDB.fallback_font,
+        LEGEND_POSITION,
+        "LEYENDA",
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        12,
+        Color.WHITE
+    )
+    y_offset += LEGEND_SPACING
+    
+    # Especies presentes
+    if not _species_counts.is_empty():
+        draw_string(
+            ThemeDB.fallback_font,
+            LEGEND_POSITION + Vector2(0, y_offset),
+            "ESPECIES",
+            HORIZONTAL_ALIGNMENT_LEFT,
+            -1,
+            11,
+            Color(0.9, 0.9, 0.5)
+        )
+        y_offset += LEGEND_SPACING * 0.8
+        
+        for species_id in _species_counts:
+            var count: int = _species_counts[species_id]
+            var color: Color = _get_species_color(species_id)
+            
+            draw_circle(
+                Vector2(LEGEND_POSITION.x + 8, y_offset - 4),
+                6.0,
+                color
+            )
+            draw_string(
+                ThemeDB.fallback_font,
+                Vector2(LEGEND_POSITION.x + 20, y_offset),
+                "%s (%d)" % [species_id, count],
+                HORIZONTAL_ALIGNMENT_LEFT,
+                -1,
+                11,
+                Color.WHITE
+            )
+            y_offset += LEGEND_SPACING * 0.8
+        
+        y_offset += LEGEND_SPACING * 0.5
+    
+    # Estados de salud
+    draw_string(
+        ThemeDB.fallback_font,
+        LEGEND_POSITION + Vector2(0, y_offset),
+        "ESTADOS",
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        11,
+        Color(0.9, 0.9, 0.5)
+    )
+    y_offset += LEGEND_SPACING * 0.8
+    
+    var legend_items: Array = [
+        {"color": COLOR_SICK, "label": "Enfermo"},
+        {"color": COLOR_PREGNANT, "label": "Embarazada"},
+        {"color": COLOR_YOUNG, "label": "Joven"},
+        {"color": COLOR_SENIOR, "label": "Anciano"},
+    ]
+    
+    for item in legend_items:
+        draw_circle(
+            Vector2(LEGEND_POSITION.x + 8, y_offset - 4),
+            6.0,
+            item["color"]
+        )
+        draw_string(
+            ThemeDB.fallback_font,
+            Vector2(LEGEND_POSITION.x + 20, y_offset),
+            item["label"],
+            HORIZONTAL_ALIGNMENT_LEFT,
+            -1,
+            11,
+            Color.WHITE
+        )
+        y_offset += LEGEND_SPACING * 0.8
+    
+    # Superposición
+    y_offset += LEGEND_SPACING * 0.3
+    draw_rect(
+        Rect2(Vector2(LEGEND_POSITION.x, y_offset - 8), Vector2(16, 12)),
+        Color(1.0, 0.5, 0.0, 0.4)
+    )
+    draw_rect(
+        Rect2(Vector2(LEGEND_POSITION.x, y_offset - 8), Vector2(16, 12)),
+        Color(1.0, 0.8, 0.0),
+        false,
+        1.0
+    )
+    draw_string(
+        ThemeDB.fallback_font,
+        Vector2(LEGEND_POSITION.x + 20, y_offset),
+        "Superposición",
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        11,
+        Color.WHITE
+    )
+
+func _get_species_color(species_id: String) -> Color:
+    """Retorna el color de una especie."""
+    var species_colors: Dictionary = {
+        "human": Color(0.298, 0.686, 0.314),
+        "mammal": Color(0.545, 0.765, 0.290),
+        "bird": Color(0.255, 0.412, 0.882),
+        "fish": Color(0.0, 0.749, 1.0),
+        "insect": Color(1.0, 0.647, 0.0),
+        "reptile": Color(0.545, 0.271, 0.075),
+        "amphibian": Color(0.0, 0.800, 0.500),
+        "bacteria": Color(0.855, 0.439, 0.839),
+        "plant": Color(0.133, 0.545, 0.133),
+        "fungus": Color(0.824, 0.706, 0.549),
+        "fantasy_creature": Color(1.0, 0.078, 0.576),
+    }
+    return species_colors.get(species_id, Color(0.8, 0.8, 0.8))
+
+func _draw_stats(viewport_size: Vector2) -> void:
+    if _stats.is_empty():
+        return
+    
+    var x_pos: float = viewport_size.x - 200
+    var y_offset: float = 60.0
+    
+    draw_string(
+        ThemeDB.fallback_font,
+        Vector2(x_pos, y_offset),
+        "ESTADÍSTICAS",
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        12,
+        Color.WHITE
+    )
+    y_offset += 18.0
+    
+    var population: int = _stats.get("total_population", 0)
+    draw_string(
+        ThemeDB.fallback_font,
+        Vector2(x_pos, y_offset),
+        "Población: %d" % population,
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        12,
+        Color(0.8, 0.8, 0.8)
+    )
+    y_offset += 16.0
+    
+    var sick_count: int = _stats.get("sick_count", 0)
+    var sick_color: Color = Color(0.957, 0.263, 0.212) if sick_count > 0 else Color(0.5, 1.0, 0.5)
+    draw_string(
+        ThemeDB.fallback_font,
+        Vector2(x_pos, y_offset),
+        "Enfermos: %d" % sick_count,
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        12,
+        sick_color
+    )
+    y_offset += 16.0
+    
+    var births: int = _stats.get("total_births", 0)
+    draw_string(
+        ThemeDB.fallback_font,
+        Vector2(x_pos, y_offset),
+        "Nacimientos: %d" % births,
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        12,
+        Color(0.8, 0.8, 0.8)
+    )
+    y_offset += 16.0
+    
+    var deaths: int = _stats.get("total_deaths", 0)
+    draw_string(
+        ThemeDB.fallback_font,
+        Vector2(x_pos, y_offset),
+        "Muertes: %d" % deaths,
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        12,
+        Color(0.8, 0.8, 0.8)
+    )
+
+func _draw_occupancy_info(viewport_size: Vector2) -> void:
+    var info_text: String = "📊 Ocupación: %d agentes en %d casillas únicas | ⚠️ Superposiciones: %d" % [
+        _agent_count, _unique_cells, _overlapping_count
+    ]
+    
+    var info_color: Color = Color(1.0, 0.5, 0.5) if _overlapping_count > 0 else Color(0.5, 1.0, 0.5)
+    
+    draw_string(
+        ThemeDB.fallback_font,
+        Vector2(10, viewport_size.y - 10),
+        info_text,
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        12,
+        info_color
+    )
+
+func _draw_agent_inspector(viewport_size: Vector2) -> void:
+    """Dibuja el panel del inspector de agentes."""
+    if _inspector_agent.is_empty():
+        return
+    
+    var panel_x: float = viewport_size.x - INSPECTOR_WIDTH - INSPECTOR_PADDING
+    var panel_y: float = viewport_size.y - 320.0
+    
+    var num_lines: int = 12
+    var panel_height: float = float(num_lines) * INSPECTOR_LINE_HEIGHT + INSPECTOR_PADDING * 2.0 + 30.0
+    
+    var panel_rect: Rect2 = Rect2(
+        Vector2(panel_x, panel_y),
+        Vector2(INSPECTOR_WIDTH, panel_height)
+    )
+    draw_rect(panel_rect, INSPECTOR_BG_COLOR)
+    draw_rect(panel_rect, INSPECTOR_BORDER_COLOR, false, 1.0)
+    
+    # Título
+    var title_y: float = panel_y + INSPECTOR_PADDING + 14.0
+    draw_string(
+        ThemeDB.fallback_font,
+        Vector2(panel_x + INSPECTOR_PADDING, title_y),
+        "👤 INSPECTOR DE INDIVIDUO",
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        13,
+        INSPECTOR_TITLE_COLOR
+    )
+    
+    # Línea separadora
+    var separator_y: float = title_y + 8.0
+    draw_line(
+        Vector2(panel_x + INSPECTOR_PADDING, separator_y),
+        Vector2(panel_x + INSPECTOR_WIDTH - INSPECTOR_PADDING, separator_y),
+        INSPECTOR_BORDER_COLOR,
+        1.0
+    )
+    
+    # Datos del agente
+    var y_offset: float = separator_y + INSPECTOR_LINE_HEIGHT
+    
+    _draw_inspector_line(panel_x, y_offset, "ID:", str(int(_inspector_agent.get("id", 0))))
+    y_offset += INSPECTOR_LINE_HEIGHT
+    
+    var age_days: float = _inspector_agent.get("age", 0.0)
+    var age_years: float = age_days / 365.25
+    _draw_inspector_line(panel_x, y_offset, "Edad:", "%.1f años" % age_years)
+    y_offset += INSPECTOR_LINE_HEIGHT
+    
+    var pos_x: float = _inspector_agent.get("x", 0.0)
+    var pos_y: float = _inspector_agent.get("y", 0.0)
+    _draw_inspector_line(panel_x, y_offset, "Posición:", "(%.0f, %.0f)" % [pos_x, pos_y])
+    y_offset += INSPECTOR_LINE_HEIGHT
+    
+    var gender: String = _inspector_agent.get("gender", "desconocido")
+    var gender_text: String = "♂ Masculino" if gender == "M" else ("♀ Femenino" if gender == "F" else gender)
+    _draw_inspector_line(panel_x, y_offset, "Sexo:", gender_text)
+    y_offset += INSPECTOR_LINE_HEIGHT
+    
+    var species: String = _inspector_agent.get("species", "human")
+    _draw_inspector_line(panel_x, y_offset, "Especie:", species)
+    y_offset += INSPECTOR_LINE_HEIGHT
+    
+    var is_sick: bool = _inspector_agent.get("is_sick", false)
+    var health_text: String = "🤒 Enfermo" if is_sick else "✅ Sano"
+    var health_color: Color = Color(0.957, 0.263, 0.212) if is_sick else Color(0.5, 1.0, 0.5)
+    _draw_inspector_line(panel_x, y_offset, "Salud:", health_text, health_color)
+    y_offset += INSPECTOR_LINE_HEIGHT
+    
+    var is_pregnant: bool = _inspector_agent.get("is_pregnant", false)
+    var pregnancy_text: String = "🤰 Embarazada" if is_pregnant else "—"
+    _draw_inspector_line(panel_x, y_offset, "Embarazo:", pregnancy_text)
+    y_offset += INSPECTOR_LINE_HEIGHT
+    
+    var is_adult: bool = _inspector_agent.get("is_adult", true)
+    var is_senior: bool = _inspector_agent.get("is_senior", false)
+    var stage_text: String = "👶 Joven" if not is_adult else ("👴 Anciano" if is_senior else "🧑 Adulto")
+    _draw_inspector_line(panel_x, y_offset, "Etapa:", stage_text)
+    y_offset += INSPECTOR_LINE_HEIGHT
+    
+    # Separador
+    y_offset += 4.0
+    draw_line(
+        Vector2(panel_x + INSPECTOR_PADDING, y_offset),
+        Vector2(panel_x + INSPECTOR_WIDTH - INSPECTOR_PADDING, y_offset),
+        Color(0.3, 0.3, 0.4),
+        1.0
+    )
+    y_offset += INSPECTOR_LINE_HEIGHT
+    
+    draw_string(
+        ThemeDB.fallback_font,
+        Vector2(panel_x + INSPECTOR_PADDING, y_offset),
+        "[ESC] Cerrar inspector",
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        10,
+        Color(0.5, 0.5, 0.55)
+    )
+
+func _draw_inspector_line(panel_x: float, y: float, label: String, value: String, value_color: Color = INSPECTOR_VALUE_COLOR) -> void:
+    """Dibuja una línea del inspector con etiqueta y valor."""
+    draw_string(
+        ThemeDB.fallback_font,
+        Vector2(panel_x + INSPECTOR_PADDING, y),
+        label,
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        11,
+        INSPECTOR_LABEL_COLOR
+    )
+    
+    var font: Font = ThemeDB.fallback_font
+    var value_width: float = font.get_string_size(value, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
+    var value_x: float = panel_x + INSPECTOR_WIDTH - INSPECTOR_PADDING - value_width
+    
+    draw_string(
+        font,
+        Vector2(value_x, y),
+        value,
+        HORIZONTAL_ALIGNMENT_LEFT,
+        -1,
+        11,
+        value_color
+    )
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\ui_renderer.gd.uid
+================================================================================
+
+uid://up7bvcasvcht
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\websocket_client.gd
+================================================================================
+
+extends Node2D
+## Coordinador principal: recibe datos del servidor WebSocket y los distribuye
+## a los nodos de renderizado. Maneja TODOS los inputs (botones + selección + teclado).
+
+# =============================================================================
+# CONFIGURACIÓN
+# =============================================================================
+
+const SERVER_URL: String = "ws://localhost:8765"
+
+# =============================================================================
+# REFERENCIAS A NODOS
+# =============================================================================
+
+@onready var world_renderer: Node2D = $World
+@onready var ui_renderer: Control = $UI/UIRenderer
+@onready var camera: Camera2D = $World/Camera2D
+
+# =============================================================================
+# ESTADO
+# =============================================================================
+
+var _peer: WebSocketPeer = null
+var _agents: Array = []
+var _stats: Dictionary = {}
+var _tick_count: int = 0
+var _current_day: float = 0.0
+var _is_connected: bool = false
+var _was_connected_before: bool = false
+var _cell_size: float = 10.0
+
+# Dimensiones del mundo (dinámicas, recibidas del servidor)
+var _world_width: int = 100
+var _world_height: int = 100
+
+# Estado de los controles de simulación
+var _is_paused: bool = false
+var _current_speed: float = 1.0
+
+# =============================================================================
+# CICLO DE VIDA
+# =============================================================================
+
+func _ready() -> void:
+    print("🎮 Iniciando cliente WebSocket...")
+    
+    # Usar dimensiones por defecto inicialmente
+    # Se actualizarán cuando llegue el primer mensaje del servidor
+    _cell_size = 1000.0 / float(_world_width)
+    world_renderer.set_cell_size(_cell_size)
+    world_renderer.set_world_dimensions(_world_width, _world_height)
+    camera.set_world_dimensions(_world_width, _world_height)
+    
+    # Centrar la cámara
+    camera.reset_view()
+    
+    # Conectar señales de selección de agentes
+    world_renderer.agent_selected.connect(_on_agent_selected)
+    world_renderer.agent_deselected.connect(_on_agent_deselected)
+    
+    _connect_to_server()
+
+func _process(_delta: float) -> void:
+    if _peer != null:
+        _peer.poll()
+        _check_connection_state()
+        _receive_data()
+
+func _unhandled_input(event: InputEvent) -> void:
+    """Maneja TODOS los inputs: botones de UI, selección de agentes y teclado."""
+    
+    # =========================================================================
+    # CLIC IZQUIERDO: Botones de UI o selección de agente
+    # =========================================================================
+    if event is InputEventMouseButton:
+        var mouse_event: InputEventMouseButton = event
+        
+        if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
+            # 1. Primero verificar si es un clic en un botón de la barra superior
+            var button_hit: Dictionary = ui_renderer.get_button_at_position(mouse_event.position)
+            
+            if not button_hit.is_empty():
+                var action: String = button_hit["action"]
+                
+                if action == "pause":
+                    _toggle_pause()
+                elif action == "speed":
+                    var speed: float = button_hit["speed"]
+                    _set_speed(speed)
+                
+                return  # Consumir el evento, no buscar agente
+            
+            # 2. Si no es un botón, verificar si es un clic en la barra superior
+            if mouse_event.position.y < ui_renderer.get_top_bar_height():
+                return
+            
+            # 3. Intentar seleccionar un agente
+            var selected: bool = world_renderer.try_select_agent_at_position(
+                mouse_event.position,
+                camera.zoom.x,
+                camera.position,
+                get_viewport_rect().size
+            )
+            
+            if not selected:
+                world_renderer.deselect_agent()
+            
+            return
+    
+    # =========================================================================
+    # CONTROLES DE TECLADO
+    # =========================================================================
+    if not (event is InputEventKey):
+        return
+    if not event.pressed:
+        return
+    
+    var key_event: InputEventKey = event
+    
+    match key_event.keycode:
+        KEY_SPACE:
+            _toggle_pause()
+        KEY_1:
+            _set_speed(1.0)
+        KEY_2:
+            _set_speed(2.0)
+        KEY_3:
+            _set_speed(5.0)
+        KEY_4:
+            _set_speed(10.0)
+        KEY_N:
+            _step_one_tick()
+        KEY_ESCAPE:
+            world_renderer.deselect_agent()
+
+# =============================================================================
+# COMANDOS DE SIMULACIÓN
+# =============================================================================
+
+func _toggle_pause() -> void:
+    if not _is_connected:
+        return
+    
+    _is_paused = not _is_paused
+    
+    var command: Dictionary = {}
+    if _is_paused:
+        command = {"type": "pause"}
+        print("⏸️  Enviando comando: PAUSE")
+    else:
+        command = {"type": "resume"}
+        print("▶️  Enviando comando: RESUME")
+    
+    _send_command(command)
+    ui_renderer.update_control_state(_is_paused, _current_speed)
+
+func _set_speed(speed: float) -> void:
+    if not _is_connected:
+        return
+    
+    _current_speed = speed
+    var command: Dictionary = {"type": "set_speed", "speed": speed}
+    print("⚡ Enviando comando: SET_SPEED %.1fx" % speed)
+    _send_command(command)
+    ui_renderer.update_control_state(_is_paused, _current_speed)
+
+func _step_one_tick() -> void:
+    if not _is_connected:
+        return
+    
+    var command: Dictionary = {"type": "step"}
+    print("⏭️  Enviando comando: STEP")
+    _send_command(command)
+
+func _send_command(command: Dictionary) -> void:
+    if _peer == null or _peer.get_ready_state() != WebSocketPeer.STATE_OPEN:
+        print("⚠️  No se puede enviar comando: no hay conexión")
+        return
+    
+    var json_text: String = JSON.stringify(command)
+    var error: int = _peer.send_text(json_text)
+    
+    if error != OK:
+        print("❌ Error enviando comando: %d" % error)
+
+# =============================================================================
+# MANEJADORES DE SEÑALES DE SELECCIÓN DE AGENTES
+# =============================================================================
+
+func _on_agent_selected(agent_data: Dictionary) -> void:
+    var agent_id: int = int(agent_data.get("id", -1))
+    print("👤 Agente seleccionado: ID ", agent_id)
+    ui_renderer.show_agent_inspector(agent_data)
+
+func _on_agent_deselected() -> void:
+    print("👤 Agente deseleccionado")
+    ui_renderer.hide_agent_inspector()
+
+# =============================================================================
+# CONEXIÓN
+# =============================================================================
+
+func _connect_to_server() -> void:
+    _peer = WebSocketPeer.new()
+    
+    var error: int = _peer.connect_to_url(SERVER_URL)
+    if error != OK:
+        print("❌ Error al conectar: código %d" % error)
+        return
+    
+    print("🔗 Conectando a ", SERVER_URL, "...")
+
+func _check_connection_state() -> void:
+    var state: int = _peer.get_ready_state()
+    
+    match state:
+        WebSocketPeer.STATE_OPEN:
+            _is_connected = true
+            if not _was_connected_before:
+                print("✅ ¡Conectado al servidor!")
+                _was_connected_before = true
+                ui_renderer.update_connection_status(true)
+                ui_renderer.update_control_state(_is_paused, _current_speed)
+        
+        WebSocketPeer.STATE_CLOSED:
+            if _is_connected:
+                print("❌ Desconectado del servidor.")
+                _is_connected = false
+                _was_connected_before = false
+                ui_renderer.update_connection_status(false)
+                get_tree().create_timer(2.0).timeout.connect(_connect_to_server)
+
+# =============================================================================
+# RECEPCIÓN DE DATOS
+# =============================================================================
+
+func _receive_data() -> void:
+    while _peer.get_available_packet_count() > 0:
+        var packet: PackedByteArray = _peer.get_packet()
+        var packet_text: String = packet.get_string_from_utf8()
+        
+        if packet_text.is_empty():
+            continue
+        
+        var json: JSON = JSON.new()
+        var parse_result: int = json.parse(packet_text)
+        
+        if parse_result != OK:
+            continue
+        
+        var data: Dictionary = json.get_data()
+        _handle_message(data)
+
+func _handle_message(data: Dictionary) -> void:
+    var message_type: String = data.get("type", "")
+    
+    match message_type:
+        "tick":
+            _tick_count = data.get("tick", 0)
+            _current_day = data.get("day", 0.0)
+            _agents = data.get("agents", [])
+            _stats = data.get("stats", {})
+            
+            # Actualizar dimensiones del mundo si cambiaron
+            var new_width: int = data.get("world_width", 100)
+            var new_height: int = data.get("world_height", 100)
+            if new_width != _world_width or new_height != _world_height:
+                _world_width = new_width
+                _world_height = new_height
+                world_renderer.set_world_dimensions(_world_width, _world_height)
+                camera.set_world_dimensions(_world_width, _world_height)
+                # Recalcular el tamaño de celda para que el mundo ocupe ~1000 píxeles
+                _cell_size = 1000.0 / float(_world_width)
+                world_renderer.set_cell_size(_cell_size)
+                # Recentrar la cámara
+                camera.reset_view()
+            
+            # Actualizar el renderizado del mundo
+            world_renderer.update_agents(_agents)
+            
+            # Actualizar la UI
+            ui_renderer.update_tick_info(_tick_count, _current_day, _agents.size())
+            ui_renderer.update_stats(_stats)
+            
+            # Actualizar conteo de especies
+            var species_counts: Dictionary = _stats.get("species_counts", {})
+            ui_renderer.update_species_counts(species_counts)
+            
+            # Actualizar el inspector si hay un agente seleccionado
+            if ui_renderer.is_inspector_visible():
+                var selected_id: int = world_renderer.get_selected_agent_id()
+                for agent in _agents:
+                    if int(agent.get("id", -1)) == selected_id:
+                        ui_renderer.update_selected_agent(agent)
+                        break
+            
+            # Calcular información de ocupación
+            var unique_cells: Dictionary = {}
+            for agent in _agents:
+                var key: String = "%d,%d" % [int(round(agent.get("x", 0.0))), int(round(agent.get("y", 0.0)))]
+                unique_cells[key] = true
+            
+            var overlapping: int = _agents.size() - unique_cells.size()
+            ui_renderer.update_occupancy_info(max(0, overlapping), unique_cells.size())
+        
+        "status":
+            var status: String = data.get("status", "")
+            print("📡 Estado del servidor: ", status)
+            
+            if status == "paused":
+                _is_paused = true
+            elif status == "running":
+                _is_paused = false
+            elif status.begins_with("speed:"):
+                var speed_str: String = status.substr(6)
+                _current_speed = float(speed_str)
+            
+            ui_renderer.update_control_state(_is_paused, _current_speed)
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\websocket_client.gd.uid
+================================================================================
+
+uid://d2by4wyvf0nib
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\world_renderer.gd
+================================================================================
+
+extends Node2D
+## Dibuja el mundo (rejilla, agentes, indicadores de superposición).
+## Este nodo está bajo la Camera2D, así que el zoom/paneo le afecta.
+## También detecta clics sobre agentes y resalta la selección.
+
+# =============================================================================
+# SEÑALES
+# =============================================================================
+
+signal agent_selected(agent_data: Dictionary)
+signal agent_deselected()
+
+# =============================================================================
+# CONFIGURACIÓN DEL MUNDO
+# =============================================================================
+
+## Dimensiones del mundo (se actualizan dinámicamente desde el servidor)
+var _world_width: int = 100
+var _world_height: int = 100
+
+## Configuración de la rejilla
+const DRAW_GRID: bool = true
+const GRID_INTERVAL: int = 1
+const GRID_COLOR: Color = Color(0.35, 0.35, 0.45, 0.5)
+const GRID_BORDER_COLOR: Color = Color(0.6, 0.6, 0.7, 0.9)
+const GRID_LINE_WIDTH: float = 1.5
+const GRID_BORDER_WIDTH: float = 3.0
+
+## Configuración del tamaño del agente
+const AGENT_FILL_FACTOR: float = 1.0
+const AGENT_MARGIN: float = 1.5
+
+## Configuración de detección de superposiciones
+const DETECT_OVERLAPS: bool = true
+const OVERLAP_COLOR: Color = Color(1.0, 0.5, 0.0, 0.4)
+const OVERLAP_BORDER_COLOR: Color = Color(1.0, 0.8, 0.0)
+
+## Colores por estado del agente (sobrescriben el color de especie)
+const COLOR_SICK: Color = Color(0.957, 0.263, 0.212)
+const COLOR_PREGNANT: Color = Color(1.0, 0.757, 0.027)
+const COLOR_YOUNG: Color = Color(0.129, 0.588, 0.953)
+const COLOR_SENIOR: Color = Color(0.620, 0.620, 0.620)
+
+## Colores por especie (arquetipo biológico)
+const SPECIES_COLORS: Dictionary = {
+    "human": Color(0.298, 0.686, 0.314),
+    "mammal": Color(0.545, 0.765, 0.290),
+    "bird": Color(0.255, 0.412, 0.882),
+    "fish": Color(0.0, 0.749, 1.0),
+    "insect": Color(1.0, 0.647, 0.0),
+    "reptile": Color(0.545, 0.271, 0.075),
+    "amphibian": Color(0.0, 0.800, 0.500),
+    "bacteria": Color(0.855, 0.439, 0.839),
+    "plant": Color(0.133, 0.545, 0.133),
+    "fungus": Color(0.824, 0.706, 0.549),
+    "fantasy_creature": Color(1.0, 0.078, 0.576),
+}
+
+const DEFAULT_SPECIES_COLOR: Color = Color(0.8, 0.8, 0.8)
+
+## Configuración de selección
+const SELECTION_RING_COLOR: Color = Color(1.0, 1.0, 1.0)
+const SELECTION_RING_WIDTH: float = 2.0
+const SELECTION_INNER_COLOR: Color = Color(1.0, 1.0, 1.0, 0.3)
+
+# =============================================================================
+# ESTADO
+# =============================================================================
+
+var _agents: Array = []
+var _cell_occupancy: Dictionary = {}
+var _overlapping_cells: Array = []
+var _cell_size: float = 10.0
+var _agent_radius: float = 5.0
+
+## Estado de selección
+var _selected_agent_id: int = -1
+var _selected_agent: Dictionary = {}
+
+# =============================================================================
+# API PÚBLICA
+# =============================================================================
+
+func update_agents(agents: Array) -> void:
+    """Actualiza la lista de agentes a dibujar."""
+    _agents = agents
+    if DETECT_OVERLAPS:
+        _update_cell_occupancy()
+    queue_redraw()
+
+func set_cell_size(size: float) -> void:
+    """Establece el tamaño de cada casilla en píxeles del mundo."""
+    _cell_size = size
+    _agent_radius = (_cell_size * AGENT_FILL_FACTOR) / 2.0
+    queue_redraw()
+
+func set_world_dimensions(width: int, height: int) -> void:
+    """Establece las dimensiones del mundo."""
+    if width != _world_width or height != _world_height:
+        _world_width = width
+        _world_height = height
+        queue_redraw()
+
+# =============================================================================
+# SELECCIÓN DE AGENTES
+# =============================================================================
+
+func try_select_agent_at_position(
+    screen_pos: Vector2,
+    camera_zoom: float,
+    camera_position: Vector2,
+    viewport_size: Vector2
+) -> bool:
+    """Intenta seleccionar un agente en la posición de pantalla dada."""
+    var world_pos: Vector2 = _screen_to_world(screen_pos, camera_zoom, camera_position, viewport_size)
+    
+    # Calcular la casilla donde se hizo clic
+    var clicked_cell_x: int = int(floor(world_pos.x / _cell_size))
+    var clicked_cell_y: int = int(floor(world_pos.y / _cell_size))
+    
+    # Buscar un agente en esa casilla
+    for agent in _agents:
+        var agent_x: int = int(floor(agent.get("x", 0.0)))
+        var agent_y: int = int(floor(agent.get("y", 0.0)))
+        
+        if agent_x == clicked_cell_x and agent_y == clicked_cell_y:
+            _selected_agent_id = int(agent.get("id", -1))
+            _selected_agent = agent
+            queue_redraw()
+            emit_signal("agent_selected", agent)
+            return true
+    
+    # No se encontró agente en la casilla clickeada
+    deselect_agent()
+    return false
+
+func deselect_agent() -> void:
+    """Deselecciona el agente actual."""
+    if _selected_agent_id != -1:
+        _selected_agent_id = -1
+        _selected_agent = {}
+        queue_redraw()
+        emit_signal("agent_deselected")
+
+func get_selected_agent_id() -> int:
+    return _selected_agent_id
+
+# =============================================================================
+# DETECCIÓN DE SUPERPOSICIONES
+# =============================================================================
+
+func _update_cell_occupancy() -> void:
+    _cell_occupancy.clear()
+    _overlapping_cells.clear()
+    
+    for agent in _agents:
+        var x: int = int(round(agent.get("x", 0.0)))
+        var y: int = int(round(agent.get("y", 0.0)))
+        var cell_key: String = "%d,%d" % [x, y]
+        
+        if _cell_occupancy.has(cell_key):
+            _cell_occupancy[cell_key] += 1
+        else:
+            _cell_occupancy[cell_key] = 1
+    
+    for cell_key in _cell_occupancy:
+        if _cell_occupancy[cell_key] > 1:
+            _overlapping_cells.append(cell_key)
+
+# =============================================================================
+# CONVERSIÓN DE COORDENADAS
+# =============================================================================
+
+func _world_to_local(world_x: float, world_y: float) -> Vector2:
+    """Convierte coordenadas del mundo a coordenadas locales de dibujo."""
+    return Vector2((world_x + 0.5) * _cell_size, (world_y + 0.5) * _cell_size)
+
+func _screen_to_world(
+    screen_pos: Vector2,
+    camera_zoom: float,
+    camera_position: Vector2,
+    viewport_size: Vector2
+) -> Vector2:
+    """Convierte coordenadas de pantalla a coordenadas del mundo."""
+    var centered: Vector2 = screen_pos - viewport_size / 2.0
+    var world: Vector2 = centered / camera_zoom + camera_position
+    return world
+
+# =============================================================================
+# DIBUJADO
+# =============================================================================
+
+func _draw() -> void:
+    # 1. Primero los indicadores de superposición
+    if DETECT_OVERLAPS:
+        _draw_overlap_indicators()
+    
+    # 2. Luego los agentes
+    _draw_agents()
+    
+    # 3. Después la rejilla (las líneas se dibujan ENCIMA de los agentes)
+    if DRAW_GRID:
+        _draw_grid()
+    
+    # 4. Al final la selección (encima de todo)
+    _draw_selection_highlight()
+
+func _draw_grid() -> void:
+    """Dibuja la rejilla del mundo usando dimensiones dinámicas."""
+    var x: int = 0
+    while x <= _world_width:
+        var start: Vector2 = Vector2(float(x) * _cell_size, 0.0)
+        var end: Vector2 = Vector2(float(x) * _cell_size, float(_world_height) * _cell_size)
+        
+        var is_border: bool = (x == 0 or x == _world_width)
+        var color: Color = GRID_BORDER_COLOR if is_border else GRID_COLOR
+        var width: float = GRID_BORDER_WIDTH if is_border else GRID_LINE_WIDTH
+        
+        draw_line(start, end, color, width)
+        x += GRID_INTERVAL
+    
+    var y: int = 0
+    while y <= _world_height:
+        var start: Vector2 = Vector2(0.0, float(y) * _cell_size)
+        var end: Vector2 = Vector2(float(_world_width) * _cell_size, float(y) * _cell_size)
+        
+        var is_border: bool = (y == 0 or y == _world_height)
+        var color: Color = GRID_BORDER_COLOR if is_border else GRID_COLOR
+        var width: float = GRID_BORDER_WIDTH if is_border else GRID_LINE_WIDTH
+        
+        draw_line(start, end, color, width)
+        y += GRID_INTERVAL
+
+func _draw_overlap_indicators() -> void:
+    """Dibuja indicadores en las casillas donde hay más de un agente."""
+    for cell_key in _overlapping_cells:
+        var parts: PackedStringArray = cell_key.split(",")
+        if parts.size() != 2:
+            continue
+        
+        var cell_x: int = int(parts[0])
+        var cell_y: int = int(parts[1])
+        var count: int = _cell_occupancy[cell_key]
+        
+        var cell_top_left: Vector2 = Vector2(float(cell_x) * _cell_size, float(cell_y) * _cell_size)
+        
+        var cell_rect: Rect2 = Rect2(cell_top_left, Vector2(_cell_size, _cell_size))
+        draw_rect(cell_rect, OVERLAP_COLOR)
+        draw_rect(cell_rect, OVERLAP_BORDER_COLOR, false, 2.0)
+        
+        if _cell_size >= 12.0:
+            draw_string(
+                ThemeDB.fallback_font,
+                cell_top_left + Vector2(2, _cell_size - 2),
+                str(count),
+                HORIZONTAL_ALIGNMENT_LEFT,
+                -1,
+                int(_cell_size * 0.7),
+                Color.WHITE
+            )
+
+func _draw_agents() -> void:
+    """Dibuja cada agente como un cuadrado dentro de su casilla."""
+    for agent in _agents:
+        var world_x: float = agent.get("x", 0.0)
+        var world_y: float = agent.get("y", 0.0)
+        var center: Vector2 = _world_to_local(world_x, world_y)
+        var color: Color = _get_agent_color(agent)
+        
+        var agent_size: float = _cell_size - AGENT_MARGIN * 2.0
+        var top_left: Vector2 = center - Vector2(agent_size / 2.0, agent_size / 2.0)
+        var rect: Rect2 = Rect2(top_left, Vector2(agent_size, agent_size))
+        
+        draw_rect(rect, color)
+        
+        if _cell_size >= 8.0:
+            draw_rect(rect, Color(0, 0, 0, 0.3), false, 1.0)
+
+func _draw_selection_highlight() -> void:
+    """Dibuja un borde de resaltado alrededor del agente seleccionado."""
+    if _selected_agent_id == -1:
+        return
+    
+    for agent in _agents:
+        if int(agent.get("id", -1)) == _selected_agent_id:
+            var world_x: float = agent.get("x", 0.0)
+            var world_y: float = agent.get("y", 0.0)
+            var center: Vector2 = _world_to_local(world_x, world_y)
+            
+            var selection_margin: float = 2.0
+            var top_left: Vector2 = center - Vector2(
+                _cell_size / 2.0 + selection_margin,
+                _cell_size / 2.0 + selection_margin
+            )
+            var rect: Rect2 = Rect2(
+                top_left,
+                Vector2(
+                    _cell_size + selection_margin * 2.0,
+                    _cell_size + selection_margin * 2.0
+                )
+            )
+            
+            draw_rect(rect, SELECTION_RING_COLOR, false, SELECTION_RING_WIDTH)
+            
+            var inner_top_left: Vector2 = center - Vector2(
+                _cell_size / 2.0 + selection_margin + 3.0,
+                _cell_size / 2.0 + selection_margin + 3.0
+            )
+            var inner_rect: Rect2 = Rect2(
+                inner_top_left,
+                Vector2(
+                    _cell_size + (selection_margin + 3.0) * 2.0,
+                    _cell_size + (selection_margin + 3.0) * 2.0
+                )
+            )
+            draw_rect(inner_rect, SELECTION_INNER_COLOR, false, 1.0)
+            
+            _selected_agent = agent
+            break
+
+func _get_agent_color(agent: Dictionary) -> Color:
+    """Determina el color del agente según su especie y estado."""
+    if agent.get("is_sick", false):
+        return COLOR_SICK
+    if agent.get("is_pregnant", false):
+        return COLOR_PREGNANT
+    if not agent.get("is_adult", true):
+        return COLOR_YOUNG
+    if agent.get("is_senior", false):
+        return COLOR_SENIOR
+    
+    var species: String = agent.get("species", "human")
+    return SPECIES_COLORS.get(species, DEFAULT_SPECIES_COLOR)
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\world_renderer.gd.uid
+================================================================================
+
+uid://bcd6p12mwy66c
+
+================================================================================
+ARCHIVO: .\tools\ws_server.py
+================================================================================
+
+"""Servidor WebSocket de prueba para la interfaz de Godot.
+
+Este servidor genera agentes ficticios que se mueven aleatoriamente
+y envía sus posiciones a cualquier cliente conectado (Godot).
+
+Uso:
+    python tools/ws_server.py
+
+Luego abre tu proyecto de Godot y ejecuta la escena principal.
+Los agentes deberían aparecer y moverse en la ventana de Godot.
+"""
+
+import asyncio
+import json
+import random
+import logging
+from typing import List, Dict, Any
+
+import websockets
+
+# Configuración
+HOST = "localhost"
+PORT = 8765
+NUM_AGENTS = 20
+TICK_INTERVAL = 0.1  # segundos entre actualizaciones (10 FPS)
+
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("WSServer")
+
+
+class Agent:
+    """Agente ficticio que se mueve aleatoriamente."""
+    
+    def __init__(self, entity_id: int, width: int = 1280, height: int = 720):
+        self.entity_id = entity_id
+        self.x = random.uniform(50, width - 50)
+        self.y = random.uniform(50, height - 50)
+        self.vx = random.uniform(-2, 2)
+        self.vy = random.uniform(-2, 2)
+        self.width = width
+        self.height = height
+    
+    def update(self) -> None:
+        """Actualiza la posición del agente con rebote en los bordes."""
+        self.x += self.vx
+        self.y += self.vy
+        
+        # Rebotar en los bordes
+        if self.x <= 0 or self.x >= self.width:
+            self.vx = -self.vx
+            self.x = max(0, min(self.width, self.x))
+        if self.y <= 0 or self.y >= self.height:
+            self.vy = -self.vy
+            self.y = max(0, min(self.height, self.y))
+        
+        # Cambio aleatorio de dirección (10% probabilidad)
+        if random.random() < 0.1:
+            self.vx = random.uniform(-2, 2)
+            self.vy = random.uniform(-2, 2)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convierte el agente a un diccionario para enviar como JSON."""
+        return {
+            "id": self.entity_id,
+            "x": round(self.x, 1),
+            "y": round(self.y, 1),
+        }
+
+
+class SimulationServer:
+    """Servidor WebSocket que transmite el estado de la simulación."""
+    
+    def __init__(self, host: str = HOST, port: int = PORT):
+        self.host = host
+        self.port = port
+        self.agents: List[Agent] = [Agent(i) for i in range(NUM_AGENTS)]
+        self.connected_clients: set = set()
+        self.tick_count = 0
+    
+    def get_state(self) -> Dict[str, Any]:
+        """Genera el estado actual de la simulación como diccionario."""
+        self.tick_count += 1
+        
+        # Actualizar todos los agentes
+        for agent in self.agents:
+            agent.update()
+        
+        return {
+            "type": "tick",
+            "tick": self.tick_count,
+            "agents": [agent.to_dict() for agent in self.agents],
+        }
+    
+    async def handle_connection(self, websocket: Any) -> None:
+        """Maneja una conexión WebSocket individual."""
+        client_id = f"client_{id(websocket)}"
+        self.connected_clients.add(websocket)
+        logger.info(f"✅ {client_id} conectado. Total: {len(self.connected_clients)}")
+        
+        try:
+            while True:
+                # Enviar estado actual
+                state = self.get_state()
+                await websocket.send(json.dumps(state))
+                
+                # Esperar el intervalo de tick
+                await asyncio.sleep(TICK_INTERVAL)
+                
+        except websockets.exceptions.ConnectionClosed:
+            logger.info(f"❌ {client_id} desconectado.")
+        except Exception as e:
+            logger.error(f"Error con {client_id}: {e}")
+        finally:
+            self.connected_clients.discard(websocket)
+    
+    async def start(self) -> None:
+        """Inicia el servidor WebSocket."""
+        logger.info(f"🚀 Iniciando servidor en ws://{self.host}:{self.port}")
+        logger.info(f"   Agentes simulados: {NUM_AGENTS}")
+        logger.info(f"   Intervalo de tick: {TICK_INTERVAL}s")
+        logger.info("   Esperando conexiones de Godot...")
+        
+        async with websockets.serve(self.handle_connection, self.host, self.port):
+            # Mantener el servidor corriendo indefinidamente
+            await asyncio.Future()
+
+
+def main() -> None:
+    """Punto de entrada del servidor."""
+    server = SimulationServer()
+    try:
+        asyncio.run(server.start())
+    except KeyboardInterrupt:
+        logger.info("🛑 Servidor detenido por el usuario.")
+
+
+if __name__ == "__main__":
+    main()
+
+================================================================================
+ARCHIVO: .\tools\ws_server_real.py
+================================================================================
+
+"""Servidor WebSocket que integra el SimulationEngine real con Godot.
+
+Soporte para escenarios:
+    python tools/ws_server_real.py                      # Usa humanos por defecto
+    python tools/ws_server_real.py --scenario scenarios/birds.json
+    python tools/ws_server_real.py --scenario scenarios/mixed.json
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import os
+import signal
+import sys
+import argparse
+from typing import Any, Set, Optional, TYPE_CHECKING
+
+# CORRECCIÓN CRÍTICA: Añadir la raíz del proyecto al sys.path
+_project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
+import websockets
+
+# TYPE_CHECKING: Imports solo para type hints (no en tiempo de ejecución)
+if TYPE_CHECKING:
+    from core.engine.scenario_loader import Scenario
+
+# Import real (solo lo que se usa en tiempo de ejecución)
+from core.engine.simulation_engine import SimulationEngine
+from core.engine.scenario_loader import ScenarioLoader
+
+# =============================================================================
+# CONFIGURACIÓN
+# =============================================================================
+
+HOST = "localhost"
+PORT = 8765
+
+# Intervalo entre ticks en segundos (0.1 = 10 FPS)
+TICK_INTERVAL = 0.1
+
+# Configuración por defecto (si no se especifica escenario)
+DEFAULT_SPECIES_ID = "human"
+DEFAULT_POPULATION_SIZE = 50
+DEFAULT_WORLD_WIDTH = 100
+DEFAULT_WORLD_HEIGHT = 100
+
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("WSServerReal")
+
+
+class RealSimulationServer:
+    """Servidor WebSocket que integra el SimulationEngine real."""
+    
+    def __init__(
+        self, 
+        host: str = HOST, 
+        port: int = PORT, 
+        scenario: Optional['Scenario'] = None
+    ):
+        self.host = host
+        self.port = port
+        self.connected_clients: Set[Any] = set()
+        self.scenario = scenario
+        
+        # Crear el motor de simulación
+        logger.info("🔧 Creando motor de simulación...")
+        
+        if scenario is not None:
+            logger.info("📂 Usando escenario: %s", scenario.name)
+            logger.info("   Especies: %s", 
+                       ", ".join(f"{s.count}x {s.species_id}" for s in scenario.species))
+            self.engine = SimulationEngine.create_from_scenario(scenario)
+        else:
+            logger.info("📂 Usando configuración por defecto (humanos)")
+            self.engine = SimulationEngine.create_default(
+                width=DEFAULT_WORLD_WIDTH,
+                height=DEFAULT_WORLD_HEIGHT,
+                founding_population_size=DEFAULT_POPULATION_SIZE,
+                max_ticks=None,
+            )
+        
+        # Inicializar la simulación (sin ejecutar ticks)
+        self.engine.initialize()
+        logger.info("✅ Motor de simulación inicializado")
+        
+        # Variables de control
+        self._running = True
+        self._paused = False
+        self._tick_interval = TICK_INTERVAL
+    
+    async def handle_connection(self, websocket: Any) -> None:
+        """Maneja una conexión WebSocket individual."""
+        client_id = f"client_{id(websocket)}"
+        self.connected_clients.add(websocket)
+        logger.info(f"✅ {client_id} conectado. Total: {len(self.connected_clients)}")
+        
+        try:
+            # Enviar el estado inicial al nuevo cliente
+            initial_state = self.engine.get_visualization_state()
+            await websocket.send(json.dumps(initial_state))
+            
+            # Mantener la conexión abierta para recibir comandos
+            while self._running:
+                try:
+                    message = await asyncio.wait_for(
+                        websocket.recv(),
+                        timeout=1.0
+                    )
+                    await self._handle_client_message(websocket, message)
+                except asyncio.TimeoutError:
+                    pass
+                    
+        except websockets.exceptions.ConnectionClosed:
+            logger.info(f"❌ {client_id} desconectado.")
+        except Exception as e:
+            logger.error(f"Error con {client_id}: {e}")
+        finally:
+            self.connected_clients.discard(websocket)
+    
+    async def _handle_client_message(self, websocket: Any, message: str) -> None:
+        """Procesa comandos enviados por el cliente (Godot)."""
+        try:
+            data = json.loads(message)
+            command = data.get("type", "")
+            
+            if command == "pause":
+                self._paused = True
+                logger.info("⏸️  Simulación pausada")
+                await self._broadcast_status("paused")
+                
+            elif command == "resume":
+                self._paused = False
+                logger.info("▶️  Simulación reanudada")
+                await self._broadcast_status("running")
+                
+            elif command == "set_speed":
+                speed = data.get("speed", 1.0)
+                self._tick_interval = TICK_INTERVAL / speed
+                logger.info(f"⚡ Velocidad cambiada a {speed}x")
+                await self._broadcast_status(f"speed:{speed}")
+                
+            elif command == "step":
+                if self._paused:
+                    try:
+                        state = self.engine.step()
+                        if self.connected_clients:
+                            message_state = json.dumps(state)
+                            await asyncio.gather(
+                                *[client.send(message_state) for client in self.connected_clients],
+                                return_exceptions=True
+                            )
+                        logger.info("⏭️  Avanzado 1 tick (paso a paso)")
+                    except Exception as e:
+                        logger.error(f"Error en step: {e}")
+                
+        except json.JSONDecodeError:
+            logger.warning(f"Mensaje inválido recibido: {message}")
+        except Exception as e:
+            logger.error(f"Error procesando mensaje: {e}")
+    
+    async def _broadcast_status(self, status: str) -> None:
+        """Envía un mensaje de estado a todos los clientes conectados."""
+        message = json.dumps({"type": "status", "status": status})
+        
+        for client in list(self.connected_clients):
+            try:
+                await client.send(message)
+            except Exception:
+                pass
+    
+    async def simulation_loop(self) -> None:
+        """Bucle principal que ejecuta la simulación tick por tick."""
+        logger.info("🚀 Iniciando bucle de simulación...")
+        logger.info(f"   Intervalo de tick: {self._tick_interval}s")
+        
+        while self._running:
+            if not self._paused:
+                try:
+                    state = self.engine.step()
+                    
+                    if self.connected_clients:
+                        message = json.dumps(state)
+                        await asyncio.gather(
+                            *[client.send(message) for client in self.connected_clients],
+                            return_exceptions=True
+                        )
+                        
+                except Exception as e:
+                    logger.error(f"Error en tick de simulación: {e}", exc_info=True)
+            
+            await asyncio.sleep(self._tick_interval)
+    
+    async def start(self) -> None:
+        """Inicia el servidor WebSocket y el bucle de simulación."""
+        logger.info(f"🌐 Servidor WebSocket iniciando en ws://{self.host}:{self.port}")
+        logger.info("   Esperando conexiones de Godot...")
+        
+        def signal_handler(sig, frame):
+            logger.info("\n🛑 Señal de terminación recibida. Deteniendo servidor...")
+            self._running = False
+            sys.exit(0)
+        
+        signal.signal(signal.SIGINT, signal_handler)
+        
+        async with websockets.serve(self.handle_connection, self.host, self.port):
+            await self.simulation_loop()
+
+
+def main() -> None:
+    """Punto de entrada del servidor."""
+    parser = argparse.ArgumentParser(
+        description="Servidor WebSocket para el simulador de vida"
+    )
+    parser.add_argument(
+        "--scenario", "-s",
+        type=str,
+        help="Ruta al archivo JSON del escenario",
+    )
+    parser.add_argument(
+        "--port", "-p",
+        type=int,
+        default=PORT,
+        help=f"Puerto del servidor (por defecto: {PORT})",
+    )
+    args = parser.parse_args()
+    
+    scenario = None
+    if args.scenario:
+        try:
+            scenario = ScenarioLoader.load(args.scenario)
+            logger.info("📂 Escenario cargado: %s", scenario.name)
+            logger.info("   Total de agentes: %d", scenario.total_population)
+        except FileNotFoundError:
+            logger.error("❌ Archivo de escenario no encontrado: %s", args.scenario)
+            return
+        except ValueError as e:
+            logger.error("❌ Escenario inválido: %s", e)
+            return
+        except Exception as e:
+            logger.error("❌ Error inesperado al cargar escenario: %s", e)
+            return
+    
+    server = RealSimulationServer(port=args.port, scenario=scenario)
+    try:
+        asyncio.run(server.start())
+    except KeyboardInterrupt:
+        logger.info("🛑 Servidor detenido por el usuario.")
+
+
+if __name__ == "__main__":
+    main()

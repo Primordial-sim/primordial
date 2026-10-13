@@ -14,20 +14,24 @@ var _tick_count: int = 0
 var _current_day: float = 0.0
 var _is_connected: bool = false
 var _was_connected_before: bool = false
-var _cell_size: float = 10.0
+var _cell_size: float = 8.0
 var _world_width: int = 100
 var _world_height: int = 100
 var _is_paused: bool = false
 var _current_speed: float = 1.0
 
+var _is_dragging: bool = false
+var _drag_start_pos: Vector2 = Vector2.ZERO
+
 func _ready() -> void:
-    _cell_size = 1000.0 / float(_world_width)
+    _cell_size = 800.0 / float(_world_width)
     world_renderer.set_cell_size(_cell_size)
     world_renderer.set_world_dimensions(_world_width, _world_height)
     camera.set_world_dimensions(_world_width, _world_height)
+    camera.set_cell_size(_cell_size)
     camera.reset_view()
-    world_renderer.agent_selected.connect(func(d): ui_renderer.show_agent_inspector(d))
-    world_renderer.agent_deselected.connect(func(): ui_renderer.hide_agent_inspector())
+    world_renderer.agents_selected.connect(_on_agents_selected)
+    world_renderer.agents_deselected.connect(_on_agents_deselected)
     _connect_to_server()
 
 func _process(_delta: float) -> void:
@@ -35,72 +39,159 @@ func _process(_delta: float) -> void:
         _peer.poll()
         _check_connection_state()
         _receive_data()
+    if camera != null:
+        ui_renderer.update_zoom_level(camera.zoom.x)
 
 func _unhandled_input(event: InputEvent) -> void:
-    if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-        if event.pressed:
-            # 1. Botones UI
-            var btn = ui_renderer.get_button_at_position(event.position)
-            if not btn.is_empty():
-                if btn["action"] == "pause": _toggle_pause()
-                elif btn["action"] == "speed": _set_speed(btn["speed"])
-                return
-            
-            # 2. Clic en el mundo (SubViewport)
-            if world_container.get_global_rect().has_point(event.position):
-                var local_pos = event.position - world_container.global_position
-                var selected = world_renderer.try_select_agent_at_position(local_pos, camera.zoom.x, camera.position)
-                if not selected:
-                    # Deseleccionar si clic en vacío (necesitaríamos señal para esto, simplificado aquí)
-                    pass
-            return
+    if event is InputEventMouseButton:
+        var mouse_event: InputEventMouseButton = event
+        if mouse_event.button_index == MOUSE_BUTTON_LEFT:
+            if mouse_event.pressed:
+                var btn = ui_renderer.get_button_at_position(mouse_event.position)
+                if not btn.is_empty():
+                    if btn["action"] == "pause":
+                        _toggle_pause()
+                    elif btn["action"] == "speed":
+                        _set_speed(btn["speed"])
+                    return
+                
+                if world_container.get_global_rect().has_point(mouse_event.position):
+                    var local_pos = mouse_event.position - world_container.global_position
+                    # Convertir a coordenadas del mundo
+                    var world_pos = _screen_to_world(local_pos)
+                    _is_dragging = true
+                    _drag_start_pos = world_pos
+                    world_renderer.start_selection_drag(world_pos)
+            else:
+                if _is_dragging:
+                    _is_dragging = false
+                    var local_pos = mouse_event.position - world_container.global_position
+                    var world_pos = _screen_to_world(local_pos)
+                    var drag_distance = world_pos.distance_to(_drag_start_pos)
+                    
+                    if drag_distance < 5.0:
+                        var clicked_agent = _get_agent_at_world_position(world_pos)
+                        if not clicked_agent.is_empty():
+                            var add_to_selection = Input.is_key_pressed(KEY_CTRL)
+                            world_renderer.select_agent(int(clicked_agent.get("id", -1)), add_to_selection)
+                        else:
+                            world_renderer.deselect_all()
+                    else:
+                        var add_to_selection = Input.is_key_pressed(KEY_CTRL)
+                        var selected_agents = world_renderer.finish_selection_drag(add_to_selection)
+                        if selected_agents.size() > 0:
+                            _on_agents_selected(selected_agents)
+                    world_renderer.cancel_selection_drag()
+    
+    elif event is InputEventMouseMotion:
+        if _is_dragging:
+            var local_pos = event.position - world_container.global_position
+            var world_pos = _screen_to_world(local_pos)
+            world_renderer.update_selection_drag(world_pos)
+
+func _screen_to_world(screen_pos: Vector2) -> Vector2:
+    var viewport_center = Vector2(400, 400)
+    return (screen_pos - viewport_center) / camera.zoom.x + camera.position
+
+func _get_agent_at_world_position(world_pos: Vector2) -> Dictionary:
+    var world_px_w = float(_world_width) * _cell_size
+    var world_px_h = float(_world_height) * _cell_size
+    
+    var logical_x = fmod(world_pos.x, world_px_w)
+    var logical_y = fmod(world_pos.y, world_px_h)
+    if logical_x < 0: logical_x += world_px_w
+    if logical_y < 0: logical_y += world_px_h
+    
+    var cell_x = int(logical_x / _cell_size)
+    var cell_y = int(logical_y / _cell_size)
+    
+    for agent in _agents:
+        if int(agent.get("x", 0)) == cell_x and int(agent.get("y", 0)) == cell_y:
+            return agent
+    return {}
+
+func _on_agents_selected(agents_data: Array) -> void:
+    if agents_data.size() == 1:
+        ui_renderer.show_agent_inspector(agents_data[0])
+    elif agents_data.size() > 1:
+        ui_renderer.show_group_inspector(agents_data)
+
+func _on_agents_deselected() -> void:
+    ui_renderer.hide_agent_inspector()
+    ui_renderer.hide_group_inspector()
 
 func _toggle_pause() -> void:
+    if not _is_connected: return
     _is_paused = not _is_paused
     _send_command({"type": "pause" if _is_paused else "resume"})
     ui_renderer.update_control_state(_is_paused, _current_speed)
 
-func _set_speed(s: float) -> void:
-    _current_speed = s
-    _send_command({"type": "set_speed", "speed": s})
+func _set_speed(multiplier: float) -> void:
+    if not _is_connected: return
+    _current_speed = multiplier
+    _send_command({"type": "set_speed", "multiplier": int(multiplier)})
     ui_renderer.update_control_state(_is_paused, _current_speed)
 
 func _send_command(cmd: Dictionary) -> void:
-    if _peer and _peer.get_ready_state() == WebSocketPeer.STATE_OPEN:
-        _peer.send_text(JSON.stringify(cmd))
+    if _peer == null or _peer.get_ready_state() != WebSocketPeer.STATE_OPEN: return
+    _peer.send_text(JSON.stringify(cmd))
 
 func _connect_to_server() -> void:
     _peer = WebSocketPeer.new()
     _peer.connect_to_url(SERVER_URL)
 
 func _check_connection_state() -> void:
-    if _peer.get_ready_state() == WebSocketPeer.STATE_OPEN:
-        if not _was_connected_before:
+    var state: int = _peer.get_ready_state()
+    match state:
+        WebSocketPeer.STATE_OPEN:
             _is_connected = true
-            _was_connected_before = true
-            ui_renderer.update_connection_status(true)
-            _send_command({"type": "get_presets"})
-    elif _peer.get_ready_state() == WebSocketPeer.STATE_CLOSED:
-        if _is_connected:
-            _is_connected = false
-            _was_connected_before = false
-            ui_renderer.update_connection_status(false)
-            get_tree().create_timer(2.0).timeout.connect(_connect_to_server)
+            if not _was_connected_before:
+                _was_connected_before = true
+                ui_renderer.update_connection_status(true)
+                ui_renderer.update_control_state(_is_paused, _current_speed)
+                _send_command({"type": "get_presets"})
+        WebSocketPeer.STATE_CLOSED:
+            if _is_connected:
+                _is_connected = false
+                _was_connected_before = false
+                ui_renderer.update_connection_status(false)
+                get_tree().create_timer(2.0).timeout.connect(_connect_to_server)
 
 func _receive_data() -> void:
     while _peer.get_available_packet_count() > 0:
-        var text = _peer.get_packet().get_string_from_utf8()
+        var text: String = _peer.get_packet().get_string_from_utf8()
         if text.is_empty(): continue
-        var json = JSON.new()
+        var json: JSON = JSON.new()
         if json.parse(text) == OK:
             _handle_message(json.get_data())
 
 func _handle_message(data: Dictionary) -> void:
-    if data.get("type") == "tick":
-        _agents = data.get("agents", [])
-        _stats = data.get("stats", {})
-        world_renderer.update_agents(_agents)
-        ui_renderer.update_tick_info(data.get("tick", 0), data.get("day", 0.0), _agents.size())
-        ui_renderer.update_stats(_stats)
-    elif data.get("type") == "presets_config":
-        ui_renderer.update_presets(data.get("presets", []))
+    var message_type: String = data.get("type", "")
+    match message_type:
+        "tick":
+            _tick_count = data.get("tick", 0)
+            _current_day = data.get("day", 0.0)
+            _agents = data.get("agents", [])
+            _stats = data.get("stats", {})
+            world_renderer.update_agents(_agents)
+            ui_renderer.update_tick_info(_tick_count, _current_day, _agents.size())
+            ui_renderer.update_stats(_stats)
+            
+            var selected_ids = world_renderer.get_selected_agent_ids()
+            if selected_ids.size() > 0:
+                var updated_agents: Array = []
+                for agent in _agents:
+                    if selected_ids.has(int(agent.get("id", -1))):
+                        updated_agents.append(agent)
+                if updated_agents.size() == 1:
+                    ui_renderer.show_agent_inspector(updated_agents[0])
+                elif updated_agents.size() > 1:
+                    ui_renderer.show_group_inspector(updated_agents)
+        "status":
+            var status: String = data.get("status", "")
+            if status == "paused": _is_paused = true
+            elif status == "running": _is_paused = false
+            elif status.begins_with("speed:"): _current_speed = float(status.substr(6))
+            ui_renderer.update_control_state(_is_paused, _current_speed)
+        "presets_config":
+            ui_renderer.update_presets(data.get("presets", []))

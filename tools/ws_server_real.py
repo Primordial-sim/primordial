@@ -1,10 +1,4 @@
-"""Servidor WebSocket que integra el SimulationEngine real con Godot.
-
-Soporte para escenarios:
-    python tools/ws_server_real.py                      # Usa humanos por defecto
-    python tools/ws_server_real.py --scenario scenarios/birds.json
-    python tools/ws_server_real.py --scenario scenarios/mixed.json
-"""
+"""Servidor WebSocket con multiplicadores de velocidad y refresco constante."""
 
 from __future__ import annotations
 
@@ -14,256 +8,177 @@ import logging
 import os
 import signal
 import sys
+import time
 import argparse
 from typing import Any, Set, Optional, TYPE_CHECKING
 
-# CORRECCIÓN CRÍTICA: Añadir la raíz del proyecto al sys.path
 _project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 import websockets
 
-# TYPE_CHECKING: Imports solo para type hints (no en tiempo de ejecución)
 if TYPE_CHECKING:
     from core.engine.scenario_loader import Scenario
 
-# Import real (solo lo que se usa en tiempo de ejecución)
 from core.engine.simulation_engine import SimulationEngine
 from core.engine.scenario_loader import ScenarioLoader
 from core.config.simulation_config import SimulationConfig
 from core.config.parameter_registry import ParameterRegistry
 from core.config.preset_engine import PresetEngine, register_all_presets
 
-# =============================================================================
-# CONFIGURACIÓN
-# =============================================================================
-
 HOST = "localhost"
 PORT = 8765
-TICK_INTERVAL = 0.1  # Intervalo entre ticks en segundos (0.1 = 10 FPS)
-
 DEFAULT_POPULATION_SIZE = 50
 DEFAULT_WORLD_WIDTH = 100
 DEFAULT_WORLD_HEIGHT = 100
 
-# Configurar logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("WSServerReal")
 
-
 class RealSimulationServer:
-    """Servidor WebSocket que integra el SimulationEngine real."""
-    
-    def __init__(
-        self, 
-        host: str = HOST, 
-        port: int = PORT, 
-        scenario: Optional['Scenario'] = None
-    ):
+    def __init__(self, host: str = HOST, port: int = PORT, scenario: Optional['Scenario'] = None):
         self.host = host
         self.port = port
         self.connected_clients: Set[Any] = set()
-        self.scenario = scenario
         
-        logger.info("🔧 Creando motor de simulación...")
-        
-        if scenario is not None:
-            logger.info("📂 Usando escenario: %s", scenario.name)
-            logger.info("   Especies: %s", 
-                       ", ".join(f"{s.count}x {s.species_id}" for s in scenario.species))
+        logger.info("🔧 Inicializando motor...")
+        if scenario:
             self.engine = SimulationEngine.create_from_scenario(scenario)
         else:
-            logger.info("📂 Usando configuración por defecto (humanos)")
             self.engine = SimulationEngine.create_default(
-                width=DEFAULT_WORLD_WIDTH,
-                height=DEFAULT_WORLD_HEIGHT,
-                founding_population_size=DEFAULT_POPULATION_SIZE,
-                max_ticks=None,
+                width=DEFAULT_WORLD_WIDTH, height=DEFAULT_WORLD_HEIGHT,
+                founding_population_size=DEFAULT_POPULATION_SIZE, max_ticks=None,
             )
-        
         self.engine.initialize()
-        logger.info("✅ Motor de simulación inicializado")
         
-        # --- NUEVO: Inicializar el sistema de Presets ---
         self.config = self.engine.config if hasattr(self.engine, 'config') else SimulationConfig()
         self.registry = ParameterRegistry(self.config)
         self.preset_engine = PresetEngine(registry=self.registry)
         register_all_presets(self.preset_engine)
-        logger.info("✅ Motor de Presets inicializado y vinculado a la configuración")
-        # ------------------------------------------------
         
         self._running = True
         self._paused = False
-        self._tick_interval = TICK_INTERVAL
-    
+        
+        # --- MULTIPLICADORES DE VELOCIDAD ---
+        # 1x = 1 día/seg, 10x = 10 días/seg, 100x = 100 días/seg, 1000x = 1000 días/seg
+        self._speed_multiplier = 1
+        self._refresh_interval = 1.0  # Siempre 1 segundo entre actualizaciones
+        # --------------------------------------
+
     async def handle_connection(self, websocket: Any) -> None:
-        """Maneja una conexión WebSocket individual."""
         client_id = f"client_{id(websocket)}"
         self.connected_clients.add(websocket)
-        logger.info(f"✅ {client_id} conectado. Total: {len(self.connected_clients)}")
-        
+        logger.info(f"✅ {client_id} conectado.")
         try:
-            initial_state = self.engine.get_visualization_state()
-            await websocket.send(json.dumps(initial_state))
-            
+            await websocket.send(json.dumps(self.engine.get_visualization_state()))
             while self._running:
                 try:
-                    message = await asyncio.wait_for(websocket.recv(), timeout=1.0)
-                    await self._handle_client_message(websocket, message)
+                    msg = await asyncio.wait_for(websocket.recv(), timeout=1.0)
+                    await self._handle_client_message(websocket, msg)
                 except asyncio.TimeoutError:
                     pass
-                    
         except websockets.exceptions.ConnectionClosed:
             logger.info(f"❌ {client_id} desconectado.")
-        except Exception as e:
-            logger.error(f"Error con {client_id}: {e}")
         finally:
             self.connected_clients.discard(websocket)
-    
+
     async def _handle_client_message(self, websocket: Any, message: str) -> None:
-        """Procesa comandos enviados por el cliente (Godot)."""
         try:
             data = json.loads(message)
-            command = data.get("type", "")
+            cmd = data.get("type", "")
             
-            if command == "pause":
+            if cmd == "pause":
                 self._paused = True
-                logger.info("⏸️  Simulación pausada")
                 await self._broadcast_status("paused")
-                
-            elif command == "resume":
+            elif cmd == "resume":
                 self._paused = False
-                logger.info("▶️  Simulación reanudada")
                 await self._broadcast_status("running")
-                
-            elif command == "set_speed":
-                speed = data.get("speed", 1.0)
-                self._tick_interval = TICK_INTERVAL / speed
-                logger.info(f"⚡ Velocidad cambiada a {speed}x")
-                await self._broadcast_status(f"speed:{speed}")
-                
-            elif command == "step":
+            elif cmd == "set_speed":
+                self._speed_multiplier = int(data.get("multiplier", 1))
+                logger.info(f"⚡ Velocidad: {self._speed_multiplier}x ({self._speed_multiplier} días/seg)")
+                await self._broadcast_status(f"speed:{self._speed_multiplier}")
+            elif cmd == "step":
                 if self._paused:
-                    try:
-                        state = self.engine.step()
-                        if self.connected_clients:
-                            message_state = json.dumps(state)
-                            await asyncio.gather(
-                                *[client.send(message_state) for client in self.connected_clients],
-                                return_exceptions=True
-                            )
-                        logger.info("⏭️  Avanzado 1 tick (paso a paso)")
-                    except Exception as e:
-                        logger.error(f"Error en step: {e}")
-
-            elif command == "get_presets":
-                presets_data = []
-                for preset_id, preset_def in self.preset_engine.get_all_presets().items():
-                    presets_data.append({
-                        "id": preset_id,
-                        "name": preset_def.name.replace("_", " ").title(),
-                        "description": preset_def.description,
-                        "value": self.preset_engine.get_preset_value(preset_id)
-                    })
-                
-                await websocket.send(json.dumps({
-                    "type": "presets_config",
-                    "presets": presets_data
-                }))
-                
-            elif command == "set_preset":
-                preset_id = data.get("id")
-                value = float(data.get("value", 50.0))
-                
-                try:
-                    self.preset_engine.set_preset_value(preset_id, value)
-                    logger.info(f"🎛️ Preset '{preset_id}' cambiado a {value}%")
-                    await self._broadcast_status(f"preset_updated:{preset_id}:{value}")
-                except Exception as e:
-                    logger.error(f"❌ Error al cambiar preset {preset_id}: {e}")
-                
-        except json.JSONDecodeError:
-            logger.warning(f"Mensaje inválido recibido: {message}")
+                    self.engine.step()
+                    await self._broadcast_state()
+            elif cmd == "get_presets":
+                presets = [{"id": pid, "name": p.name.replace("_", " ").title(), "value": self.preset_engine.get_preset_value(pid)} 
+                           for pid, p in self.preset_engine.get_all_presets().items()]
+                await websocket.send(json.dumps({"type": "presets_config", "presets": presets}))
+            elif cmd == "set_preset":
+                self.preset_engine.set_preset_value(data.get("id"), float(data.get("value", 50.0)))
         except Exception as e:
-            logger.error(f"Error procesando mensaje: {e}")
-    
+            logger.error(f"Error mensaje: {e}")
+
+    async def _broadcast_state(self) -> None:
+        if not self.connected_clients: return
+        try:
+            state = self.engine.get_visualization_state()
+            msg = json.dumps(state)
+            await asyncio.gather(*[c.send(msg) for c in self.connected_clients], return_exceptions=True)
+        except Exception as e:
+            logger.error(f"Error broadcast: {e}")
+
     async def _broadcast_status(self, status: str) -> None:
-        """Envía un mensaje de estado a todos los clientes conectados."""
-        message = json.dumps({"type": "status", "status": status})
-        for client in list(self.connected_clients):
-            try:
-                await client.send(message)
-            except Exception:
-                pass
-    
+        msg = json.dumps({"type": "status", "status": status})
+        for c in list(self.connected_clients):
+            try: await c.send(msg)
+            except: pass
+
     async def simulation_loop(self) -> None:
-        """Bucle principal que ejecuta la simulación tick por tick."""
-        logger.info("🚀 Iniciando bucle de simulación...")
-        logger.info(f"   Intervalo de tick: {self._tick_interval}s")
+        logger.info("🚀 Bucle iniciado (Multiplicadores con refresco de 1s)")
         
         while self._running:
             if not self._paused:
-                try:
-                    state = self.engine.step()
-                    if self.connected_clients:
-                        message = json.dumps(state)
-                        await asyncio.gather(
-                            *[client.send(message) for client in self.connected_clients],
-                            return_exceptions=True
-                        )
-                except Exception as e:
-                    logger.error(f"Error en tick de simulación: {e}", exc_info=True)
+                frame_start = time.perf_counter()
+                
+                # Ejecutar tantos pasos como indique el multiplicador
+                steps_done = 0
+                for _ in range(self._speed_multiplier):
+                    self.engine.step()
+                    steps_done += 1
+                
+                # Enviar actualización
+                await self._broadcast_state()
+                
+                # Calcular cuánto tiempo ha pasado
+                elapsed = time.perf_counter() - frame_start
+                
+                # Si tardamos menos de 1 segundo, esperar el resto
+                if elapsed < self._refresh_interval:
+                    await asyncio.sleep(self._refresh_interval - elapsed)
+                else:
+                    # Si tardamos más de 1 segundo, logueamos que se alcanzó el límite de CPU
+                    actual_speed = steps_done / elapsed
+                    logger.warning(f"⚠️ Límite CPU: Objetivo {self._speed_multiplier}x, Real {actual_speed:.0f}x")
             
-            await asyncio.sleep(self._tick_interval)
-    
+            # Pequeña pausa para no saturar
+            await asyncio.sleep(0.001)
+
     async def start(self) -> None:
-        """Inicia el servidor WebSocket y el bucle de simulación."""
-        logger.info(f"🌐 Servidor WebSocket iniciando en ws://{self.host}:{self.port}")
-        logger.info("   Esperando conexiones de Godot...")
-        
+        logger.info(f"🌐 Servidor en ws://{self.host}:{self.port}")
         def signal_handler(sig, frame):
-            logger.info("\n🛑 Señal de terminación recibida. Deteniendo servidor...")
             self._running = False
             sys.exit(0)
-        
         signal.signal(signal.SIGINT, signal_handler)
-        
         async with websockets.serve(self.handle_connection, self.host, self.port):
             await self.simulation_loop()
 
-
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Servidor WebSocket para el simulador de vida")
-    parser.add_argument("--scenario", "-s", type=str, help="Ruta al archivo JSON del escenario")
-    parser.add_argument("--port", "-p", type=int, default=PORT, help=f"Puerto del servidor (por defecto: {PORT})")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--scenario", "-s", type=str)
+    parser.add_argument("--port", "-p", type=int, default=PORT)
     args = parser.parse_args()
     
     scenario = None
     if args.scenario:
-        try:
-            scenario = ScenarioLoader.load(args.scenario)
-            logger.info("📂 Escenario cargado: %s", scenario.name)
-            logger.info("   Total de agentes: %d", scenario.total_population)
-        except FileNotFoundError:
-            logger.error("❌ Archivo de escenario no encontrado: %s", args.scenario)
-            return
-        except ValueError as e:
-            logger.error("❌ Escenario inválido: %s", e)
-            return
-        except Exception as e:
-            logger.error("❌ Error inesperado al cargar escenario: %s", e)
-            return
+        try: scenario = ScenarioLoader.load(args.scenario)
+        except Exception as e: logger.error(f"Error escenario: {e}"); return
     
     server = RealSimulationServer(port=args.port, scenario=scenario)
-    try:
-        asyncio.run(server.start())
-    except KeyboardInterrupt:
-        logger.info("🛑 Servidor detenido por el usuario.")
-
+    try: asyncio.run(server.start())
+    except KeyboardInterrupt: logger.info("🛑 Detenido.")
 
 if __name__ == "__main__":
     main()

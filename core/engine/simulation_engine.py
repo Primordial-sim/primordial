@@ -126,22 +126,11 @@ class SimulationEngine:
         export_path: Optional[str] = None,
         event_bus: Any = None,
     ) -> SimulationEngine:
-        """Crea un motor completo a partir de un escenario definido.
-        
-        Args:
-            scenario: Escenario cargado con ScenarioLoader.
-            config_path: Ruta a configuración externa (opcional).
-            export_path: Ruta de exportación de métricas (opcional).
-            event_bus: Bus de eventos (opcional).
-            
-        Returns:
-            SimulationEngine configurado con el escenario.
-        """
+        """Crea un motor completo a partir de un escenario definido."""
         config = SimulationConfig()
         if config_path:
             cls._load_external_config(config, config_path)
         
-        # Aplicar parámetros del escenario a la config
         config.engine.delta_days = scenario.simulation.delta_days
         config.engine.total_days = scenario.simulation.total_days
         config.environment.sector_size = scenario.environment.sector_size
@@ -152,10 +141,8 @@ class SimulationEngine:
             height=scenario.world.height,
         )
 
-        # NUEVO: Inicializar mapa de tiles
         state.initialize_tile_map()
         
-        # Generar población fundadora multiespecie
         cls._generate_multispecies_population(
             config=config,
             state=state,
@@ -277,16 +264,11 @@ class SimulationEngine:
     # =========================================================================
 
     def initialize(self) -> None:
-        """Inicializa la simulación para visualización en tiempo real.
-        
-        No ejecuta ningún tick. Solo prepara el estado inicial.
-        Debe llamarse antes de step().
-        """
+        """Inicializa la simulación para visualización en tiempo real."""
         self._total_deaths = 0
         self._total_births = 0
         self._total_infections = 0
         
-        # FASE C: Reconstruir el mapa de ocupación
         self.state.rebuild_occupancy_map()
         
         self.logger.info(
@@ -297,13 +279,7 @@ class SimulationEngine:
         )
 
     def step(self) -> dict[str, Any]:
-        """Ejecuta un solo tick de la simulación para visualización en tiempo real.
-        
-        Debe llamarse después de initialize().
-        
-        Returns:
-            Diccionario con el estado actual para enviar a Godot.
-        """
+        """Ejecuta un solo tick de la simulación para visualización en tiempo real."""
         delta_days = self.tick_manager.advance_tick()
         current_tick = self.tick_manager.current_tick
         current_day = self.tick_manager.total_simulated_days
@@ -331,7 +307,7 @@ class SimulationEngine:
         return self.get_visualization_state()
 
     def get_visualization_state(self) -> dict[str, Any]:
-        """Obtiene el estado actual en formato compatible con Godot."""
+        """Obtiene el estado actual ligero para el tick visual (sin datos pesados)."""
         persons = list(self.state.get_all_persons())
         persons_data = []
         
@@ -353,7 +329,6 @@ class SimulationEngine:
         adult_count = sum(1 for p in persons if p.is_adult)
         senior_count = sum(1 for p in persons if p.is_senior)
         
-        # Contar por especie
         species_counts = {}
         for p in persons:
             sp = getattr(p, 'species', 'human')
@@ -376,6 +351,58 @@ class SimulationEngine:
                 "senior_count": senior_count,
                 "species_counts": species_counts,
             },
+        }
+
+    def get_agent_full_details(self, agent_id: int) -> Optional[dict[str, Any]]:
+        """Obtiene todos los detalles de un agente específico bajo demanda."""
+        person = self.state.get_person_by_id(agent_id)
+        if not person:
+            return None
+            
+        # 1. Genoma completo
+        genome_data = {}
+        if hasattr(person, 'genome'):
+            g = person.genome
+            get_trait = getattr(g, 'get_trait_value', lambda x: None)
+            traits_to_fetch = ["longevity", "fertility", "metabolism", "immunity", "sociability", "temperament", "strength", "speed", "intelligence"]
+            for trait in traits_to_fetch:
+                val = get_trait(trait) or getattr(g, trait, 0.0)
+                genome_data[trait] = float(val) if val is not None else 0.0
+
+        # 2. Psicología y Estado
+        emotions = getattr(person, '_emotions', {})
+        motivations = getattr(person, '_motivations', {})
+        
+        # 3. Relaciones y Familia
+        parents = list(getattr(person, 'parents', []))
+        adoptive_parents = list(getattr(person, 'adoptive_parents', []))
+        
+        return {
+            "id": int(person.entity_id),
+            "species": str(getattr(person, 'species', 'human')),
+            "age": float(person.age),
+            "gender": str(person.gender),
+            "marital_status": str(getattr(person, 'marital_status', 'soltero')),
+            "reputation": float(getattr(person, 'reputation_score', 0.5)),
+            "genome": genome_data,
+            "emotions": {
+                "stress": float(emotions.get("stress", 0.0)),
+                "happiness": float(emotions.get("happiness", 0.5)),
+                "energy": float(emotions.get("energy", 1.0)),
+            },
+            "motivations": {
+                "independence": float(motivations.get("independence", 0.0)),
+                "exploration": float(motivations.get("exploration", 0.0)),
+                "partnership": float(motivations.get("partnership", 0.0)),
+                "cooperation": float(motivations.get("cooperation", 0.0)),
+            },
+            "family": {
+                "parents": parents,
+                "adoptive_parents": adoptive_parents,
+                "partner": int(getattr(person, 'partner_id', -1)) if getattr(person, 'partner_id', None) is not None else None,
+                "children_count": int(getattr(person, 'children_count', 0)),
+                "biological_children": int(getattr(person, 'biological_children_count', 0)),
+            }
         }
 
     # =========================================================================
@@ -446,7 +473,6 @@ class SimulationEngine:
                 phases=scheduler.build_phases(),
             )
             
-            # FASE C: Reconstruir el mapa de ocupación tras cargar
             self.state.rebuild_occupancy_map()
             
             self.logger.info("✅ Partida cargada exitosamente desde: %s", filepath)
@@ -522,10 +548,8 @@ class SimulationEngine:
         logger = logging.getLogger("SimulationEngine")
         logger.info("Generando %s agentes fundadores (solteros).", size)
 
-        # GENÉTICA UNIVERSAL: Inicializar el sistema de especies
         SpeciesRegistry.initialize_defaults()
         
-        # Obtener la especie por defecto (humano por ahora)
         species = SpeciesRegistry.get("human")
         if species is None:
             logger.error("❌ Especie 'human' no encontrada en SpeciesRegistry")
@@ -537,7 +561,6 @@ class SimulationEngine:
         max_age = config.time.senior_age_days
 
         for entity_id in range(1, size + 1):
-            # GENÉTICA UNIVERSAL: Crear genoma desde la SpeciesDefinition
             genome = Genome.create_founder(species)
 
             person = Person(
@@ -558,13 +581,7 @@ class SimulationEngine:
         state: WorldState,
         species_configs: List[SpeciesConfig],
     ) -> None:
-        """Genera una población fundadora con múltiples especies.
-        
-        Args:
-            config: Configuración de simulación.
-            state: Estado del mundo.
-            species_configs: Lista de SpeciesConfig del escenario.
-        """
+        """Genera una población fundadora con múltiples especies."""
         logger = logging.getLogger("SimulationEngine")
         
         SpeciesRegistry.initialize_defaults()

@@ -22,6 +22,7 @@ var _current_speed: float = 1.0
 
 var _is_dragging: bool = false
 var _drag_start_pos: Vector2 = Vector2.ZERO
+var _follow_agent_id: int = -1
 
 func _ready() -> void:
     _cell_size = 800.0 / float(_world_width)
@@ -41,6 +42,18 @@ func _process(_delta: float) -> void:
         _receive_data()
     if camera != null:
         ui_renderer.update_zoom_level(camera.zoom.x)
+    
+    if _follow_agent_id != -1:
+        _update_follow_camera()
+
+func _update_follow_camera() -> void:
+    for agent in _agents:
+        if int(agent.get("id", -1)) == _follow_agent_id:
+            var world_x = agent.get("x", 0.0) * _cell_size + _cell_size / 2.0
+            var world_y = agent.get("y", 0.0) * _cell_size + _cell_size / 2.0
+            camera.position = Vector2(world_x, world_y)
+            camera.wrap_camera_position()
+            return
 
 func _unhandled_input(event: InputEvent) -> void:
     if event is InputEventMouseButton:
@@ -53,11 +66,16 @@ func _unhandled_input(event: InputEvent) -> void:
                         _toggle_pause()
                     elif btn["action"] == "speed":
                         _set_speed(btn["speed"])
+                    elif btn["action"] == "center_agent":
+                        _center_on_selected_agent()
+                    elif btn["action"] == "follow_agent":
+                        _toggle_follow_agent()
+                    elif btn["action"] == "toggle_section":
+                        ui_renderer.toggle_section(btn["section"])
                     return
                 
                 if world_container.get_global_rect().has_point(mouse_event.position):
                     var local_pos = mouse_event.position - world_container.global_position
-                    # Convertir a coordenadas del mundo
                     var world_pos = _screen_to_world(local_pos)
                     _is_dragging = true
                     _drag_start_pos = world_pos
@@ -88,6 +106,33 @@ func _unhandled_input(event: InputEvent) -> void:
             var local_pos = event.position - world_container.global_position
             var world_pos = _screen_to_world(local_pos)
             world_renderer.update_selection_drag(world_pos)
+            
+    elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+        world_renderer.deselect_all()
+
+func _center_on_selected_agent() -> void:
+    var selected_ids = world_renderer.get_selected_agent_ids()
+    if selected_ids.size() == 1:
+        var target_id = selected_ids[0]
+        for agent in _agents:
+            if int(agent.get("id", -1)) == target_id:
+                var world_x = agent.get("x", 0.0) * _cell_size + _cell_size / 2.0
+                var world_y = agent.get("y", 0.0) * _cell_size + _cell_size / 2.0
+                camera.position = Vector2(world_x, world_y)
+                camera.wrap_camera_position()
+                break
+
+func _toggle_follow_agent() -> void:
+    var selected_ids = world_renderer.get_selected_agent_ids()
+    if selected_ids.size() == 1:
+        var target_id = selected_ids[0]
+        if _follow_agent_id == target_id:
+            _follow_agent_id = -1
+            ui_renderer.set_following_state(false)
+        else:
+            _follow_agent_id = target_id
+            ui_renderer.set_following_state(true)
+            _update_follow_camera()
 
 func _screen_to_world(screen_pos: Vector2) -> Vector2:
     var viewport_center = Vector2(400, 400)
@@ -111,12 +156,20 @@ func _get_agent_at_world_position(world_pos: Vector2) -> Dictionary:
     return {}
 
 func _on_agents_selected(agents_data: Array) -> void:
+    if _follow_agent_id != -1:
+        _follow_agent_id = -1
+        ui_renderer.set_following_state(false)
+        
     if agents_data.size() == 1:
-        ui_renderer.show_agent_inspector(agents_data[0])
+        var agent_id = int(agents_data[0].get("id", -1))
+        ui_renderer.show_agent_inspector_loading(agent_id)
+        _send_command({"type": "request_agent_details", "agent_id": agent_id})
     elif agents_data.size() > 1:
         ui_renderer.show_group_inspector(agents_data)
 
 func _on_agents_deselected() -> void:
+    _follow_agent_id = -1
+    ui_renderer.set_following_state(false)
     ui_renderer.hide_agent_inspector()
     ui_renderer.hide_group_inspector()
 
@@ -178,15 +231,22 @@ func _handle_message(data: Dictionary) -> void:
             ui_renderer.update_stats(_stats)
             
             var selected_ids = world_renderer.get_selected_agent_ids()
-            if selected_ids.size() > 0:
-                var updated_agents: Array = []
+            if selected_ids.size() == 1:
+                var still_alive = false
                 for agent in _agents:
-                    if selected_ids.has(int(agent.get("id", -1))):
-                        updated_agents.append(agent)
-                if updated_agents.size() == 1:
-                    ui_renderer.show_agent_inspector(updated_agents[0])
-                elif updated_agents.size() > 1:
-                    ui_renderer.show_group_inspector(updated_agents)
+                    if int(agent.get("id", -1)) == selected_ids[0]:
+                        still_alive = true
+                        break
+                if not still_alive:
+                    world_renderer.deselect_all()
+                    
+        "agent_details":
+            var details: Dictionary = data.get("data", {})
+            ui_renderer.show_agent_full_inspector(details)
+            
+        "agent_details_error":
+            ui_renderer.hide_agent_inspector()
+            
         "status":
             var status: String = data.get("status", "")
             if status == "paused": _is_paused = true

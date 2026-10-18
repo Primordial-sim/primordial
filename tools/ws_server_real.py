@@ -1,4 +1,4 @@
-"""Servidor WebSocket con multiplicadores de velocidad y refresco constante."""
+"""Servidor WebSocket que integra el SimulationEngine real con Godot."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ import logging
 import os
 import signal
 import sys
-import time
 import argparse
 from typing import Any, Set, Optional, TYPE_CHECKING
 
@@ -60,11 +59,8 @@ class RealSimulationServer:
         self._running = True
         self._paused = False
         
-        # --- MULTIPLICADORES DE VELOCIDAD ---
-        # 1x = 1 día/seg, 10x = 10 días/seg, 100x = 100 días/seg, 1000x = 1000 días/seg
         self._speed_multiplier = 1
-        self._refresh_interval = 1.0  # Siempre 1 segundo entre actualizaciones
-        # --------------------------------------
+        self._refresh_interval = 1.0
 
     async def handle_connection(self, websocket: Any) -> None:
         client_id = f"client_{id(websocket)}"
@@ -108,6 +104,20 @@ class RealSimulationServer:
                 await websocket.send(json.dumps({"type": "presets_config", "presets": presets}))
             elif cmd == "set_preset":
                 self.preset_engine.set_preset_value(data.get("id"), float(data.get("value", 50.0)))
+            elif cmd == "request_agent_details":
+                agent_id = int(data.get("agent_id", -1))
+                details = self.engine.get_agent_full_details(agent_id)
+                if details:
+                    await websocket.send(json.dumps({
+                        "type": "agent_details",
+                        "data": details
+                    }))
+                else:
+                    await websocket.send(json.dumps({
+                        "type": "agent_details_error",
+                        "agent_id": agent_id,
+                        "message": "Agente no encontrado"
+                    }))
         except Exception as e:
             logger.error(f"Error mensaje: {e}")
 
@@ -131,29 +141,23 @@ class RealSimulationServer:
         
         while self._running:
             if not self._paused:
-                frame_start = time.perf_counter()
+                frame_start = __import__('time').perf_counter()
                 
-                # Ejecutar tantos pasos como indique el multiplicador
                 steps_done = 0
                 for _ in range(self._speed_multiplier):
                     self.engine.step()
                     steps_done += 1
                 
-                # Enviar actualización
                 await self._broadcast_state()
                 
-                # Calcular cuánto tiempo ha pasado
-                elapsed = time.perf_counter() - frame_start
+                elapsed = __import__('time').perf_counter() - frame_start
                 
-                # Si tardamos menos de 1 segundo, esperar el resto
                 if elapsed < self._refresh_interval:
                     await asyncio.sleep(self._refresh_interval - elapsed)
                 else:
-                    # Si tardamos más de 1 segundo, logueamos que se alcanzó el límite de CPU
                     actual_speed = steps_done / elapsed
                     logger.warning(f"⚠️ Límite CPU: Objetivo {self._speed_multiplier}x, Real {actual_speed:.0f}x")
             
-            # Pequeña pausa para no saturar
             await asyncio.sleep(0.001)
 
     async def start(self) -> None:

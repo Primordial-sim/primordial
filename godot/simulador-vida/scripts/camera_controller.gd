@@ -22,7 +22,8 @@ func set_cell_size(s: float) -> void:
 func _get_world_size() -> Vector2:
     return Vector2(float(_world_width) * _cell_size, float(_world_height) * _cell_size)
 
-func _wrap_camera_position() -> void:
+# Función pública para que otros scripts puedan forzar el wrapping
+func wrap_camera_position() -> void:
     var world_w = float(_world_width) * _cell_size
     var world_h = float(_world_height) * _cell_size
     var center_x = world_w / 2.0
@@ -47,29 +48,10 @@ func _wrap_camera_position() -> void:
     position.x = center_x + offset_x
     position.y = center_y + offset_y
 
-func _zoom_at_position(new_zoom: float, screen_pos: Vector2) -> void:
-    """Aplica zoom centrado en la posición de pantalla dada (cursor)."""
-    var old_zoom = zoom.x
-    new_zoom = clamp(new_zoom, MIN_ZOOM, MAX_ZOOM)
-    
-    if abs(new_zoom - old_zoom) < 0.01:
-        return
-    
-    # Posición del mundo bajo el cursor ANTES del zoom
-    var world_pos_under_cursor = (screen_pos - Vector2(VIEWPORT_SIZE / 2.0, VIEWPORT_SIZE / 2.0)) / old_zoom + position
-    
-    # Aplicar nuevo zoom
-    zoom = Vector2(new_zoom, new_zoom)
-    
-    # Reposicionar cámara para que el mismo punto del mundo siga bajo el cursor
-    position = world_pos_under_cursor - (screen_pos - Vector2(VIEWPORT_SIZE / 2.0, VIEWPORT_SIZE / 2.0)) / new_zoom
-    
-    _wrap_camera_position()
-
 func reset_view() -> void:
     position = _get_world_size() / 2.0
     zoom = Vector2.ONE
-    _wrap_camera_position()
+    wrap_camera_position()
 
 func _ready() -> void:
     make_current()
@@ -90,8 +72,18 @@ func _unhandled_input(event: InputEvent) -> void:
     elif event is InputEventMouseMotion and _is_panning:
         var motion: InputEventMouseMotion = event
         position = _camera_start - (motion.position - _pan_start) / zoom
-        _wrap_camera_position()
+        wrap_camera_position()
     elif event is InputEventKey:
         var key_event: InputEventKey = event
         if key_event.pressed and key_event.keycode == KEY_C:
             reset_view()
+
+func _zoom_at_position(new_zoom: float, screen_pos: Vector2) -> void:
+    var old_zoom = zoom.x
+    new_zoom = clamp(new_zoom, MIN_ZOOM, MAX_ZOOM)
+    if abs(new_zoom - old_zoom) < 0.01: return
+    
+    var world_pos_under_cursor = (screen_pos - Vector2(VIEWPORT_SIZE / 2.0, VIEWPORT_SIZE / 2.0)) / old_zoom + position
+    zoom = Vector2(new_zoom, new_zoom)
+    position = world_pos_under_cursor - (screen_pos - Vector2(VIEWPORT_SIZE / 2.0, VIEWPORT_SIZE / 2.0)) / new_zoom
+    wrap_camera_position()

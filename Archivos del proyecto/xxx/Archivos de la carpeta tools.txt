@@ -1,0 +1,433 @@
+================================================================================
+ARCHIVO: .\tools\exportar_proyecto.py
+================================================================================
+
+import os
+
+def exportar_proyecto(archivo_salida="todo_el_proyecto.txt", extensiones=None, ignorar_carpetas=None):
+    """
+    Exporta todos los archivos del proyecto a un único archivo de texto.
+    
+    Args:
+        archivo_salida: Nombre del archivo de salida
+        extensiones: Tupla de extensiones a incluir. Si es None, incluye todos los archivos.
+        ignorar_carpetas: Lista de nombres de carpetas a ignorar
+    """
+    
+    # Carpetas a ignorar por defecto
+    if ignorar_carpetas is None:
+        ignorar_carpetas = {
+            ".git",
+            "__pycache__",
+            ".venv",
+            "venv",
+            ".pytest_cache",
+            ".godot",
+            ".import",
+            "node_modules",
+            ".mypy_cache",
+            "build",
+            "dist",
+            "*.egg-info"
+        }
+    
+    # Archivos a ignorar
+    archivos_ignorados = {
+        archivo_salida,
+        "todo_el_proyecto.txt",
+        ".DS_Store",
+        "Thumbs.db"
+    }
+    
+    # Extensiones binarias que no se pueden leer como texto
+    extensiones_binarias = {
+        ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg",
+        ".mp3", ".wav", ".ogg", ".mp4", ".avi", ".mov",
+        ".exe", ".dll", ".so", ".dylib",
+        ".zip", ".rar", ".7z", ".tar", ".gz",
+        ".pyc", ".pyo", ".class", ".o", ".obj",
+        ".db", ".sqlite",
+        ".tres", ".import"  # Archivos de Godot generados
+    }
+    
+    archivos_procesados = 0
+    archivos_omitidos = 0
+    
+    with open(archivo_salida, "w", encoding="utf-8") as outfile:
+        outfile.write("EXPORTACIÓN COMPLETA DEL PROYECTO\n")
+        outfile.write("=" * 80 + "\n\n")
+        
+        for root, dirs, files in os.walk("."):
+            # Ignorar carpetas especificadas
+            dirs[:] = [d for d in dirs if d not in ignorar_carpetas and not d.endswith(".egg-info")]
+            
+            for file in files:
+                # Ignorar archivos específicos
+                if file in archivos_ignorados:
+                    continue
+                
+                # Verificar extensión si se especificó
+                if extensiones is not None and not file.endswith(extensiones):
+                    continue
+                
+                # Ignorar archivos binarios
+                _, ext = os.path.splitext(file)
+                if ext.lower() in extensiones_binarias:
+                    archivos_omitidos += 1
+                    continue
+                
+                path_completo = os.path.join(root, file)
+                
+                try:
+                    # Intentar leer como texto
+                    with open(path_completo, "r", encoding="utf-8") as infile:
+                        contenido = infile.read()
+                    
+                    # Escribir en el archivo de salida
+                    outfile.write(f"\n{'=' * 80}\n")
+                    outfile.write(f"ARCHIVO: {path_completo}\n")
+                    outfile.write(f"{'=' * 80}\n\n")
+                    outfile.write(contenido)
+                    outfile.write("\n")
+                    
+                    archivos_procesados += 1
+                    
+                except UnicodeDecodeError:
+                    # Archivo binario o con codificación diferente
+                    outfile.write(f"\n{'=' * 80}\n")
+                    outfile.write(f"ARCHIVO: {path_completo}\n")
+                    outfile.write(f"{'=' * 80}\n\n")
+                    outfile.write("[ARCHIVO BINARIO O CON CODIFICACIÓN NO COMPATIBLE - OMITIDO]\n")
+                    archivos_omitidos += 1
+                    
+                except Exception as e:
+                    outfile.write(f"\n{'=' * 80}\n")
+                    outfile.write(f"ARCHIVO: {path_completo}\n")
+                    outfile.write(f"{'=' * 80}\n\n")
+                    outfile.write(f"[ERROR AL LEER ARCHIVO: {e}]\n")
+                    archivos_omitidos += 1
+    
+    print(f"✅ Exportación completada: {archivo_salida}")
+    print(f"📄 Archivos procesados: {archivos_procesados}")
+    print(f"⚠️  Archivos omitidos: {archivos_omitidos}")
+
+if __name__ == "__main__":
+    # Exportar TODOS los archivos de texto
+    exportar_proyecto()
+    
+    # Si solo quieres archivos específicos, descomenta esta línea:
+    #exportar_proyecto(extensiones=(".py", ".gd", ".tscn", ".tres", ".md", ".json", ".txt"))
+
+
+================================================================================
+ARCHIVO: .\tools\run_scenario.py
+================================================================================
+
+"""CLI para ejecutar escenarios de simulación desde archivos JSON.
+
+Uso:
+    python tools/run_scenario.py scenarios/birds.json
+    python tools/run_scenario.py scenarios/mixed.json --export report.csv
+    python tools/run_scenario.py --list
+"""
+
+import argparse
+import sys
+import os
+
+# Añadir raíz del proyecto al path
+_project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
+from core.engine.scenario_loader import ScenarioLoader
+from core.engine.simulation_engine import SimulationEngine
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Ejecuta escenarios de simulación desde archivos JSON."
+    )
+    parser.add_argument(
+        "scenario",
+        nargs="?",
+        help="Ruta al archivo JSON del escenario",
+    )
+    parser.add_argument(
+        "--list", "-l",
+        action="store_true",
+        help="Lista todos los escenarios disponibles",
+    )
+    parser.add_argument(
+        "--export", "-e",
+        type=str,
+        help="Exporta métricas a un archivo CSV",
+    )
+    parser.add_argument(
+        "--ticks", "-t",
+        type=int,
+        help="Sobrescribe el número máximo de ticks del escenario",
+    )
+    
+    args = parser.parse_args()
+    
+    # Listar escenarios
+    if args.list:
+        scenarios = ScenarioLoader.list_scenarios("scenarios")
+        if not scenarios:
+            print("⚠️  No se encontraron escenarios en el directorio 'scenarios/'")
+            return
+        print("\n📋 Escenarios disponibles:")
+        print("-" * 50)
+        for s in scenarios:
+            print(f"  {s}")
+        print()
+        return
+    
+    # Requiere escenario
+    if not args.scenario:
+        parser.print_help()
+        print("\n❌ Debes especificar un escenario o usar --list")
+        return
+    
+    # Cargar escenario
+    print(f"\n📂 Cargando escenario: {args.scenario}")
+    try:
+        scenario = ScenarioLoader.load(args.scenario)
+    except Exception as e:
+        print(f"❌ Error al cargar escenario: {e}")
+        return
+    
+    # Mostrar información del escenario
+    print(f"\n{'='*60}")
+    print(f"🎬 {scenario.name}")
+    print(f"{'='*60}")
+    if scenario.description:
+        print(f"📝 {scenario.description}")
+    print(f"\n🌍 Mundo: {scenario.world.width}x{scenario.world.height}")
+    print(f"👥 Especies:")
+    for sc in scenario.species:
+        print(f"   - {sc.species_id}: {sc.count} individuos")
+    print(f"📊 Total: {scenario.total_population} agentes")
+    print(f"⏱️  Días por tick: {scenario.simulation.delta_days}")
+    print(f"📅 Días totales: {scenario.simulation.total_days}")
+    if scenario.simulation.max_ticks:
+        print(f"🎯 Máx ticks: {scenario.simulation.max_ticks}")
+    print(f"{'='*60}\n")
+    
+    # Sobrescribir max_ticks si se especificó
+    if args.ticks:
+        scenario.simulation.max_ticks = args.ticks
+        print(f"🎯 Sobrescrito: máx ticks = {args.ticks}")
+    
+    # Crear y ejecutar simulación
+    print("\n🚀 Iniciando simulación...\n")
+    engine = SimulationEngine.create_from_scenario(
+        scenario=scenario,
+        export_path=args.export,
+    )
+    engine.run()
+    
+    if args.export:
+        print(f"\n💾 Métricas exportadas a: {args.export}")
+
+
+if __name__ == "__main__":
+    main()
+
+================================================================================
+ARCHIVO: .\tools\ws_server_real.py
+================================================================================
+
+"""Servidor WebSocket que integra el SimulationEngine real con Godot."""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import os
+import signal
+import sys
+import argparse
+from typing import Any, Set, Optional, TYPE_CHECKING
+
+_project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
+import websockets
+
+if TYPE_CHECKING:
+    from core.engine.scenario_loader import Scenario
+
+from core.engine.simulation_engine import SimulationEngine
+from core.engine.scenario_loader import ScenarioLoader
+from core.config.simulation_config import SimulationConfig
+from core.config.parameter_registry import ParameterRegistry
+from core.config.preset_engine import PresetEngine, register_all_presets
+
+HOST = "localhost"
+PORT = 8765
+DEFAULT_POPULATION_SIZE = 50
+DEFAULT_WORLD_WIDTH = 100
+DEFAULT_WORLD_HEIGHT = 100
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("WSServerReal")
+
+class RealSimulationServer:
+    def __init__(self, host: str = HOST, port: int = PORT, scenario: Optional['Scenario'] = None):
+        self.host = host
+        self.port = port
+        self.connected_clients: Set[Any] = set()
+        
+        logger.info("🔧 Inicializando motor...")
+        if scenario:
+            self.engine = SimulationEngine.create_from_scenario(scenario)
+        else:
+            self.engine = SimulationEngine.create_default(
+                width=DEFAULT_WORLD_WIDTH, height=DEFAULT_WORLD_HEIGHT,
+                founding_population_size=DEFAULT_POPULATION_SIZE, max_ticks=None,
+            )
+        self.engine.initialize()
+        
+        self.config = self.engine.config if hasattr(self.engine, 'config') else SimulationConfig()
+        self.registry = ParameterRegistry(self.config)
+        self.preset_engine = PresetEngine(registry=self.registry)
+        register_all_presets(self.preset_engine)
+        
+        self._running = True
+        self._paused = False
+        
+        self._speed_multiplier = 1
+        self._refresh_interval = 1.0
+
+    async def handle_connection(self, websocket: Any) -> None:
+        client_id = f"client_{id(websocket)}"
+        self.connected_clients.add(websocket)
+        logger.info(f"✅ {client_id} conectado.")
+        try:
+            await websocket.send(json.dumps(self.engine.get_visualization_state()))
+            while self._running:
+                try:
+                    msg = await asyncio.wait_for(websocket.recv(), timeout=1.0)
+                    await self._handle_client_message(websocket, msg)
+                except asyncio.TimeoutError:
+                    pass
+        except websockets.exceptions.ConnectionClosed:
+            logger.info(f"❌ {client_id} desconectado.")
+        finally:
+            self.connected_clients.discard(websocket)
+
+    async def _handle_client_message(self, websocket: Any, message: str) -> None:
+        try:
+            data = json.loads(message)
+            cmd = data.get("type", "")
+            
+            if cmd == "pause":
+                self._paused = True
+                await self._broadcast_status("paused")
+            elif cmd == "resume":
+                self._paused = False
+                await self._broadcast_status("running")
+            elif cmd == "set_speed":
+                self._speed_multiplier = int(data.get("multiplier", 1))
+                logger.info(f"⚡ Velocidad: {self._speed_multiplier}x ({self._speed_multiplier} días/seg)")
+                await self._broadcast_status(f"speed:{self._speed_multiplier}")
+            elif cmd == "step":
+                if self._paused:
+                    self.engine.step()
+                    await self._broadcast_state()
+            elif cmd == "get_presets":
+                presets = [{"id": pid, "name": p.name.replace("_", " ").title(), "value": self.preset_engine.get_preset_value(pid)} 
+                           for pid, p in self.preset_engine.get_all_presets().items()]
+                await websocket.send(json.dumps({"type": "presets_config", "presets": presets}))
+            elif cmd == "set_preset":
+                self.preset_engine.set_preset_value(data.get("id"), float(data.get("value", 50.0)))
+            elif cmd == "request_agent_details":
+                agent_id = int(data.get("agent_id", -1))
+                details = self.engine.get_agent_full_details(agent_id)
+                if details:
+                    await websocket.send(json.dumps({
+                        "type": "agent_details",
+                        "data": details
+                    }))
+                else:
+                    await websocket.send(json.dumps({
+                        "type": "agent_details_error",
+                        "agent_id": agent_id,
+                        "message": "Agente no encontrado"
+                    }))
+        except Exception as e:
+            logger.error(f"Error mensaje: {e}")
+
+    async def _broadcast_state(self) -> None:
+        if not self.connected_clients: return
+        try:
+            state = self.engine.get_visualization_state()
+            msg = json.dumps(state)
+            await asyncio.gather(*[c.send(msg) for c in self.connected_clients], return_exceptions=True)
+        except Exception as e:
+            logger.error(f"Error broadcast: {e}")
+
+    async def _broadcast_status(self, status: str) -> None:
+        msg = json.dumps({"type": "status", "status": status})
+        for c in list(self.connected_clients):
+            try: await c.send(msg)
+            except: pass
+
+    async def simulation_loop(self) -> None:
+        logger.info("🚀 Bucle iniciado (Multiplicadores con refresco de 1s)")
+        
+        while self._running:
+            if not self._paused:
+                frame_start = __import__('time').perf_counter()
+                
+                steps_done = 0
+                for _ in range(self._speed_multiplier):
+                    self.engine.step()
+                    steps_done += 1
+                
+                await self._broadcast_state()
+                
+                elapsed = __import__('time').perf_counter() - frame_start
+                
+                if elapsed < self._refresh_interval:
+                    await asyncio.sleep(self._refresh_interval - elapsed)
+                else:
+                    actual_speed = steps_done / elapsed
+                    logger.warning(f"⚠️ Límite CPU: Objetivo {self._speed_multiplier}x, Real {actual_speed:.0f}x")
+            
+            await asyncio.sleep(0.001)
+
+    async def start(self) -> None:
+        logger.info(f"🌐 Servidor en ws://{self.host}:{self.port}")
+        def signal_handler(sig, frame):
+            self._running = False
+            sys.exit(0)
+        signal.signal(signal.SIGINT, signal_handler)
+        async with websockets.serve(self.handle_connection, self.host, self.port):
+            await self.simulation_loop()
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--scenario", "-s", type=str)
+    parser.add_argument("--port", "-p", type=int, default=PORT)
+    args = parser.parse_args()
+    
+    scenario = None
+    if args.scenario:
+        try: scenario = ScenarioLoader.load(args.scenario)
+        except Exception as e: logger.error(f"Error escenario: {e}"); return
+    
+    server = RealSimulationServer(port=args.port, scenario=scenario)
+    try: asyncio.run(server.start())
+    except KeyboardInterrupt: logger.info("🛑 Detenido.")
+
+if __name__ == "__main__":
+    main()
+
+================================================================================
+ARCHIVO: .\tools\__init__.py
+================================================================================

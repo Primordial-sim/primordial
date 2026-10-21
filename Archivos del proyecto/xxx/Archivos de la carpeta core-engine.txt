@@ -1,0 +1,1423 @@
+================================================================================
+ARCHIVO: .\core\engine\phase_scheduler.py
+================================================================================
+
+"""Planificador de fases del motor de simulación.
+
+DOCUMENTACIÓN DEL CICLO DE VIDA (TICK):
+-------------------------------------------------------------------------------
+La simulación opera en una arquitectura de Tiempo Discreto con Búfer Transaccional.
+Cada tick completo procesa las siguientes fases en estricto orden secuencial:
+
+JERARQUÍA DE PRIORIDAD SOCIAL (BLOQUE 4):
+1. Muerte (mortalidad) - Prioridad máxima: un agente muerto no puede adoptar ni migrar
+2. Nacimiento (reproduction) - Prioridad alta: nuevos agentes necesitan contexto social
+3. Adopción (relationships) - Prioridad media-alta: reestructuración familiar
+4. Matrimonio/Relaciones (relationships) - Prioridad media: transiciones relacionales
+5. Migración (behavior_and_movement) - Prioridad media-baja: movimiento espacial
+6. Otros comportamientos (behavior_and_movement) - Prioridad baja
+
+ORDEN DE FASES:
+1. Fase Temporal ('temporal'):
+   - Actualiza los relojes internos de la simulación.
+   - Incrementa la edad biológica de las entidades en el búfer transaccional.
+
+2. Fase Ambiental ('environment'):
+   - Propaga variables físicas (cargas virales, degradación de recursos).
+   - Calcula el mapa de densidad poblacional.
+   - BLOQUE 4: Aplica "Social Pressure Field" (eventos sociales del tick anterior).
+   - Actualiza la memoria cognitiva de los agentes según el estrés del entorno.
+
+3. Fase Ecológica ('ecology'):
+   - Detecta encuentros entre organismos cercanos (SpatialGrid).
+   - Infiere y ejecuta relaciones ecológicas (depredación, herbivoría, mutualismo, competencia).
+   - Verifica condiciones ambientales (bioma, estación).
+
+4. Fase Social ('relationships'):
+   - Precalcula compatibilidades (CompatibilityEngine).
+   - BLOQUE B: Gestiona formación de relaciones (MarriageSystem).
+   - BLOQUE B: Gestiona mantenimiento y ruptura (RelationshipSystem).
+   - Procesa reasignaciones familiares legales (Adopciones).
+   - Genera experiencias basadas en etiquetas (ExperienceGenerator).
+
+5. Fase de Movimiento y Conducta ('behavior_and_movement'):
+   - Evalúa decisiones autónomas y rebeldía (FreeWillSystem).
+   - Calcula vectores de migración masiva (MigrationSystem).
+   - Genera vectores de desplazamiento para el tick (MovementSystem).
+   - Resuelve colisiones espaciales físicas (MovementResolver).
+
+6. Fase de Salud ('health'):
+   - Resuelve interacciones inmunológicas y calcula contagios/recuperaciones.
+   - Emite eventos relacionales (cuidado, duelo) al RelationshipExperienceEngine.
+
+7. Fase Reproductiva ('reproduction'):
+   - Verifica las ventanas de fertilidad e inicia concepciones.
+   - Procesa los embarazos en curso y encola nacimientos con mutaciones genéticas.
+
+8. Fase de Mortalidad ('mortality'):
+   - Calcula las curvas de supervivencia (Gompertz) y decreta fallecimientos.
+   - Purga las acciones de los recién fallecidos del búfer (DeathResolver).
+
+9. Fase Observacional ('observers'):
+   - Sincroniza el árbol genealógico.
+   - Actualiza métricas poblacionales macroscópicas y el motor evolutivo.
+
+[COMMIT]: Al terminar el pipeline, `WorldState.apply_commit()` consolida el 
+búfer y altera los objetos de memoria.
+-------------------------------------------------------------------------------
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any, Optional
+
+from core.config.simulation_config import SimulationConfig
+from core.execution.phase_executor import PhaseDefinition
+
+# Importaciones de los subsistemas del motor
+from systems.adoptions.adoption_system import AdoptionSystem
+from systems.aging.aging_system import AgingSystem
+from systems.behavior.cognitive_memory_system import CognitiveMemorySystem
+from systems.diseases.disease_system import DiseaseSystem
+from systems.environment.density_system import DensitySystem
+from systems.environment.environment_system import EnvironmentSystem
+from systems.environment.epidemiological_system import EpidemiologicalSystem
+from systems.social.social_pressure import SocialPressureCalculator
+from systems.evolution.evolution_engine import EvolutionEngine
+from systems.free_will.free_will_system import FreeWillSystem
+from systems.genealogy.ancestry_queries import AncestryQueries
+from systems.genealogy.genealogy_system import GenealogySystem
+from systems.behavior.parental_influence_system import ParentalInfluenceSystem
+from systems.metrics.metrics_system import MetricsSystem
+from systems.mortality.death_resolver import DeathResolver
+from systems.mortality.mortality_system import MortalitySystem
+from systems.movement.migration_system import MigrationSystem
+from systems.movement.movement_resolver import MovementResolver
+from systems.movement.movement_system import MovementSystem
+
+# Sistemas de relaciones
+from systems.relationships.compatibility_engine import CompatibilityEngine
+from systems.relationships.marriage_system import MarriageSystem
+from systems.relationships.relationship_manager import RelationshipManager
+from systems.relationships.relationship_experience_engine import RelationshipExperienceEngine
+from systems.relationships.experience_generator import ExperienceGenerator
+
+from systems.reproduction.conception_system import ConceptionSystem
+from systems.reproduction.gestation_system import GestationSystem
+from systems.reproduction.egg_system import EggSystem  # NUEVO: Sistema de huevos ovíparos
+from systems.temporal.temporal_system import TemporalSystem
+
+from systems.ecology.ecological_relationship_system import EcologicalRelationshipSystem 
+from systems.energy.energy_system import EnergySystem  # NUEVO: Sistema de energía
+
+class PhaseScheduler:
+    """Construye la lista maestra de fases y sistemas activos del motor."""
+
+    def __init__(
+        self, 
+        config: SimulationConfig, 
+        event_bus: Any = None,
+        relationship_engine: Optional[RelationshipExperienceEngine] = None,
+    ) -> None:
+        """Inicializa el planificador orquestando la inyección de dependencias.
+
+        Args:
+            config: Configuración compartida de la simulación.
+            event_bus: Bus de eventos opcional para sistemas que lo requieran.
+            relationship_engine: Motor de experiencias relacionales opcional.
+        """
+        self.config = config
+        self.event_bus = event_bus
+        self.relationship_engine = relationship_engine
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    def build_phases(self) -> list[PhaseDefinition]:
+        """Ensambla las fases de ejecución en el orden del ciclo principal.
+        
+        BLOQUE 4: Reordenamiento para establecer jerarquía social clara:
+        - relationships va ANTES de behavior_and_movement (adopción antes que migración)
+        - Se añade SocialPressureCalculator en environment para feedback social
+        
+        BLOQUE B: Integración de MarriageSystem y RelationshipSystem
+        - MarriageSystem gestiona formación de relaciones (búsqueda bidireccional)
+        - RelationshipSystem gestiona mantenimiento y ruptura (estados graduales)
+        """
+        # Construcción de dependencias compartidas inter-sistema
+        genealogy_system = GenealogySystem(self.config)
+        ancestry_queries = AncestryQueries(genealogy_system=genealogy_system)
+
+        evolution_engine = EvolutionEngine(
+            self.config,
+            ancestry_queries=ancestry_queries,
+        )
+
+        density_system = DensitySystem(self.config)
+
+        # Sistemas de relaciones
+        compatibility_engine = CompatibilityEngine(self.config)
+        
+        # BLOQUE B: MarriageSystem (formación de relaciones)
+        marriage_system = MarriageSystem(
+            config=self.config,
+            compatibility_engine=compatibility_engine,
+            relationship_engine=self.relationship_engine,
+        )
+        
+        # CORRECCIÓN: relationship_system ya no se usa (eliminado del pipeline)
+        # relationship_system = RelationshipSystem(
+        #     config=self.config,
+        #     relationship_engine=self.relationship_engine,
+        # )
+        
+        # RelationshipManager existente (transiciones relacionales)
+        relationship_manager = RelationshipManager(
+            config=self.config,
+            compatibility_engine=compatibility_engine,
+        )
+        
+        # FASE 3: Generador de experiencias basado en etiquetas
+        experience_generator = ExperienceGenerator(
+            config=self.config,
+            relationship_engine=self.relationship_engine,
+        )
+
+        # BLOQUE 4: Sistema de presión social unificado
+        # CORRECCIÓN: Se usa una sola instancia (antes se creaban dos)
+        social_pressure_system = SocialPressureCalculator(self.config)
+
+        # OPCIÓN B.2: Sistema de huevos ovíparos
+        # Procesa incubación, mortalidad ambiental y eclosión de huevos
+        egg_system = EggSystem(self.config)
+
+        # Sistema de ecología (compartido con MetricsSystem para métricas)
+        ecological_system = EcologicalRelationshipSystem(self.config)
+
+        # Definición estructurada del ciclo biológico y físico
+        phases = [
+            # ================================================================
+            # FASE 1: TEMPORAL
+            # ================================================================
+            PhaseDefinition(
+                name="temporal",
+                systems=[
+                    TemporalSystem(self.config),
+                    AgingSystem(self.config),
+                ],
+            ),
+            
+            # ================================================================
+            # FASE 2: AMBIENTAL
+            # ================================================================
+            PhaseDefinition(
+                name="environment",
+                systems=[
+                    EnvironmentSystem(self.config),
+                    density_system,
+                    EpidemiologicalSystem(self.config),
+                    social_pressure_system,  # CORRECCIÓN: usar la variable existente
+                    CognitiveMemorySystem(self.config),
+                ],
+            ),
+            
+            # ================================================================
+            # FASE 3: ECOLOGÍA (RELACIONES ENTRE ESPECIES Y ENERGÍA)
+            # ================================================================
+            PhaseDefinition(
+                name="ecology",
+                systems=[
+                    ecological_system,  # Variable compartida para métricas
+                    EnergySystem(self.config),
+                ],
+            ),
+            
+            # ================================================================
+            # FASE 4: SOCIAL (RELACIONES)
+            # ================================================================
+            PhaseDefinition(
+                name="relationships",
+                systems=[
+                    compatibility_engine,
+                    marriage_system,         # Genera eventos de intimidad
+                    relationship_manager,    # Crea relaciones iniciales y detecta encuentros
+                    AdoptionSystem(
+                        config=self.config,
+                        ancestry_queries=ancestry_queries,
+                        event_bus=self.event_bus,
+                        relationship_engine=self.relationship_engine,
+                    ),
+                    experience_generator,    # Genera experiencias basadas en etiquetas
+                ],
+            ),
+            
+            # ================================================================
+            # FASE 5: MOVIMIENTO Y CONDUCTA
+            # ================================================================
+            PhaseDefinition(
+                name="behavior_and_movement",
+                systems=[
+                    FreeWillSystem(
+                        config=self.config,
+                        relationship_engine=self.relationship_engine,
+                    ),
+                    MigrationSystem(self.config),
+                    MovementSystem(
+                        config=self.config,
+                        density_system=density_system,
+                        relationship_engine=self.relationship_engine,
+                    ),
+                    MovementResolver(self.config),
+                ],
+            ),
+            
+            # ================================================================
+            # FASE 6: SALUD
+            # ================================================================
+            PhaseDefinition(
+                name="health",
+                systems=[
+                    DiseaseSystem(
+                        config=self.config,
+                        relationship_engine=self.relationship_engine,
+                    ),
+                ],
+            ),
+            
+            # ================================================================
+            # FASE 7: REPRODUCCIÓN
+            # ================================================================
+            PhaseDefinition(
+                name="reproduction",
+                systems=[
+                    ConceptionSystem(
+                        config=self.config,
+                        relationship_engine=self.relationship_engine,
+                    ),
+                    egg_system,  # OPCIÓN B.2: Procesar huevos ovíparos (incubación y eclosión)
+                    GestationSystem(
+                        config=self.config,
+                        evolution_engine=evolution_engine,
+                        relationship_engine=self.relationship_engine,
+                    ),
+                ],
+            ),
+            
+            # ================================================================
+            # FASE 8: MORTALIDAD
+            # ================================================================
+            PhaseDefinition(
+                name="mortality",
+                systems=[
+                    MortalitySystem(
+                        config=self.config,
+                        relationship_engine=self.relationship_engine,
+                        ancestry_queries=ancestry_queries,  # CORRECCIÓN: Para endogamia
+                    ),
+                    DeathResolver(self.config),
+                ],
+            ),
+            
+            # ================================================================
+            # FASE 9: OBSERVADORES
+            # ================================================================
+            PhaseDefinition(
+                name="observers",
+                systems=[
+                    genealogy_system,
+                    ParentalInfluenceSystem(
+                        config=self.config,
+                        genealogy_system=genealogy_system,
+                    ),
+                    MetricsSystem(
+                        self.config, 
+                        genealogy_system=genealogy_system,
+                        ecology_system=ecological_system,  # Para métricas de ecología
+                    ),
+                    evolution_engine,
+                ],
+            ),
+        ]
+
+        self._validate_phases(phases)
+        return phases
+
+    def get_registered_system_names(self) -> list[str]:
+        """Devuelve los nombres de sistemas registrados para análisis y logging."""
+        names: list[str] = []
+        for phase in self.build_phases():
+            for system in phase.systems:
+                names.append(system.__class__.__name__)
+        return names
+
+    def _validate_phases(self, phases: list[PhaseDefinition]) -> None:
+        """Comprueba en tiempo de arranque que los sistemas cumplan el contrato Protocol.
+
+        Args:
+            phases: Fases a validar.
+
+        Raises:
+            TypeError: Si algún sistema no implementa el método `process`.
+            ValueError: Si existe una fase anónima.
+        """
+        for phase in phases:
+            if not phase.name:
+                raise ValueError("Todas las fases deben tener un nombre estricto.")
+
+            for system in phase.systems:
+                process = getattr(system, "process", None)
+                if not callable(process):
+                    system_name = system.__class__.__name__
+                    raise TypeError(
+                        f"Fallo estructural: El sistema {system_name} no "
+                        f"implementa el método requerido process(...)."
+                    )
+
+================================================================================
+ARCHIVO: .\core\engine\scenario_loader.py
+================================================================================
+
+"""Cargador y validador de escenarios de simulación.
+
+Un escenario define qué especies participan, cuántos individuos hay de cada
+una, y los parámetros globales de la simulación.
+
+Formato:
+    {
+        "name": "Nombre del escenario",
+        "description": "Descripción breve",
+        "species": [{"id": "human", "count": 50}],
+        "world": {"width": 100, "height": 100},
+        "simulation": {"max_ticks": 1000, "delta_days": 1.0, "total_days": 3650},
+        "environment": {"sector_size": 10}
+    }
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+from core.genetics.species_definition import SpeciesRegistry
+
+
+@dataclass
+class SpeciesConfig:
+    """Configuración de una especie dentro de un escenario."""
+    species_id: str
+    count: int
+    # Extensiones futuras:
+    # min_age, max_age, initial_position, custom_traits...
+
+
+@dataclass
+class WorldConfig:
+    """Configuración del mundo del escenario."""
+    width: int = 100
+    height: int = 100
+
+
+@dataclass
+class SimulationConfig:
+    """Configuración de la ejecución."""
+    max_ticks: Optional[int] = None
+    delta_days: float = 1.0
+    total_days: float = 3650.0
+
+
+@dataclass
+class EnvironmentConfig:
+    """Configuración ambiental."""
+    sector_size: int = 10
+
+
+@dataclass
+class Scenario:
+    """Escenario completo de simulación."""
+    name: str
+    description: str
+    species: List[SpeciesConfig]
+    world: WorldConfig
+    simulation: SimulationConfig
+    environment: EnvironmentConfig
+    raw: Dict[str, Any] = field(default_factory=dict)
+    
+    @property
+    def total_population(self) -> int:
+        """Población total del escenario."""
+        return sum(s.count for s in self.species)
+    
+    def __repr__(self) -> str:
+        species_summary = ", ".join(f"{s.count}x {s.species_id}" for s in self.species)
+        return f"Scenario('{self.name}': {species_summary})"
+
+
+class ScenarioLoader:
+    """Carga y valida escenarios desde archivos JSON."""
+    
+    _logger = logging.getLogger("ScenarioLoader")
+    
+    @classmethod
+    def load(cls, filepath: str) -> Scenario:
+        """Carga un escenario desde un archivo JSON.
+        
+        Args:
+            filepath: Ruta al archivo JSON del escenario.
+            
+        Returns:
+            Escenario validado.
+            
+        Raises:
+            FileNotFoundError: Si el archivo no existe.
+            ValueError: Si el escenario es inválido.
+        """
+        path = Path(filepath)
+        if not path.exists():
+            raise FileNotFoundError(f"Escenario no encontrado: {filepath}")
+        
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        
+        return cls._parse(data, filepath)
+    
+    @classmethod
+    def _parse(cls, data: Dict[str, Any], filepath: str) -> Scenario:
+        """Parsea y valida los datos del escenario."""
+        # Asegurar que SpeciesRegistry esté inicializado
+        if not SpeciesRegistry.get_all():
+            SpeciesRegistry.initialize_defaults()
+        
+        # Validar campos obligatorios
+        if "name" not in data:
+            raise ValueError(f"El escenario {filepath} no tiene campo 'name'")
+        
+        if "species" not in data:
+            raise ValueError(f"El escenario {filepath} no tiene campo 'species'")
+        
+        # Parsear especies
+        species_configs = []
+        for species_data in data["species"]:
+            species_id = species_data.get("id")
+            count = species_data.get("count", 0)
+            
+            if not species_id:
+                raise ValueError(f"Especie sin ID en {filepath}")
+            
+            # Validar que la especie existe
+            if not SpeciesRegistry.has(species_id):
+                available = ", ".join(SpeciesRegistry.get_all().keys())
+                raise ValueError(
+                    f"Especie '{species_id}' no encontrada. "
+                    f"Arquetipos disponibles: {available}"
+                )
+            
+            if count <= 0:
+                raise ValueError(f"Count debe ser > 0 para '{species_id}'")
+            
+            species_configs.append(SpeciesConfig(
+                species_id=species_id,
+                count=count,
+            ))
+        
+        # Parsear world
+        world_data = data.get("world", {})
+        world_config = WorldConfig(
+            width=world_data.get("width", 100),
+            height=world_data.get("height", 100),
+        )
+        
+        # Parsear simulation
+        sim_data = data.get("simulation", {})
+        sim_config = SimulationConfig(
+            max_ticks=sim_data.get("max_ticks"),
+            delta_days=sim_data.get("delta_days", 1.0),
+            total_days=sim_data.get("total_days", 3650.0),
+        )
+        
+        # Parsear environment
+        env_data = data.get("environment", {})
+        env_config = EnvironmentConfig(
+            sector_size=env_data.get("sector_size", 10),
+        )
+        
+        scenario = Scenario(
+            name=data["name"],
+            description=data.get("description", ""),
+            species=species_configs,
+            world=world_config,
+            simulation=sim_config,
+            environment=env_config,
+            raw=data,
+        )
+        
+        cls._logger.info("✅ Escenario cargado: %s", scenario)
+        return scenario
+    
+    @classmethod
+    def list_scenarios(cls, directory: str = "scenarios") -> List[str]:
+        """Lista todos los archivos de escenario en un directorio."""
+        path = Path(directory)
+        if not path.exists():
+            return []
+        return sorted(str(p) for p in path.glob("*.json"))
+
+================================================================================
+ARCHIVO: .\core\engine\simulation_engine.py
+================================================================================
+
+"""Motor temporal principal de la simulación con soporte de persistencia."""
+
+from __future__ import annotations
+
+import csv
+import json
+import logging
+import os
+import random
+from datetime import datetime
+from typing import Any, Optional, List
+
+from core.config.simulation_config import SimulationConfig
+from core.engine.phase_scheduler import PhaseScheduler
+from core.execution.execution_pipeline import ExecutionPipeline
+from core.engine.tick_manager import TickManager
+from core.engine.snapshot_manager import SnapshotManager
+from core.state.world_state import WorldState
+from entities.person.genome import Genome
+from entities.person.person import Person
+
+from systems.relationships.relationship_experience_engine import RelationshipExperienceEngine
+
+# GENÉTICA UNIVERSAL
+from core.genetics.species_definition import SpeciesRegistry
+
+# SISTEMA DE ESCENARIOS
+from core.engine.scenario_loader import Scenario, SpeciesConfig
+
+
+class SimulationEngine:
+    """Controla el ciclo temporal completo, el registro analítico y la persistencia."""
+
+    def __init__(
+        self,
+        world_state: WorldState,
+        config: SimulationConfig,
+        pipeline: ExecutionPipeline,
+        tick_manager: TickManager,
+        snapshot_manager: SnapshotManager,
+        event_bus: Any = None,
+        max_ticks: Optional[int] = None,
+        export_path: Optional[str] = None,
+        snapshot_interval: Optional[int] = None,
+    ) -> None:
+        self.state = world_state
+        self.config = config
+        self.pipeline = pipeline
+        self.tick_manager = tick_manager
+        self.snapshot_manager = snapshot_manager
+        self.event_bus = event_bus
+        self.logger = logging.getLogger(self.__class__.__name__)
+        
+        self.max_ticks = max_ticks
+        self.export_path = export_path
+        self.snapshot_interval = snapshot_interval
+        
+        self._total_deaths: int = 0
+        self._total_births: int = 0
+        self._total_infections: int = 0
+
+    @classmethod
+    def create_default(
+        cls,
+        config_path: Optional[str] = None,
+        width: int = 100,
+        height: int = 100,
+        founding_population_size: int = 50,
+        max_ticks: Optional[int] = None,
+        export_path: Optional[str] = None,
+        snapshot_interval: Optional[int] = None,
+        event_bus: Any = None,
+    ) -> SimulationEngine:
+        """Crea un motor completo usando la configuración por defecto."""
+        config = SimulationConfig()
+        if config_path:
+            cls._load_external_config(config, config_path)
+
+        if snapshot_interval is not None:
+            if hasattr(config, 'metrics'):
+                config.metrics.snapshot_interval_days = snapshot_interval
+
+        state = WorldState(config=config, width=width, height=height)
+        state.initialize_tile_map()
+
+        cls._generate_founding_population(
+            config=config, state=state, size=founding_population_size,
+        )
+
+        # FASE C: Construir el mapa de ocupación inicial
+        state.rebuild_occupancy_map()
+
+        relationship_experience_engine = RelationshipExperienceEngine(config)
+        tick_manager = TickManager(initial_days_per_tick=config.engine.delta_days)
+        snapshot_manager = SnapshotManager()
+
+        scheduler = PhaseScheduler(
+            config=config, 
+            event_bus=event_bus,
+            relationship_engine=relationship_experience_engine,
+        )
+        
+        pipeline = ExecutionPipeline(
+            config=config,
+            phases=scheduler.build_phases(),
+        )
+
+        return cls(
+            world_state=state,
+            config=config,
+            pipeline=pipeline,
+            tick_manager=tick_manager,
+            snapshot_manager=snapshot_manager,
+            event_bus=event_bus,
+            max_ticks=max_ticks,
+            export_path=export_path,
+            snapshot_interval=snapshot_interval,
+        )
+
+    @classmethod
+    def create_from_scenario(
+        cls,
+        scenario: Scenario,
+        config_path: Optional[str] = None,
+        export_path: Optional[str] = None,
+        event_bus: Any = None,
+    ) -> SimulationEngine:
+        """Crea un motor completo a partir de un escenario definido."""
+        config = SimulationConfig()
+        if config_path:
+            cls._load_external_config(config, config_path)
+        
+        config.engine.delta_days = scenario.simulation.delta_days
+        config.engine.total_days = scenario.simulation.total_days
+        config.environment.sector_size = scenario.environment.sector_size
+        
+        state = WorldState(
+            config=config,
+            width=scenario.world.width,
+            height=scenario.world.height,
+        )
+
+        state.initialize_tile_map()
+        
+        cls._generate_multispecies_population(
+            config=config,
+            state=state,
+            species_configs=scenario.species,
+        )
+        
+        state.rebuild_occupancy_map()
+        
+        relationship_experience_engine = RelationshipExperienceEngine(config)
+        tick_manager = TickManager(initial_days_per_tick=config.engine.delta_days)
+        snapshot_manager = SnapshotManager()
+        
+        scheduler = PhaseScheduler(
+            config=config,
+            event_bus=event_bus,
+            relationship_engine=relationship_experience_engine,
+        )
+        
+        pipeline = ExecutionPipeline(
+            config=config,
+            phases=scheduler.build_phases(),
+        )
+        
+        return cls(
+            world_state=state,
+            config=config,
+            pipeline=pipeline,
+            tick_manager=tick_manager,
+            snapshot_manager=snapshot_manager,
+            event_bus=event_bus,
+            max_ticks=scenario.simulation.max_ticks,
+            export_path=export_path,
+        )
+
+    def run(self) -> None:
+        """Ejecuta la simulación completa gestionada por TickManager."""
+        total_days = float(self.config.engine.total_days)
+        history: list[dict[str, Any]] = []
+
+        self.logger.info(
+            "Iniciando simulación: %s días totales, %s días/tick.",
+            total_days, self.tick_manager.days_per_tick,
+        )
+        if self.max_ticks is not None:
+            self.logger.info("🎯 Parada por máximo de ticks: %d", self.max_ticks)
+        if self.export_path:
+            self.logger.info("📊 Exportación final a: %s", self.export_path)
+
+        try:
+            while self.tick_manager.total_simulated_days < total_days:
+                if self.max_ticks is not None and self.tick_manager.current_tick >= self.max_ticks:
+                    self.logger.info(
+                        "🏁 Parada por límite de ticks: %d ejecutados", 
+                        self.max_ticks
+                    )
+                    break
+                
+                delta_days = self.tick_manager.advance_tick()
+                current_tick = self.tick_manager.current_tick
+                current_day = self.tick_manager.total_simulated_days
+
+                self.state.world_days_elapsed = current_day
+
+                pending = self.pipeline.execute_tick(
+                    state=self.state,
+                    delta_days=delta_days,
+                    current_tick=current_tick,
+                    current_day=current_day,
+                    event_bus=self.event_bus,
+                )
+                
+                self._log_visual_events(pending, current_tick)
+                self._total_deaths += len(pending.deaths)
+                self._total_births += len(pending.births)
+                self._total_infections += len(pending.infections)
+
+                self.state.apply_commit(
+                    pending,
+                    event_bus=self.event_bus,
+                    current_tick=current_tick,
+                )
+
+                persons = list(self.state.get_all_persons())
+                
+                if len(persons) == 0 and current_tick > 1:
+                    self.logger.warning("⚠️  Población extinta. Fin de la simulación.")
+                    history.append({
+                        "tick": current_tick,
+                        "day": round(current_day, 2),
+                        "alive": 0,
+                        "sick": 0,
+                        "cumulative_deaths": self._total_deaths,
+                        "cumulative_births": self._total_births
+                    })
+                    break
+                
+                history.append({
+                    "tick": current_tick,
+                    "day": round(current_day, 2),
+                    "alive": len(persons),
+                    "sick": sum(1 for p in persons if getattr(p, "is_sick", False)),
+                    "cumulative_deaths": self._total_deaths,
+                    "cumulative_births": self._total_births
+                })
+
+        except KeyboardInterrupt:
+            self.logger.warning(
+                "\n⚠️  Simulación interrumpida por el usuario (Ctrl+C) en tick %d",
+                self.tick_manager.current_tick,
+            )
+
+        self._print_simulation_summary(self.tick_manager.current_tick)
+        self._export_to_csv(history)
+        
+        self.logger.info("Simulación finalizada correctamente.")
+
+    # =========================================================================
+    # MÉTODOS PARA VISUALIZACIÓN EN TIEMPO REAL
+    # =========================================================================
+
+    def initialize(self) -> None:
+        """Inicializa la simulación para visualización en tiempo real."""
+        self._total_deaths = 0
+        self._total_births = 0
+        self._total_infections = 0
+        
+        self.state.rebuild_occupancy_map()
+        
+        self.logger.info(
+            "🎬 Simulación inicializada para visualización: %d agentes, mundo %dx%d",
+            len(self.state.get_all_persons()),
+            self.state.width,
+            self.state.height,
+        )
+
+    def step(self) -> dict[str, Any]:
+        """Ejecuta un solo tick de la simulación para visualización en tiempo real."""
+        delta_days = self.tick_manager.advance_tick()
+        current_tick = self.tick_manager.current_tick
+        current_day = self.tick_manager.total_simulated_days
+
+        self.state.world_days_elapsed = current_day
+
+        pending = self.pipeline.execute_tick(
+            state=self.state,
+            delta_days=delta_days,
+            current_tick=current_tick,
+            current_day=current_day,
+            event_bus=self.event_bus,
+        )
+        
+        self._total_deaths += len(pending.deaths)
+        self._total_births += len(pending.births)
+        self._total_infections += len(pending.infections)
+
+        self.state.apply_commit(
+            pending,
+            event_bus=self.event_bus,
+            current_tick=current_tick,
+        )
+
+        return self.get_visualization_state()
+
+    def get_visualization_state(self) -> dict[str, Any]:
+        """Obtiene el estado actual ligero para el tick visual (sin datos pesados)."""
+        persons = list(self.state.get_all_persons())
+        persons_data = []
+        
+        for person in persons:
+            persons_data.append({
+                "id": int(person.entity_id),
+                "q": float(person.q),  # HEX: Cambiado de x a q
+                "r": float(person.r),  # HEX: Cambiado de y a r
+                "age": float(person.age),
+                "gender": str(person.gender),
+                "species": str(getattr(person, 'species', 'human')),
+                "is_sick": bool(person.is_sick),
+                "is_adult": bool(person.is_adult),
+                "is_senior": bool(person.is_senior),
+                "is_pregnant": bool(person.is_pregnant),
+            })
+        
+        sick_count = sum(1 for p in persons if p.is_sick)
+        adult_count = sum(1 for p in persons if p.is_adult)
+        senior_count = sum(1 for p in persons if p.is_senior)
+        
+        species_counts = {}
+        for p in persons:
+            sp = getattr(p, 'species', 'human')
+            species_counts[sp] = species_counts.get(sp, 0) + 1
+        
+        return {
+            "type": "tick",
+            "tick": int(self.tick_manager.current_tick),
+            "day": float(self.tick_manager.total_simulated_days),
+            "world_width": int(self.state.width),
+            "world_height": int(self.state.height),
+            "agents": persons_data,
+            "stats": {
+                "total_population": len(persons),
+                "total_deaths": self._total_deaths,
+                "total_births": self._total_births,
+                "total_infections": self._total_infections,
+                "sick_count": sick_count,
+                "adult_count": adult_count,
+                "senior_count": senior_count,
+                "species_counts": species_counts,
+            },
+        }
+
+    def get_agent_full_details(self, agent_id: int) -> Optional[dict[str, Any]]:
+        """Obtiene todos los detalles de un agente específico bajo demanda."""
+        person = self.state.get_person_by_id(agent_id)
+        if not person:
+            return None
+            
+        # 1. Genoma completo
+        genome_data = {}
+        if hasattr(person, 'genome'):
+            g = person.genome
+            get_trait = getattr(g, 'get_trait_value', lambda x: None)
+            traits_to_fetch = ["longevity", "fertility", "metabolism", "immunity", "sociability", "temperament", "strength", "speed", "intelligence"]
+            for trait in traits_to_fetch:
+                val = get_trait(trait) or getattr(g, trait, 0.0)
+                genome_data[trait] = float(val) if val is not None else 0.0
+
+        # 2. Psicología y Estado
+        emotions = getattr(person, '_emotions', {})
+        motivations = getattr(person, '_motivations', {})
+        
+        # 3. Relaciones y Familia
+        parents = list(getattr(person, 'parents', []))
+        adoptive_parents = list(getattr(person, 'adoptive_parents', []))
+        
+        return {
+            "id": int(person.entity_id),
+            "species": str(getattr(person, 'species', 'human')),
+            "age": float(person.age),
+            "gender": str(person.gender),
+            "marital_status": str(getattr(person, 'marital_status', 'soltero')),
+            "reputation": float(getattr(person, 'reputation_score', 0.5)),
+            "genome": genome_data,
+            "emotions": {
+                "stress": float(emotions.get("stress", 0.0)),
+                "happiness": float(emotions.get("happiness", 0.5)),
+                "energy": float(emotions.get("energy", 1.0)),
+            },
+            "motivations": {
+                "independence": float(motivations.get("independence", 0.0)),
+                "exploration": float(motivations.get("exploration", 0.0)),
+                "partnership": float(motivations.get("partnership", 0.0)),
+                "cooperation": float(motivations.get("cooperation", 0.0)),
+            },
+            "family": {
+                "parents": parents,
+                "adoptive_parents": adoptive_parents,
+                "partner": int(getattr(person, 'partner_id', -1)) if getattr(person, 'partner_id', None) is not None else None,
+                "children_count": int(getattr(person, 'children_count', 0)),
+                "biological_children": int(getattr(person, 'biological_children_count', 0)),
+            }
+        }
+
+    # =========================================================================
+    # MÉTODOS AUXILIARES
+    # =========================================================================
+
+    def _find_metrics_system(self) -> Optional[Any]:
+        """Localiza el MetricsSystem dentro del pipeline para exportación."""
+        try:
+            if not hasattr(self.pipeline, 'phases'):
+                return None
+            for phase in self.pipeline.phases:
+                for system in phase.systems:
+                    if system.__class__.__name__ == "MetricsSystem":
+                        return system
+        except Exception as e:
+            self.logger.debug(f"No se pudo localizar MetricsSystem: {e}")
+        return None
+
+    def _export_metrics_json(self, metrics_system: Any) -> None:
+        """Exporta las métricas acumuladas a JSON."""
+        try:
+            if hasattr(metrics_system, 'export_to_json'):
+                metrics_system.export_to_json(self.export_path)
+                self.logger.info("📊 Métricas JSON exportadas a: %s", self.export_path)
+            else:
+                self.logger.warning(
+                    "⚠️  MetricsSystem no tiene método export_to_json"
+                )
+        except Exception as e:
+            self.logger.error("❌ Error al exportar métricas JSON: %s", e)
+
+    def export_metrics(self, filepath: str) -> None:
+        """Método público para exportar métricas manualmente."""
+        metrics_system = self._find_metrics_system()
+        if metrics_system:
+            self._export_metrics_json(metrics_system)
+        else:
+            self.logger.warning(
+                "⚠️  No se pudo exportar métricas: MetricsSystem no encontrado"
+            )
+
+    def save_game(self, filepath: str) -> bool:
+        """Guarda el estado actual de la simulación en un archivo."""
+        return self.snapshot_manager.create_snapshot(
+            state=self.state,
+            tick_manager=self.tick_manager,
+            filepath=filepath,
+        )
+
+    def load_game(self, filepath: str) -> bool:
+        """Carga un estado guardado de la simulación."""
+        try:
+            loaded_state, loaded_tick, loaded_days, loaded_scale = self.snapshot_manager.load_snapshot(filepath)
+            
+            self.state = loaded_state
+            self.tick_manager.load_from_snapshot(loaded_tick, loaded_days)
+            self.tick_manager.set_tick_duration(loaded_scale)
+            
+            relationship_experience_engine = RelationshipExperienceEngine(self.config)
+            scheduler = PhaseScheduler(
+                config=self.config, 
+                event_bus=self.event_bus,
+                relationship_engine=relationship_experience_engine,
+            )
+            self.pipeline = ExecutionPipeline(
+                config=self.config,
+                phases=scheduler.build_phases(),
+            )
+            
+            self.state.rebuild_occupancy_map()
+            
+            self.logger.info("✅ Partida cargada exitosamente desde: %s", filepath)
+            return True
+        except Exception as e:
+            self.logger.error("❌ Fallo al cargar la partida: %s", e)
+            return False
+
+    def _log_visual_events(self, pending: Any, tick: int) -> None:
+        for data in pending.births:
+            mother_id = data.get("mother_id", "Desconocida")
+            self.logger.info("👶 [NACIMIENTO] Madre %s dio a luz (Tick: %s).", mother_id, tick)
+            
+        for entity_id, reason in pending.deaths.items():
+            self.logger.info("⚰️ [MUERTE] Agente %s falleció. Causa: %s", entity_id, reason)
+            
+        for entity_id, pathogen in pending.infections:
+            pathogen_id = getattr(pathogen, "pathogen_id", "Desconocido")
+            self.logger.info("🤒 [CONTAGIO] Agente %s contrajo %s", entity_id, pathogen_id)
+
+    def _print_simulation_summary(self, total_ticks: int) -> None:
+        persons = list(self.state.get_all_persons())
+        total_alive = len(persons)
+        sick_count = sum(1 for p in persons if getattr(p, "is_sick", False))
+        avg_age_years = (sum(p.age for p in persons) / total_alive / 365.0) if total_alive > 0 else 0.0
+
+        self.logger.info("\n" + "=" * 65)
+        self.logger.info("📊 RESUMEN EJECUTIVO DE LA SIMULACIÓN")
+        self.logger.info("=" * 65)
+        self.logger.info(f"{'Métrica':<30} | {'Valor':<10}")
+        self.logger.info("-" * 45)
+        self.logger.info(f"{'Población Viva Final':<30} | {total_alive:<10}")
+        self.logger.info(f"{'Edad Media (Años)':<30} | {avg_age_years:<10.1f}")
+        self.logger.info(f"{'Total de Nacimientos Históricos':<30} | {self._total_births:<10}")
+        self.logger.info(f"{'Total de Muertes Históricas':<30} | {self._total_deaths:<10}")
+        self.logger.info(f"{'Infectados Activos (Fin)':<30} | {sick_count:<10}")
+        self.logger.info(f"{'Total Contagios Históricos':<30} | {self._total_infections:<10}")
+        self.logger.info(f"{'Ticks Ejecutados':<30} | {total_ticks:<10}")
+        self.logger.info("=" * 65 + "\n")
+
+    def _export_to_csv(self, history: list[dict[str, Any]]) -> None:
+        if not history:
+            return
+        filename = f"reporte_simulacion_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        keys = history[0].keys()
+        try:
+            with open(filename, "w", newline="", encoding="utf-8") as output_file:
+                dict_writer = csv.DictWriter(output_file, fieldnames=keys)
+                dict_writer.writeheader()
+                dict_writer.writerows(history)
+            self.logger.info("💾 Reporte de datos exportado a: %s", filename)
+        except OSError as e:
+            self.logger.error("Error al exportar el CSV: %s", e)
+
+    @staticmethod
+    def _load_external_config(config: SimulationConfig, filepath: str) -> None:
+        logger = logging.getLogger("SimulationEngine")
+        if not os.path.exists(filepath):
+            logger.warning("Archivo de configuración no encontrado: %s.", filepath)
+            return
+        with open(filepath, "r", encoding="utf-8") as file:
+            data = json.load(file)
+        for category, params in data.items():
+            if not isinstance(params, dict):
+                logger.warning("Se ignora una sección de configuración inválida: %s.", category)
+                continue
+            for key, value in params.items():
+                config.set_parameter(category, key, value)
+
+    @staticmethod
+    def _generate_founding_population(config: SimulationConfig, state: WorldState, size: int) -> None:
+        """Genera la población fundadora usando el sistema de Genética Universal."""
+        logger = logging.getLogger("SimulationEngine")
+        logger.info("Generando %s agentes fundadores (solteros).", size)
+
+        SpeciesRegistry.initialize_defaults()
+        
+        species = SpeciesRegistry.get("human")
+        if species is None:
+            logger.error("❌ Especie 'human' no encontrada en SpeciesRegistry")
+            return
+        
+        logger.info("🧬 Usando especie: %s (%d rasgos)", species.name, species.get_trait_count())
+
+        min_age = config.time.adult_age_days
+        max_age = config.time.senior_age_days
+        
+        # HEX: Usar las dimensiones reales del estado para generar coordenadas válidas
+        width = state.width
+        height = state.height
+
+        for entity_id in range(1, size + 1):
+            genome = Genome.create_founder(species)
+
+            person = Person(
+                config=config,
+                entity_id=entity_id,
+                q=random.randint(5, max(6, width - 5)),   # HEX: q en lugar de x
+                r=random.randint(5, max(6, height - 5)),  # HEX: r en lugar de y
+                age=random.uniform(min_age, max_age),
+                genome=genome,
+            )
+            person.set_health_state("sano")
+            person.update_pregnancy(False, 0.0)
+            state.add_person(person)
+
+    @staticmethod
+    def _generate_multispecies_population(
+        config: SimulationConfig,
+        state: WorldState,
+        species_configs: List[SpeciesConfig],
+    ) -> None:
+        """Genera una población fundadora con múltiples especies."""
+        logger = logging.getLogger("SimulationEngine")
+        
+        SpeciesRegistry.initialize_defaults()
+        
+        total_count = sum(sc.count for sc in species_configs)
+        logger.info("Generando población multiespecie: %d agentes totales", total_count)
+        
+        entity_id = 1
+        min_age = config.time.adult_age_days
+        max_age = config.time.senior_age_days
+        width = state.width
+        height = state.height
+        
+        for sc in species_configs:
+            species = SpeciesRegistry.get(sc.species_id)
+            if species is None:
+                logger.error("❌ Especie '%s' no encontrada en SpeciesRegistry", sc.species_id)
+                continue
+            
+            logger.info(
+                "🧬 %s (%s): %d individuos, %d rasgos",
+                species.name, species.archetype, sc.count, species.get_trait_count()
+            )
+            
+            for _ in range(sc.count):
+                genome = Genome.create_founder(species)
+                
+                # HEX: Cambiado x, y por q, r
+                person = Person(
+                    config=config,
+                    entity_id=entity_id,
+                    q=random.randint(5, max(6, width - 5)),
+                    r=random.randint(5, max(6, height - 5)),
+                    age=random.uniform(min_age, max_age),
+                    genome=genome,
+                    species=species.species_id,
+                )
+                person.set_health_state("sano")
+                person.update_pregnancy(False, 0.0)
+                state.add_person(person)
+                
+                entity_id += 1
+
+================================================================================
+ARCHIVO: .\core\engine\snapshot_manager.py
+================================================================================
+
+"""Gestor de instantáneas (Snapshots) de la simulación.
+
+Responsabilidad: Serializar y deserializar el estado completo de la simulación
+para permitir persistencia transaccional, guardados y cargas consistentes
+sin romper la línea temporal ni la coherencia del estado del mundo.
+"""
+
+from __future__ import annotations
+
+import logging
+import pickle
+
+from core.engine.tick_manager import TickManager
+from core.state.world_state import WorldState
+
+
+class SnapshotManager:
+    """Gestiona el volcado y restauración determinista del estado simétrico del mundo."""
+
+    def __init__(self) -> None:
+        """Inicializa el gestor de snapshots configurando su sistema de logging."""
+        self._logger = logging.getLogger(self.__class__.__name__)
+
+    def create_snapshot(
+        self,
+        state: WorldState,
+        tick_manager: TickManager,
+        filepath: str,
+    ) -> bool:
+        """Congela el estado exacto del mundo y el reloj interno en un archivo binario.
+
+        Args:
+            state: Estado actual y autoritativo del mundo.
+            tick_manager: Gestor del reloj e índices temporales.
+            filepath: Ruta física del sistema de archivos donde se guardará el snapshot.
+
+        Returns:
+            True si el proceso se consolidó correctamente; False en caso de fallo.
+        """
+        try:
+            snapshot_data = {
+                "world_state": state,
+                "tick": tick_manager.current_tick,
+                "total_days": tick_manager.total_simulated_days,
+                "scale": tick_manager.days_per_tick,
+            }
+            with open(filepath, "wb") as f:
+                pickle.dump(snapshot_data, f)
+
+            self._logger.info("Snapshot determinista guardado en: %s", filepath)
+            return True
+        except Exception as e:
+            self._logger.error("Fallo crítico al crear snapshot: %s", e)
+            return False
+
+    def load_snapshot(self, filepath: str) -> tuple[WorldState, int, float, float]:
+        """Recupera el estado completo de la simulación exactamente donde se dejó.
+
+        Args:
+            filepath: Ruta del archivo binario a cargar.
+
+        Returns:
+            Una tupla conteniendo el WorldState restaurado, el tick numérico,
+            los días totales transcurridos (float) y la escala de tiempo o días por tick (float).
+
+        Raises:
+            FileNotFoundError: Si la ruta especificada no existe en el disco.
+            Exception: Si el archivo está corrupto o es incompatible con la versión actual.
+        """
+        try:
+            with open(filepath, "rb") as f:
+                snapshot_data = pickle.load(f)
+
+            self._logger.info("Snapshot restaurado con éxito desde: %s", filepath)
+            return (
+                snapshot_data["world_state"],
+                snapshot_data["tick"],
+                snapshot_data["total_days"],
+                snapshot_data["scale"],
+            )
+        except FileNotFoundError:
+            self._logger.error("Archivo de guardado no encontrado: %s", filepath)
+            raise
+        except Exception as e:
+            self._logger.error("Archivo de guardado corrupto o incompatible: %s", e)
+            raise e
+
+================================================================================
+ARCHIVO: .\core\engine\tick_manager.py
+================================================================================
+
+"""
+Ruta: core/engine/tick_manager.py
+Responsabilidad: Controlar el avance del tiempo biológico interno y su conversión a tiempo visible.
+                 Garantiza la causalidad temporal estricta y soporta escalas dinámicas en días continuos,
+                 permitiendo que un tick dure cualquier cantidad de días configurada por el usuario o la UI.
+"""
+import logging
+from typing import Optional
+
+class TickManager:
+    """
+    Gestor central del tiempo de la simulación.
+    Mantiene el contador de ticks del motor y calcula los ciclos y fechas visibles
+    adaptándose a cualquier duración de tick de forma continua y escalable.
+    """
+
+    def __init__(self, initial_days_per_tick: float = 30.0, start_year: int = 1) -> None:
+        """
+        Inicializa el gestor del tiempo basándose puramente en días continuos.
+        """
+        self._current_tick: int = 0
+        self._days_per_tick: float = float(initial_days_per_tick)
+        
+        # El núcleo absoluto del tiempo: días simulados acumulados en formato flotante
+        self._total_simulated_days: float = 0.0
+        self._start_year: int = start_year
+        
+        # Sincronizado estrictamente con el estándar del simulador (1 año = 365 días puros)
+        self._days_per_visible_cycle: float = 365.0 
+        
+        self._logger = logging.getLogger(self.__class__.__name__)
+        self._logger.debug(f"TickManager inicializado con una escala base de: {self._days_per_tick} días por tick.")
+
+    @property
+    def current_tick(self) -> int:
+        """Propiedad de solo lectura para obtener el tick del motor actual."""
+        return self._current_tick
+
+    @property
+    def days_per_tick(self) -> float:
+        """Devuelve los días asignados a cada tick actual."""
+        return self._days_per_tick
+
+    @property
+    def total_simulated_days(self) -> float:
+        """Devuelve el total de días biológicos transcurridos en el mundo."""
+        return self._total_simulated_days
+
+    def set_tick_duration(self, days: float) -> None:
+        """
+        Permite cambiar la duración real de un tick en caliente a través de la UI.
+        Soporta cualquier ejemplo: 1.0 (un día), 30.0 (un mes), 365.0 (un año), 365000.0 (mil años).
+        """
+        if days <= 0:
+            raise ValueError("La duración del tick en días debe ser estrictamente mayor que cero.")
+        self._logger.info(f"Escala de tiempo modificada dinámicamente: {self._days_per_tick} -> {days} días por tick.")
+        self._days_per_tick = float(days)
+
+    @property
+    def current_visible_cycle(self) -> int:
+        """
+        Calcula el ciclo visible (años acumulados) basado en los días reales transcurridos.
+        Garantiza la consistencia exacta aunque cambies el paso del tiempo radicalmente a mitad de ejecución.
+        """
+        return int(self._total_simulated_days // self._days_per_visible_cycle)
+
+    @property
+    def is_new_visible_cycle(self) -> bool:
+        """Indica si en este tick exacto se ha completado un año exacto en la simulación."""
+        if self._total_simulated_days == 0:
+            return False
+        return int(self._total_simulated_days % self._days_per_visible_cycle) == 0
+
+    def advance_tick(self, custom_delta_days: Optional[float] = None) -> float:
+        """
+        Avanza el reloj del motor en un tick incrementando los días correspondientes.
+        Permite inyectar opcionalmente un valor dinámico directamente desde la ejecución.
+        
+        Returns:
+            float: El delta_days exacto aplicado en esta iteración.
+        """
+        self._current_tick += 1
+        
+        # Prioriza un delta manual inyectado; de lo contrario, utiliza la duración configurada
+        delta_days = float(custom_delta_days) if custom_delta_days is not None else self._days_per_tick
+        self._total_simulated_days += delta_days
+        
+        self._logger.debug(
+            f"Tiempo avanzado: Tick {self._current_tick} | (+{delta_days} días) | "
+            f"Total acumulado: {self._total_simulated_days} días | Año UI: {self.current_visible_cycle + self._start_year}"
+        )
+        return delta_days
+
+    def get_formatted_date(self) -> dict:
+        """
+        Traduce los días totales acumulados a una estructura de calendario legible para la UI.
+        Normalizado bajo el estándar real y biológico de 365 días por año.
+        """
+        passed_years = int(self._total_simulated_days // 365)
+        remainder_days = self._total_simulated_days % 365
+        
+        current_year = self._start_year + passed_years
+        
+        # Un mes exacto promedio equivale a 365 / 12 = 30.4166 días
+        current_month = int(remainder_days // 30.4166) + 1
+        current_day = int(remainder_days % 30.4166) + 1
+        
+        return {
+            "tick": self._current_tick,
+            "year": current_year,
+            "month": current_month,
+            "day": current_day,
+            "days_per_tick": self._days_per_tick
+        }
+
+    def load_from_snapshot(self, saved_tick: int, saved_days: float) -> None:
+        """Restaura el tiempo interno desde un archivo de guardado sin perder decimales."""
+        if saved_tick < 0 or saved_days < 0:
+            raise ValueError("Los valores de restauración no pueden ser negativos.")
+            
+        self._current_tick = saved_tick
+        self._total_simulated_days = float(saved_days)
+        self._logger.info(f"Tiempo restaurado desde guardado. Tick: {self._current_tick} | Días: {self._total_simulated_days}")
+
+    def reset(self) -> None:
+        """Reinicia el tiempo a cero."""
+        self._current_tick = 0
+        self._total_simulated_days = 0.0
+        self._logger.info("El gestor del tiempo ha sido reiniciado por completo.")

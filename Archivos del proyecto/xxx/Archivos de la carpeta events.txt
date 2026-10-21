@@ -1,0 +1,148 @@
+================================================================================
+ARCHIVO: .\events\event_bus.py
+================================================================================
+
+"""
+Ruta: events/event_bus.py
+Responsabilidad: Gestionar el patrón de publicación/suscripción para 
+                 desacoplar los sistemas lógicos de las salidas (logs, UI, métricas).
+"""
+
+from typing import Callable, Any
+
+class EventBus:
+    def __init__(self):
+        # Diccionario que mapea: TipoDeEvento -> [lista_de_funciones_suscriptas]
+        self._subscribers = {}
+
+    def subscribe(self, event_type: type, handler: Callable) -> None:
+        """Registra una función (handler) para que se ejecute cuando ocurra un event_type."""
+        if event_type not in self._subscribers:
+            self._subscribers[event_type] = []
+        
+        if handler not in self._subscribers[event_type]:
+            self._subscribers[event_type].append(handler)
+
+    def publish(self, event: Any) -> None:
+        """Recibe un evento y se lo pasa a todos los suscriptores interesados."""
+        event_type = type(event)
+        
+        if event_type in self._subscribers:
+            for handler in self._subscribers[event_type]:
+                handler(event)
+
+================================================================================
+ARCHIVO: .\events\__init__.py
+================================================================================
+
+
+
+================================================================================
+ARCHIVO: .\events\population\adoption_completed.py
+================================================================================
+
+"""
+Ruta: events/population/adoption_completed.py
+"""
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass(frozen=True)
+class AdoptionCompletedEvent:
+    """Evento publicado cuando se consuma una adopción.
+    
+    Attributes:
+        child_id: ID de la entidad adoptada.
+        parent_a_id: ID del primer progenitor adoptivo.
+        parent_b_id: ID del segundo progenitor adoptivo (None si es monoparental).
+        tick: Número de tick en el que ocurrió la adopción.
+        is_single_parent: True si la adopción es monoparental (soltero/viudo/divorciado).
+    """
+    child_id: int
+    parent_a_id: int
+    parent_b_id: Optional[int]
+    tick: int
+    is_single_parent: bool = False
+
+================================================================================
+ARCHIVO: .\events\population\divorce_occurred.py
+================================================================================
+
+"""
+Ruta: events/population/divorce_occurred.py
+"""
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class DivorceOccurredEvent:
+    person_a_id: int
+    person_b_id: int
+    reason: str  # Ejemplo: "incompatibilidad", "enfermedad", "libre_albedrio"
+    tick: int
+
+================================================================================
+ARCHIVO: .\events\population\marriage_created.py
+================================================================================
+
+"""
+Ruta: events/population/marriage_created.py
+"""
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class MarriageCreatedEvent:
+    person_a_id: int
+    person_b_id: int
+    tick: int
+
+================================================================================
+ARCHIVO: .\events\population\person_born.py
+================================================================================
+
+"""
+Ruta: events/population/person_born.py
+"""
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class PersonBornEvent:
+    entity_id: int
+    mother_id: int
+    father_id: int
+    x: int
+    y: int
+    gender: str
+    tick: int
+
+================================================================================
+ARCHIVO: .\events\population\person_died.py
+================================================================================
+
+"""
+Ruta: events/population/person_died.py
+"""
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class PersonDiedEvent:
+    entity_id: int
+    age: int
+    cause: str
+    tick: int
+
+================================================================================
+ARCHIVO: .\events\population\relationship_created.py
+================================================================================
+
+"""
+Ruta: events/population/relationship_created.py
+"""
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class RelationshipCreatedEvent:
+    person_a_id: int
+    person_b_id: int
+    compatibility_score: float
+    tick: int

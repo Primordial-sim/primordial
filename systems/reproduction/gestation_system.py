@@ -20,20 +20,25 @@ CORRECCIONES APLICADAS (Auditoría):
 - Efectos de la edad en complicaciones
 - Configuración de especies centralizada
 - Llamadas exactas a register_pregnancy_update y register_birth
+
+MIGRACIÓN HEXAGONAL:
+- mother.x/y → mother.q/r
+- spawn_x/y → spawn_q/r
+- register_birth(x, y) → register_birth(q, r)
 """
 
 from __future__ import annotations
 
 import logging
 import random
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional
 
-from core.config.simulation_config import SimulationConfig
+from core.config.simulation_config import MutationConfig, SimulationConfig
 from core.state.pending_changes import PendingChanges
 from core.state.world_state import WorldState
-from systems.environment.environment_context import EnvironmentContext
-from systems.behavior.cognitive_memory_system import CognitiveMemorySystem
 from systems.behavior.cognitive_capabilities import CognitiveCapabilities
+from systems.behavior.cognitive_memory_system import CognitiveMemorySystem
+from systems.environment.environment_context import EnvironmentContext
 from systems.reproduction.reproductive_capabilities import ReproductiveCapabilities
 
 
@@ -41,7 +46,7 @@ class GestationSystem:
     """Motor de gestación con complicaciones biológicas realistas."""
 
     def __init__(
-        self, 
+        self,
         config: SimulationConfig,
         evolution_engine: Any = None,
         relationship_engine: Any = None,
@@ -59,36 +64,36 @@ class GestationSystem:
         context: EnvironmentContext,
     ) -> None:
         """Procesa la progresión de todos los embarazos activos."""
-        current_day = getattr(state, 'world_days_elapsed', 0.0)
+        current_day = getattr(state, "world_days_elapsed", 0.0)
 
         for person in state.get_all_persons():
             if person.entity_id in pending.deaths:
                 continue
 
-            if not getattr(person, 'is_pregnant', False):
+            if not getattr(person, "is_pregnant", False):
                 continue
 
             # GENÉTICA UNIVERSAL: Consultar capacidades reproductivas
             repro_caps = ReproductiveCapabilities.from_genome(person.genome)
-            
+
             # Solo procesar si puede gestar
             if not repro_caps.can_gestate:
                 continue
-            
+
             # OPCIÓN B.2: Solo procesar vivíparos (los ovíparos usan EggSystem)
             if not repro_caps.is_viviparous():
                 continue
-            
+
             # Usar duración de gestación de las capacidades
             gestation_duration = repro_caps.gestation_days
-            
+
             # Si no hay gestación definida, usar valor por defecto
             if gestation_duration <= 0:
                 gestation_duration = 270.0
-            
+
             # Avanzar el embarazo
             new_pregnancy_days = person.pregnancy_days + delta_days
-            
+
             # Verificar complicaciones durante la gestación
             complication_result = self._check_gestation_complications(
                 person=person,
@@ -96,7 +101,7 @@ class GestationSystem:
                 gestation_duration=gestation_duration,
                 delta_days=delta_days,
             )
-            
+
             if complication_result == "miscarriage":
                 # Aborto espontáneo: finalizar embarazo con failed_increment=1
                 pending.register_pregnancy_update(
@@ -106,10 +111,9 @@ class GestationSystem:
                     failed_increment=1,
                     litter_size=1,
                 )
-                
+
                 # GENÉTICA UNIVERSAL: Solo registrar memoria si tiene capacidades cognitivas
                 cognitive_caps = CognitiveCapabilities.from_genome(person.genome)
-                
                 if cognitive_caps.can_have_memory_type("disease"):
                     CognitiveMemorySystem.add_memory(
                         person=person,
@@ -121,13 +125,14 @@ class GestationSystem:
                         current_day=current_day,
                         pending=pending,
                     )
-                
+
                 self.logger.debug(
                     "⚠️ Agente %s sufrió aborto espontáneo (día %.0f de gestación)",
-                    person.entity_id, new_pregnancy_days,
+                    person.entity_id,
+                    new_pregnancy_days,
                 )
                 continue
-            
+
             elif complication_result == "premature_birth":
                 # Parto prematuro: ejecutar nacimiento con penalizaciones
                 self._execute_premature_birth(
@@ -137,7 +142,7 @@ class GestationSystem:
                     current_day=current_day,
                 )
                 continue
-            
+
             # Verificar si el embarazo ha llegado a término
             if new_pregnancy_days >= gestation_duration:
                 self._execute_full_term_birth(
@@ -164,77 +169,79 @@ class GestationSystem:
         delta_days: float,
     ) -> str:
         """Verifica complicaciones durante la gestación.
-        
+
         GENÉTICA UNIVERSAL: Solo aplica factores emocionales si tiene capacidades cognitivas.
-        
+
         Returns:
             "normal" - El embarazo continúa normalmente
             "miscarriage" - Aborto espontáneo
             "premature_birth" - Parto prematuro
         """
         repro_cfg = self.config.reproduction
-        
+
         # GENÉTICA UNIVERSAL: Solo aplicar factores emocionales si tiene emociones
         cognitive_caps = CognitiveCapabilities.from_genome(person.genome)
         has_emotions = cognitive_caps.has_emotions
-        
+
         # No verificar complicaciones en el primer trimestre (25% de la gestación)
         first_trimester_end = gestation_duration * 0.25
         if pregnancy_days < first_trimester_end:
-            base_miscarriage_risk = getattr(repro_cfg, 'early_miscarriage_risk', 0.0001)
+            base_miscarriage_risk = getattr(
+                repro_cfg, "early_miscarriage_risk", 0.0001
+            )
         else:
-            base_miscarriage_risk = getattr(repro_cfg, 'miscarriage_risk', 0.00005)
-        
+            base_miscarriage_risk = getattr(repro_cfg, "miscarriage_risk", 0.00005)
+
         # --- FACTORES DE RIESGO DE ABORTO ---
         miscarriage_risk = base_miscarriage_risk
-        
+
         # GENÉTICA UNIVERSAL: Solo aplicar factores emocionales si tiene emociones
         if has_emotions:
             # Desnutrición severa
             energy = person.emotions.get("energy", 1.0)
             if energy < 0.2:
                 miscarriage_risk *= 5.0
-            
+
             # Estrés extremo
             stress = person.emotions.get("stress", 0.0)
             if stress > 0.8:
                 miscarriage_risk *= 2.5
-        
+
         # Enfermedad activa (aplica a todos)
-        if getattr(person, 'is_sick', False):
+        if getattr(person, "is_sick", False):
             miscarriage_risk *= 3.0
-            if len(getattr(person, 'active_infections', {})) > 2:
+            if len(getattr(person, "active_infections", {})) > 2:
                 miscarriage_risk *= 2.0
-        
+
         # Edad avanzada (complicaciones)
-        age = getattr(person, 'age', 0.0)
-        max_fertility_age = getattr(repro_cfg, 'max_fertility_age_days', 14600.0)
+        age = getattr(person, "age", 0.0)
+        max_fertility_age = getattr(repro_cfg, "max_fertility_age_days", 14600.0)
         if age > max_fertility_age:
             miscarriage_risk *= 3.0
-        
+
         # Verificar aborto
         daily_miscarriage_chance = 1.0 - (1.0 - miscarriage_risk) ** delta_days
         if random.random() < daily_miscarriage_chance:
             return "miscarriage"
-        
+
         # --- PARTO PREMATURO (solo después del 70% de la gestación) ---
         premature_threshold = gestation_duration * 0.70
         if pregnancy_days >= premature_threshold:
             premature_risk = 0.0
-            
+
             # GENÉTICA UNIVERSAL: Solo aplicar estrés si tiene emociones
             if has_emotions:
                 stress = person.emotions.get("stress", 0.0)
                 if stress > 0.9:
                     premature_risk += 0.001
-            
-            if person.is_sick and len(person.active_infections) > 1:
-                premature_risk += 0.0005
-            
+
+                if person.is_sick and len(person.active_infections) > 1:
+                    premature_risk += 0.0005
+
             daily_premature_chance = 1.0 - (1.0 - premature_risk) ** delta_days
             if random.random() < daily_premature_chance:
                 return "premature_birth"
-        
+
         return "normal"
 
     def _execute_full_term_birth(
@@ -246,34 +253,36 @@ class GestationSystem:
     ) -> None:
         """Ejecuta un parto a término completo con riesgo de mortalidad materna."""
         repro_cfg = self.config.reproduction
-        
+
         # GENÉTICA UNIVERSAL: Obtener tamaño de camada de las capacidades
         repro_caps = ReproductiveCapabilities.from_genome(mother.genome)
-        litter_size = getattr(mother, 'litter_size_gestating', None)
+        litter_size = getattr(mother, "litter_size_gestating", None)
         if litter_size is None:
-            litter_size = repro_caps.litter_size_min  # Usar mínimo si no está definido
-        
+            litter_size = repro_caps.litter_size_min
+
         # Riesgo de mortalidad materna durante el parto
-        maternal_mortality_risk = self._calculate_maternal_mortality_risk(mother, repro_cfg)
-        
+        maternal_mortality_risk = self._calculate_maternal_mortality_risk(
+            mother, repro_cfg
+        )
+
         if random.random() < maternal_mortality_risk:
             pending.register_death(
                 mother.entity_id,
-                reason="Complicaciones durante el parto (mortalidad materna)"
+                reason="Complicaciones durante el parto (mortalidad materna)",
             )
             self.logger.debug(
                 "⚰️ Agente %s falleció durante el parto",
                 mother.entity_id,
             )
-        
+
         # Obtener el genoma del padre (si existe)
         father_genome = None
-        father_id = getattr(mother, 'partner_id', None)
+        father_id = getattr(mother, "partner_id", None)
         if father_id:
             father = state.get_person_by_id(father_id)
             if father and father.entity_id not in pending.deaths:
                 father_genome = father.genome
-        
+
         # Ejecutar nacimientos de la camada
         for _ in range(litter_size):
             self._execute_single_birth(
@@ -284,7 +293,7 @@ class GestationSystem:
                 pending=pending,
                 current_day=current_day,
             )
-        
+
         # Finalizar embarazo (sin failed_increment)
         pending.register_pregnancy_update(
             entity_id=mother.entity_id,
@@ -293,10 +302,9 @@ class GestationSystem:
             failed_increment=0,
             litter_size=1,
         )
-        
+
         # GENÉTICA UNIVERSAL: Solo registrar memoria si tiene capacidades cognitivas
         cognitive_caps = CognitiveCapabilities.from_genome(mother.genome)
-        
         if cognitive_caps.can_have_memory_type("child"):
             CognitiveMemorySystem.add_memory(
                 person=mother,
@@ -308,7 +316,7 @@ class GestationSystem:
                 current_day=current_day,
                 pending=pending,
             )
-        
+
         # Registrar día del parto para cooldown posparto
         pending.register_memory_update(
             mother.entity_id,
@@ -325,33 +333,37 @@ class GestationSystem:
     ) -> None:
         """Ejecuta un parto prematuro con mayor riesgo de mortalidad."""
         repro_cfg = self.config.reproduction
-        
+
         # GENÉTICA UNIVERSAL: Obtener tamaño de camada de las capacidades
         repro_caps = ReproductiveCapabilities.from_genome(mother.genome)
-        litter_size = getattr(mother, 'litter_size_gestating', None)
+        litter_size = getattr(mother, "litter_size_gestating", None)
         if litter_size is None:
-            litter_size = repro_caps.litter_size_min  # Usar mínimo si no está definido
-        
+            litter_size = repro_caps.litter_size_min
+
         # Riesgo aumentado en parto prematuro
-        maternal_mortality_risk = self._calculate_maternal_mortality_risk(mother, repro_cfg) * 2.0
-        
+        maternal_mortality_risk = (
+            self._calculate_maternal_mortality_risk(mother, repro_cfg) * 2.0
+        )
+
         if random.random() < maternal_mortality_risk:
             pending.register_death(
                 mother.entity_id,
-                reason="Complicaciones por parto prematuro"
+                reason="Complicaciones por parto prematuro",
             )
-        
+
         # Obtener genoma del padre
         father_genome = None
-        father_id = getattr(mother, 'partner_id', None)
+        father_id = getattr(mother, "partner_id", None)
         if father_id:
             father = state.get_person_by_id(father_id)
             if father and father.entity_id not in pending.deaths:
                 father_genome = father.genome
-        
+
         # En parto prematuro, hay riesgo de mortalidad fetal
-        fetal_mortality_risk = getattr(repro_cfg, 'premature_fetal_mortality_risk', 0.15)
-        
+        fetal_mortality_risk = getattr(
+            repro_cfg, "premature_fetal_mortality_risk", 0.15
+        )
+
         for _ in range(litter_size):
             if random.random() < fetal_mortality_risk:
                 self.logger.debug(
@@ -359,7 +371,7 @@ class GestationSystem:
                     mother.entity_id,
                 )
                 continue
-            
+
             self._execute_single_birth(
                 mother=mother,
                 father_genome=father_genome,
@@ -368,7 +380,7 @@ class GestationSystem:
                 pending=pending,
                 current_day=current_day,
             )
-        
+
         # Finalizar embarazo (sin failed_increment)
         pending.register_pregnancy_update(
             entity_id=mother.entity_id,
@@ -377,7 +389,7 @@ class GestationSystem:
             failed_increment=0,
             litter_size=1,
         )
-        
+
         pending.register_memory_update(
             mother.entity_id,
             "last_birth_day",
@@ -394,39 +406,42 @@ class GestationSystem:
         current_day: float,
     ) -> None:
         """Ejecuta el nacimiento de un individuo con recombinación genética.
-        
+
         GENÉTICA UNIVERSAL:
         - Si hay padre: reproducción sexual con combine()
         - Si no hay padre: reproducción asexual con replicate()
+
+        HEX: Usa mother.q, mother.r en lugar de mother.x, mother.y.
         """
-        from core.config.simulation_config import MutationConfig
         mutation_config = MutationConfig()
-        
+
         if father_genome is not None:
             # REPRODUCCIÓN SEXUAL
             child_genome = mother.genome.combine(father_genome, mutation_config)
         else:
             # REPRODUCCIÓN ASEXUAL (partenogénesis/clonación)
             child_genome = mother.genome.replicate(mutation_config)
-        
-        # Determinar posición (cerca de la madre)
-        spawn_x = mother.x + random.randint(-2, 2)
-        spawn_y = mother.y + random.randint(-2, 2)
-        
-        # CORRECCIÓN: register_birth NO acepta species (se deriva del genome)
+
+        # HEX: Determinar posición (cerca de la madre) usando coordenadas hexagonales
+        spawn_q = mother.q + random.randint(-2, 2)
+        spawn_r = mother.r + random.randint(-2, 2)
+
+        # HEX: register_birth con coordenadas q, r
         pending.register_birth(
             mother_id=mother.entity_id,
             father_id=father_id,
-            x=spawn_x,
-            y=spawn_y,
+            q=spawn_q,
+            r=spawn_r,
             genome=child_genome,
         )
 
-    def _calculate_maternal_mortality_risk(self, mother: Any, repro_cfg: Any) -> float:
+    def _calculate_maternal_mortality_risk(
+        self, mother: Any, repro_cfg: Any
+    ) -> float:
         """Calcula el riesgo de mortalidad materna durante el parto.
-        
+
         GENÉTICA UNIVERSAL: Solo aplica factores emocionales si tiene capacidades cognitivas.
-        
+
         Factores de riesgo:
         - Edad avanzada
         - Enfermedad activa
@@ -434,53 +449,53 @@ class GestationSystem:
         - Estrés extremo
         - Embarazo múltiple (camada grande)
         """
-        base_risk = getattr(repro_cfg, 'maternal_mortality_risk', 0.001)
-        
+        base_risk = getattr(repro_cfg, "maternal_mortality_risk", 0.001)
+
         # Edad: mayor riesgo en edades extremas
-        age = getattr(mother, 'age', 0.0)
-        max_fertility_age = getattr(repro_cfg, 'max_fertility_age_days', 14600.0)
+        age = getattr(mother, "age", 0.0)
+        max_fertility_age = getattr(repro_cfg, "max_fertility_age_days", 14600.0)
+
         if age > max_fertility_age:
             base_risk *= 3.0
         elif age < max_fertility_age * 0.3:
             base_risk *= 2.0
-        
+
         # Enfermedad activa
-        if getattr(mother, 'is_sick', False):
+        if getattr(mother, "is_sick", False):
             base_risk *= 2.0
-        
+
         # GENÉTICA UNIVERSAL: Solo aplicar factores emocionales si tiene emociones
         cognitive_caps = CognitiveCapabilities.from_genome(mother.genome)
-        
         if cognitive_caps.has_emotions:
             # Desnutrición
             energy = mother.emotions.get("energy", 1.0)
             if energy < 0.3:
                 base_risk *= 2.5
-            
+
             # Estrés extremo
             stress = mother.emotions.get("stress", 0.0)
             if stress > 0.8:
                 base_risk *= 1.5
-        
+
         # Camada grande (mayor riesgo)
-        litter_size = getattr(mother, 'litter_size_gestating', 1)
+        litter_size = getattr(mother, "litter_size_gestating", 1)
         if litter_size > 2:
-            base_risk *= (1.0 + (litter_size - 2) * 0.2)
-        
+            base_risk *= 1.0 + (litter_size - 2) * 0.2
+
         return min(0.1, base_risk)  # Cap del 10%
 
     def _get_species_traits(self, species: str) -> Dict[str, Any]:
         """Configuración de especies centralizada.
-        
+
         GENÉTICA UNIVERSAL: Usa species_profiles de ReproductionConfig
         como fuente única de verdad.
         """
         repro_cfg = self.config.reproduction
-        species_profiles = getattr(repro_cfg, 'species_profiles', {})
-        
+        species_profiles = getattr(repro_cfg, "species_profiles", {})
+
         # Perfil específico de especie
         profile = species_profiles.get(species, {})
-        
+
         # Valores por defecto universales
         defaults = {
             "gestation_days": 180.0,
@@ -491,12 +506,14 @@ class GestationSystem:
             "fertility_window_start": 3650.0,
             "fertility_window_end": 10950.0,
         }
-        
+
         # Combinar con defaults
         traits = {**defaults, **profile}
-        
+
         # Calcular litter_size promedio para compatibilidad con código legacy
         if "litter_size" not in traits:
-            traits["litter_size"] = (traits["litter_size_min"] + traits["litter_size_max"]) // 2
-        
+            traits["litter_size"] = (
+                traits["litter_size_min"] + traits["litter_size_max"]
+            ) // 2
+
         return traits

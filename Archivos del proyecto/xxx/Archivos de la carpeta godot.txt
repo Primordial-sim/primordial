@@ -1,0 +1,1071 @@
+================================================================================
+ARCHIVO: .\godot\simulador-vida\.editorconfig
+================================================================================
+
+root = true
+
+[*]
+charset = utf-8
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\.gitattributes
+================================================================================
+
+# Normalize EOL for all files that Git considers text files.
+* text=auto eol=lf
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\.gitignore
+================================================================================
+
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\main.tscn
+================================================================================
+
+[gd_scene format=3 uid="uid://bjfcek6l66nif"]
+
+[ext_resource type="Script" path="res://scripts/websocket_client.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/world_renderer.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/camera_controller.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/ui_renderer.gd" id="4"]
+
+[node name="Node2D" type="Node2D"]
+script = ExtResource("1")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="UIRenderer" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("4")
+
+[node name="WorldContainer" type="SubViewportContainer" parent="UI"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -410.0
+offset_right = 400.0
+offset_bottom = 390.0
+grow_horizontal = 0
+grow_vertical = 0
+
+[node name="WorldViewport" type="SubViewport" parent="UI/WorldContainer"]
+size = Vector2i(800, 800)
+render_target_update_mode = 4
+transparent_bg = true
+
+[node name="World" type="Node2D" parent="UI/WorldContainer/WorldViewport"]
+script = ExtResource("2")
+
+[node name="Camera2D" type="Camera2D" parent="UI/WorldContainer/WorldViewport/World"]
+script = ExtResource("3")
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\project.godot
+================================================================================
+
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="SimuladorVida"
+run/main_scene="uid://bjfcek6l66nif"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[debug]
+
+gdscript/warnings/long_line=0
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/mode=2
+window/stretch/mode="canvas_items"
+
+[physics]
+
+3d/physics_engine="Jolt Physics"
+
+[rendering]
+
+rendering_device/driver.windows="d3d12"
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\camera_controller.gd
+================================================================================
+
+extends Camera2D
+
+var _world_width: int = 100
+var _world_height: int = 100
+var _cell_size: float = 8.0
+var _is_panning: bool = false
+var _pan_start: Vector2 = Vector2.ZERO
+var _camera_start: Vector2 = Vector2.ZERO
+
+const MIN_ZOOM: float = 1.0
+const MAX_ZOOM: float = 4.0
+const ZOOM_STEP: float = 0.25
+const VIEWPORT_SIZE: float = 800.0
+
+func set_world_dimensions(w: int, h: int) -> void:
+    _world_width = w
+    _world_height = h
+
+func set_cell_size(s: float) -> void:
+    _cell_size = s
+
+func _get_world_size() -> Vector2:
+    return Vector2(float(_world_width) * _cell_size, float(_world_height) * _cell_size)
+
+# Función pública para que otros scripts puedan forzar el wrapping
+func wrap_camera_position() -> void:
+    var world_w = float(_world_width) * _cell_size
+    var world_h = float(_world_height) * _cell_size
+    var center_x = world_w / 2.0
+    var center_y = world_h / 2.0
+    
+    var offset_x = position.x - center_x
+    var offset_y = position.y - center_y
+    
+    offset_x = fmod(offset_x, world_w)
+    offset_y = fmod(offset_y, world_h)
+    
+    if offset_x > world_w / 2.0:
+        offset_x -= world_w
+    elif offset_x < -world_w / 2.0:
+        offset_x += world_w
+    
+    if offset_y > world_h / 2.0:
+        offset_y -= world_h
+    elif offset_y < -world_h / 2.0:
+        offset_y += world_h
+    
+    position.x = center_x + offset_x
+    position.y = center_y + offset_y
+
+func reset_view() -> void:
+    position = _get_world_size() / 2.0
+    zoom = Vector2.ONE
+    wrap_camera_position()
+
+func _ready() -> void:
+    make_current()
+    reset_view()
+
+func _unhandled_input(event: InputEvent) -> void:
+    if event is InputEventMouseButton:
+        var mouse_event: InputEventMouseButton = event
+        if mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP:
+            _zoom_at_position(zoom.x + ZOOM_STEP, mouse_event.position)
+        elif mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+            _zoom_at_position(zoom.x - ZOOM_STEP, mouse_event.position)
+        elif mouse_event.button_index == MOUSE_BUTTON_RIGHT:
+            _is_panning = mouse_event.pressed
+            if _is_panning:
+                _pan_start = mouse_event.position
+                _camera_start = position
+    elif event is InputEventMouseMotion and _is_panning:
+        var motion: InputEventMouseMotion = event
+        position = _camera_start - (motion.position - _pan_start) / zoom
+        wrap_camera_position()
+    elif event is InputEventKey:
+        var key_event: InputEventKey = event
+        if key_event.pressed and key_event.keycode == KEY_C:
+            reset_view()
+
+func _zoom_at_position(new_zoom: float, screen_pos: Vector2) -> void:
+    var old_zoom = zoom.x
+    new_zoom = clamp(new_zoom, MIN_ZOOM, MAX_ZOOM)
+    if abs(new_zoom - old_zoom) < 0.01: return
+    
+    var world_pos_under_cursor = (screen_pos - Vector2(VIEWPORT_SIZE / 2.0, VIEWPORT_SIZE / 2.0)) / old_zoom + position
+    zoom = Vector2(new_zoom, new_zoom)
+    position = world_pos_under_cursor - (screen_pos - Vector2(VIEWPORT_SIZE / 2.0, VIEWPORT_SIZE / 2.0)) / new_zoom
+    wrap_camera_position()
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\camera_controller.gd.uid
+================================================================================
+
+uid://cprl63j6jk6jv
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\ui_renderer.gd
+================================================================================
+
+extends Control
+
+const COLOR_BUTTON_ACTIVE: Color = Color(0.2, 0.6, 0.9)
+const COLOR_BUTTON_INACTIVE: Color = Color(0.3, 0.3, 0.35)
+const COLOR_BUTTON_PAUSED: Color = Color(0.9, 0.5, 0.2)
+const COLOR_BUTTON_ACTION: Color = Color(0.2, 0.8, 0.4)
+
+const WORLD_FRAME_SIZE: float = 800.0
+const CONTROL_BAR_HEIGHT: float = 45.0
+
+const INSPECTOR_WIDTH: float = 280.0
+const INSPECTOR_PADDING: float = 10.0
+const INSPECTOR_LINE_HEIGHT: float = 16.0
+const INSPECTOR_BG_COLOR: Color = Color(0.12, 0.12, 0.18, 0.95)
+const INSPECTOR_BORDER_COLOR: Color = Color(0.4, 0.4, 0.5)
+const INSPECTOR_TITLE_COLOR: Color = Color(0.9, 0.9, 1.0)
+const INSPECTOR_LABEL_COLOR: Color = Color(0.7, 0.7, 0.75)
+const INSPECTOR_VALUE_COLOR: Color = Color(0.9, 0.9, 0.9)
+const HEADER_BG_COLOR: Color = Color(0.2, 0.2, 0.28, 1.0)
+
+var _is_connected: bool = false
+var _tick_count: int = 0
+var _current_day: float = 0.0
+var _agent_count: int = 0
+var _stats: Dictionary = {}
+var _is_paused: bool = false
+var _current_speed: float = 1.0
+var _button_areas: Array = []
+var _group_inspector_visible: bool = false
+var _group_agents: Array = []
+var _presets: Array = []
+var _current_zoom: float = 1.0
+var _is_following: bool = false
+
+var _inspector_visible: bool = false
+var _inspector_agent_id: int = -1
+var _inspector_loading: bool = false
+var _inspector_details: Dictionary = {}
+
+var _section_genome_open: bool = false
+var _section_psych_open: bool = false
+var _section_relations_open: bool = false
+
+const SPEED_OPTIONS = [
+    {"label": "1x", "value": 1},
+    {"label": "10x", "value": 10},
+    {"label": "100x", "value": 100},
+    {"label": "1000x", "value": 1000}
+]
+
+func _ready() -> void:
+    set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+    mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+func update_connection_status(c: bool) -> void: _is_connected = c; queue_redraw()
+func update_tick_info(t: int, d: float, a: int) -> void: _tick_count = t; _current_day = d; _agent_count = a; queue_redraw()
+func update_stats(s: Dictionary) -> void: _stats = s; queue_redraw()
+func update_control_state(p: bool, s: float) -> void: _is_paused = p; _current_speed = s; queue_redraw()
+func update_presets(p: Array) -> void: _presets = p; queue_redraw()
+func update_zoom_level(z: float) -> void: _current_zoom = z; queue_redraw()
+func set_following_state(is_following: bool) -> void: _is_following = is_following; queue_redraw()
+
+func show_agent_inspector_loading(agent_id: int) -> void:
+    _inspector_visible = true
+    _inspector_agent_id = agent_id
+    _inspector_loading = true
+    _inspector_details = {}
+    _group_inspector_visible = false
+    queue_redraw()
+
+func show_agent_full_inspector(details: Dictionary) -> void:
+    _inspector_visible = true
+    _inspector_agent_id = int(details.get("id", -1))
+    _inspector_loading = false
+    _inspector_details = details
+    _group_inspector_visible = false
+    queue_redraw()
+
+func hide_agent_inspector() -> void:
+    _inspector_visible = false
+    _inspector_details = {}
+    _inspector_loading = false
+    _is_following = false
+    queue_redraw()
+
+func show_group_inspector(agents: Array) -> void:
+    _group_inspector_visible = true
+    _group_agents = agents
+    _inspector_visible = false
+    _is_following = false
+    queue_redraw()
+
+func hide_group_inspector() -> void:
+    _group_inspector_visible = false
+    _group_agents = []
+    queue_redraw()
+
+func toggle_section(section_id: String) -> void:
+    if section_id == "section_genome": _section_genome_open = not _section_genome_open
+    elif section_id == "section_psych": _section_psych_open = not _section_psych_open
+    elif section_id == "section_relations": _section_relations_open = not _section_relations_open
+    queue_redraw()
+
+func get_button_at_position(pos: Vector2) -> Dictionary:
+    for b in _button_areas:
+        if b["rect"].has_point(pos): return b
+    return {}
+
+func _draw() -> void:
+    var vp = get_viewport_rect().size
+    _button_areas.clear()
+    
+    var bar_w = WORLD_FRAME_SIZE
+    var bar_h = CONTROL_BAR_HEIGHT
+    var bar_x = (vp.x - bar_w) / 2.0
+    var bar_y = (vp.y / 2.0) + 410.0
+    
+    var bar_rect = Rect2(bar_x, bar_y, bar_w, bar_h)
+    draw_rect(bar_rect, Color(0.12, 0.12, 0.18, 0.95))
+    draw_rect(bar_rect, Color(0.35, 0.35, 0.45), false, 1.0)
+    
+    var x_offset: float = bar_x + 10.0
+    var y_center: float = bar_y + bar_h / 2.0
+    var button_height: float = 28.0
+    var button_y: float = y_center - button_height / 2.0
+    var button_spacing: float = 4.0
+    
+    var pause_label: String = "⏸" if _is_paused else "▶"
+    var pause_color: Color = COLOR_BUTTON_PAUSED if _is_paused else COLOR_BUTTON_ACTIVE
+    var pause_rect = Rect2(x_offset, button_y, 35.0, button_height)
+    _draw_button(pause_rect, pause_label, pause_color)
+    _button_areas.append({"rect": pause_rect, "action": "pause", "speed": 0.0})
+    x_offset += 35.0 + button_spacing
+    
+    draw_line(Vector2(x_offset, button_y + 4), Vector2(x_offset, button_y + button_height - 4), Color(0.4, 0.4, 0.5), 1.0)
+    x_offset += 8.0
+    
+    draw_string(ThemeDB.fallback_font, Vector2(x_offset, y_center + 4), "Vel:", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.7, 0.7, 0.7))
+    x_offset += 28.0
+    
+    for option in SPEED_OPTIONS:
+        var color: Color = COLOR_BUTTON_ACTIVE if abs(_current_speed - option["value"]) < 0.1 else COLOR_BUTTON_INACTIVE
+        var rect = Rect2(x_offset, button_y, 50.0, button_height)
+        _draw_button(rect, option["label"], color)
+        _button_areas.append({"rect": rect, "action": "speed", "speed": option["value"]})
+        x_offset += 50.0 + button_spacing
+    
+    var status_text: String = "✅ Tick: %d | Día: %.1f | Agentes: %d" % [_tick_count, _current_day, _agent_count] if _is_connected else "❌ Desconectado"
+    var status_color: Color = Color(0.5, 1.0, 0.5) if _is_connected else Color(1.0, 0.5, 0.5)
+    draw_string(ThemeDB.fallback_font, Vector2(x_offset + 10, y_center + 5), status_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, status_color)
+    
+    var zoom_text: String = "Zoom: %d%%" % int(_current_zoom * 100)
+    var z_font: Font = ThemeDB.fallback_font
+    var z_tw: float = z_font.get_string_size(zoom_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12).x
+    draw_string(z_font, Vector2(bar_x + bar_w - z_tw - 15, y_center + 5), zoom_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.7, 0.7, 0.7))
+    
+    if _inspector_visible:
+        _draw_agent_inspector(vp)
+    elif _group_inspector_visible:
+        _draw_group_inspector(vp)
+
+func _draw_agent_inspector(viewport_size: Vector2) -> void:
+    var panel_x: float = viewport_size.x - INSPECTOR_WIDTH - 20.0
+    var panel_y: float = 60.0
+    
+    if _inspector_loading:
+        var h = 80.0
+        draw_rect(Rect2(panel_x, panel_y, INSPECTOR_WIDTH, h), INSPECTOR_BG_COLOR)
+        draw_rect(Rect2(panel_x, panel_y, INSPECTOR_WIDTH, h), INSPECTOR_BORDER_COLOR, false, 1.0)
+        draw_string(ThemeDB.fallback_font, Vector2(panel_x + INSPECTOR_PADDING, panel_y + 45), "Cargando datos...", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(0.7, 0.7, 0.7))
+        return
+        
+    if _inspector_details.is_empty():
+        hide_agent_inspector()
+        return
+
+    var h = 100.0
+    if _section_genome_open: h += 130.0
+    if _section_psych_open: h += 130.0
+    if _section_relations_open: h += 130.0
+    
+    var panel_rect: Rect2 = Rect2(Vector2(panel_x, panel_y), Vector2(INSPECTOR_WIDTH, h))
+    draw_rect(panel_rect, INSPECTOR_BG_COLOR)
+    draw_rect(panel_rect, INSPECTOR_BORDER_COLOR, false, 1.0)
+    
+    var y: float = panel_y + INSPECTOR_PADDING + 14.0
+    draw_string(ThemeDB.fallback_font, Vector2(panel_x + INSPECTOR_PADDING, y), "👤 AGENTE #%d" % _inspector_agent_id, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, INSPECTOR_TITLE_COLOR)
+    y += 24.0
+    
+    var d = _inspector_details
+    _draw_inspector_line(panel_x, y, "Especie:", d.get("species", "?")); y += INSPECTOR_LINE_HEIGHT
+    _draw_inspector_line(panel_x, y, "Edad:", "%.1f años" % (d.get("age", 0.0) / 365.25)); y += INSPECTOR_LINE_HEIGHT
+    var g: String = d.get("gender", "?")
+    _draw_inspector_line(panel_x, y, "Sexo:", "♂" if g == "M" else ("♀" if g == "F" else g)); y += INSPECTOR_LINE_HEIGHT
+    _draw_inspector_line(panel_x, y, "Estado civil:", d.get("marital_status", "?").capitalize()); y += INSPECTOR_LINE_HEIGHT
+    _draw_inspector_line(panel_x, y, "Reputación:", "%.2f" % d.get("reputation", 0.5)); y += INSPECTOR_LINE_HEIGHT
+    
+    y += 8.0
+    draw_line(Vector2(panel_x + INSPECTOR_PADDING, y), Vector2(panel_x + INSPECTOR_WIDTH - INSPECTOR_PADDING, y), Color(0.3, 0.3, 0.4), 1.0)
+    y += 8.0
+    
+    y = _draw_collapsible_section(panel_x, y, "🧬 GENOMA", _section_genome_open, "section_genome")
+    if _section_genome_open:
+        var genome = d.get("genome", {})
+        _draw_inspector_line(panel_x, y, "  Longevidad:", "%.2f" % genome.get("longevity", 0.0)); y += INSPECTOR_LINE_HEIGHT
+        _draw_inspector_line(panel_x, y, "  Fertilidad:", "%.2f" % genome.get("fertility", 0.0)); y += INSPECTOR_LINE_HEIGHT
+        _draw_inspector_line(panel_x, y, "  Metabolismo:", "%.2f" % genome.get("metabolism", 0.0)); y += INSPECTOR_LINE_HEIGHT
+        _draw_inspector_line(panel_x, y, "  Inmunidad:", "%.2f" % genome.get("immunity", 0.0)); y += INSPECTOR_LINE_HEIGHT
+        _draw_inspector_line(panel_x, y, "  Sociabilidad:", "%.2f" % genome.get("sociability", 0.0)); y += INSPECTOR_LINE_HEIGHT
+        _draw_inspector_line(panel_x, y, "  Temperamento:", "%.2f" % genome.get("temperament", 0.0)); y += INSPECTOR_LINE_HEIGHT
+        y += 4.0
+
+    y = _draw_collapsible_section(panel_x, y, "🧠 PSICOLOGÍA", _section_psych_open, "section_psych")
+    if _section_psych_open:
+        var emo = d.get("emotions", {})
+        var mot = d.get("motivations", {})
+        _draw_inspector_line(panel_x, y, "  Estrés:", "%.2f" % emo.get("stress", 0.0), Color(0.957, 0.263, 0.212) if emo.get("stress", 0.0) > 0.6 else INSPECTOR_VALUE_COLOR); y += INSPECTOR_LINE_HEIGHT
+        _draw_inspector_line(panel_x, y, "  Felicidad:", "%.2f" % emo.get("happiness", 0.0), Color(0.2, 0.8, 0.4) if emo.get("happiness", 0.0) > 0.6 else INSPECTOR_VALUE_COLOR); y += INSPECTOR_LINE_HEIGHT
+        _draw_inspector_line(panel_x, y, "  Energía:", "%.2f" % emo.get("energy", 0.0)); y += INSPECTOR_LINE_HEIGHT
+        y += 4.0
+        _draw_inspector_line(panel_x, y, "  Cooperación:", "%.2f" % mot.get("cooperation", 0.0)); y += INSPECTOR_LINE_HEIGHT
+        _draw_inspector_line(panel_x, y, "  Exploración:", "%.2f" % mot.get("exploration", 0.0)); y += INSPECTOR_LINE_HEIGHT
+        y += 4.0
+
+    y = _draw_collapsible_section(panel_x, y, "❤️ RELACIONES", _section_relations_open, "section_relations")
+    if _section_relations_open:
+        var fam = d.get("family", {})
+        var parents = fam.get("parents", [])
+        var adopt = fam.get("adoptive_parents", [])
+        var all_parents = parents + adopt
+        var p_str = "Ninguno" if all_parents.is_empty() else str(all_parents)
+        _draw_inspector_line(panel_x, y, "  Padres:", p_str); y += INSPECTOR_LINE_HEIGHT
+        
+        var partner = fam.get("partner", null)
+        var part_str = "Ninguno" if partner == null else str(partner)
+        _draw_inspector_line(panel_x, y, "  Pareja:", part_str); y += INSPECTOR_LINE_HEIGHT
+        
+        var bio = fam.get("biological_children", 0)
+        var total = fam.get("children_count", 0)
+        var adopt_count = total - bio
+        var child_str = "%d (Bio: %d, Adop: %d)" % [total, bio, adopt_count]
+        _draw_inspector_line(panel_x, y, "  Hijos:", child_str); y += INSPECTOR_LINE_HEIGHT
+        y += 4.0
+
+    y += 8.0
+    draw_line(Vector2(panel_x + INSPECTOR_PADDING, y), Vector2(panel_x + INSPECTOR_WIDTH - INSPECTOR_PADDING, y), Color(0.3, 0.3, 0.4), 1.0)
+    y += 8.0
+    
+    var btn_w = (INSPECTOR_WIDTH - INSPECTOR_PADDING * 3) / 2.0
+    var btn_h = 26.0
+    
+    var center_rect = Rect2(panel_x + INSPECTOR_PADDING, y, btn_w, btn_h)
+    _draw_button(center_rect, "🎯 Centrar", COLOR_BUTTON_ACTION)
+    _button_areas.append({"rect": center_rect, "action": "center_agent"})
+    
+    var follow_color = Color(0.9, 0.7, 0.2) if _is_following else COLOR_BUTTON_ACTION
+    var follow_label = "✅ Siguiendo" if _is_following else "👁️ Seguir"
+    var follow_rect = Rect2(panel_x + INSPECTOR_PADDING * 2 + btn_w, y, btn_w, btn_h)
+    _draw_button(follow_rect, follow_label, follow_color)
+    _button_areas.append({"rect": follow_rect, "action": "follow_agent"})
+    
+    y += btn_h + 8.0
+    draw_string(ThemeDB.fallback_font, Vector2(panel_x + INSPECTOR_PADDING, y), "[ESC] Cerrar", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.5, 0.5, 0.55))
+
+func _draw_collapsible_section(panel_x: float, y: float, title: String, is_open: bool, section_id: String) -> float:
+    var header_rect = Rect2(panel_x, y, INSPECTOR_WIDTH, 22.0)
+    draw_rect(header_rect, HEADER_BG_COLOR)
+    draw_rect(header_rect, INSPECTOR_BORDER_COLOR, false, 1.0)
+    
+    var icon: String = "▶" if not is_open else "▼"
+    draw_string(ThemeDB.fallback_font, Vector2(panel_x + 8.0, y + 15.0), "%s %s" % [icon, title], HORIZONTAL_ALIGNMENT_LEFT, -1, 11, INSPECTOR_TITLE_COLOR)
+    
+    _button_areas.append({"rect": header_rect, "action": "toggle_section", "section": section_id})
+    return y + 24.0
+
+func _draw_group_inspector(viewport_size: Vector2) -> void:
+    if _group_agents.is_empty(): return
+    var panel_x: float = viewport_size.x - INSPECTOR_WIDTH - 20.0
+    var panel_y: float = 60.0
+    var panel_height: float = 10.0 * INSPECTOR_LINE_HEIGHT + INSPECTOR_PADDING * 2.0 + 30.0
+    var panel_rect: Rect2 = Rect2(Vector2(panel_x, panel_y), Vector2(INSPECTOR_WIDTH, panel_height))
+    
+    draw_rect(panel_rect, INSPECTOR_BG_COLOR)
+    draw_rect(panel_rect, INSPECTOR_BORDER_COLOR, false, 1.0)
+    
+    var title_y: float = panel_y + INSPECTOR_PADDING + 14.0
+    draw_string(ThemeDB.fallback_font, Vector2(panel_x + INSPECTOR_PADDING, title_y), "👥 GRUPO (%d)" % _group_agents.size(), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, INSPECTOR_TITLE_COLOR)
+    
+    var sep_y: float = title_y + 8.0
+    draw_line(Vector2(panel_x + INSPECTOR_PADDING, sep_y), Vector2(panel_x + INSPECTOR_WIDTH - INSPECTOR_PADDING, sep_y), INSPECTOR_BORDER_COLOR, 1.0)
+    
+    var total_age: float = 0.0
+    var males: int = 0; var females: int = 0; var sick_count: int = 0
+    var adults: int = 0; var seniors: int = 0
+    var species_count: Dictionary = {}
+    
+    for agent in _group_agents:
+        total_age += agent.get("age", 0.0)
+        if agent.get("gender", "") == "M": males += 1
+        elif agent.get("gender", "") == "F": females += 1
+        if agent.get("is_sick", false): sick_count += 1
+        if agent.get("is_adult", true): adults += 1
+        if agent.get("is_senior", false): seniors += 1
+        var species = agent.get("species", "unknown")
+        species_count[species] = species_count.get(species, 0) + 1
+    
+    var avg_age: float = total_age / _group_agents.size() / 365.25
+    var y: float = sep_y + INSPECTOR_LINE_HEIGHT
+    _draw_inspector_line(panel_x, y, "Total:", str(_group_agents.size())); y += INSPECTOR_LINE_HEIGHT
+    _draw_inspector_line(panel_x, y, "Edad media:", "%.1f años" % avg_age); y += INSPECTOR_LINE_HEIGHT
+    _draw_inspector_line(panel_x, y, "Sexo:", "♂%d | ♀%d" % [males, females]); y += INSPECTOR_LINE_HEIGHT
+    _draw_inspector_line(panel_x, y, "Salud:", "🤒 %d" % sick_count, Color(0.957, 0.263, 0.212) if sick_count > 0 else Color(0.5, 1.0, 0.5)); y += INSPECTOR_LINE_HEIGHT
+    _draw_inspector_line(panel_x, y, "Adultos:", "%d" % adults); y += INSPECTOR_LINE_HEIGHT
+    _draw_inspector_line(panel_x, y, "Ancianos:", "%d" % seniors); y += INSPECTOR_LINE_HEIGHT
+    
+    y += 4.0
+    draw_line(Vector2(panel_x + INSPECTOR_PADDING, y), Vector2(panel_x + INSPECTOR_WIDTH - INSPECTOR_PADDING, y), Color(0.3, 0.3, 0.4), 1.0)
+    y += INSPECTOR_LINE_HEIGHT
+    draw_string(ThemeDB.fallback_font, Vector2(panel_x + INSPECTOR_PADDING, y), "Especies:", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, INSPECTOR_LABEL_COLOR)
+    y += INSPECTOR_LINE_HEIGHT
+    for species in species_count:
+        _draw_inspector_line(panel_x, y, "  %s:" % species, str(species_count[species])); y += INSPECTOR_LINE_HEIGHT
+    
+    y += 4.0
+    draw_line(Vector2(panel_x + INSPECTOR_PADDING, y), Vector2(panel_x + INSPECTOR_WIDTH - INSPECTOR_PADDING, y), Color(0.3, 0.3, 0.4), 1.0)
+    y += INSPECTOR_LINE_HEIGHT
+    draw_string(ThemeDB.fallback_font, Vector2(panel_x + INSPECTOR_PADDING, y), "[ESC] Cerrar", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(0.5, 0.5, 0.55))
+
+func _draw_inspector_line(panel_x: float, y: float, label: String, value: String, value_color: Color = INSPECTOR_VALUE_COLOR) -> void:
+    draw_string(ThemeDB.fallback_font, Vector2(panel_x + INSPECTOR_PADDING, y), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, INSPECTOR_LABEL_COLOR)
+    var vw: float = ThemeDB.fallback_font.get_string_size(value, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
+    draw_string(ThemeDB.fallback_font, Vector2(panel_x + INSPECTOR_WIDTH - INSPECTOR_PADDING - vw, y), value, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, value_color)
+
+func _draw_button(rect: Rect2, label: String, color: Color) -> void:
+    draw_rect(rect, color)
+    draw_rect(rect, Color(color.r * 1.5, color.g * 1.5, color.b * 1.5), false, 1.0)
+    var ts: int = 10
+    var font: Font = ThemeDB.fallback_font
+    var tw: float = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, ts).x
+    draw_string(font, Vector2(rect.position.x + (rect.size.x - tw) / 2.0, rect.position.y + rect.size.y / 2.0 + ts / 3.0), label, HORIZONTAL_ALIGNMENT_LEFT, -1, ts, Color.WHITE)
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\ui_renderer.gd.uid
+================================================================================
+
+uid://up7bvcasvcht
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\websocket_client.gd
+================================================================================
+
+extends Node2D
+
+const SERVER_URL: String = "ws://localhost:8765"
+
+@onready var ui_renderer: Control = $UI/UIRenderer
+@onready var world_container: SubViewportContainer = $UI/WorldContainer
+@onready var world_renderer: Node2D = $UI/WorldContainer/WorldViewport/World
+@onready var camera: Camera2D = $UI/WorldContainer/WorldViewport/World/Camera2D
+
+var _peer: WebSocketPeer = null
+var _agents: Array = []
+var _stats: Dictionary = {}
+var _tick_count: int = 0
+var _current_day: float = 0.0
+var _is_connected: bool = false
+var _was_connected_before: bool = false
+var _cell_size: float = 8.0
+var _world_width: int = 100
+var _world_height: int = 100
+var _is_paused: bool = false
+var _current_speed: float = 1.0
+
+var _is_dragging: bool = false
+var _drag_start_pos: Vector2 = Vector2.ZERO
+var _follow_agent_id: int = -1
+
+func _ready() -> void:
+    _cell_size = 800.0 / float(_world_width)
+    world_renderer.set_cell_size(_cell_size)
+    world_renderer.set_world_dimensions(_world_width, _world_height)
+    camera.set_world_dimensions(_world_width, _world_height)
+    camera.set_cell_size(_cell_size)
+    camera.reset_view()
+    world_renderer.agents_selected.connect(_on_agents_selected)
+    world_renderer.agents_deselected.connect(_on_agents_deselected)
+    _connect_to_server()
+
+func _process(_delta: float) -> void:
+    if _peer != null:
+        _peer.poll()
+        _check_connection_state()
+        _receive_data()
+    if camera != null:
+        ui_renderer.update_zoom_level(camera.zoom.x)
+    
+    if _follow_agent_id != -1:
+        _update_follow_camera()
+
+func _update_follow_camera() -> void:
+    for agent in _agents:
+        if int(agent.get("id", -1)) == _follow_agent_id:
+            var world_x = agent.get("x", 0.0) * _cell_size + _cell_size / 2.0
+            var world_y = agent.get("y", 0.0) * _cell_size + _cell_size / 2.0
+            camera.position = Vector2(world_x, world_y)
+            camera.wrap_camera_position()
+            return
+
+func _unhandled_input(event: InputEvent) -> void:
+    if event is InputEventMouseButton:
+        var mouse_event: InputEventMouseButton = event
+        if mouse_event.button_index == MOUSE_BUTTON_LEFT:
+            if mouse_event.pressed:
+                var btn = ui_renderer.get_button_at_position(mouse_event.position)
+                if not btn.is_empty():
+                    if btn["action"] == "pause":
+                        _toggle_pause()
+                    elif btn["action"] == "speed":
+                        _set_speed(btn["speed"])
+                    elif btn["action"] == "center_agent":
+                        _center_on_selected_agent()
+                    elif btn["action"] == "follow_agent":
+                        _toggle_follow_agent()
+                    elif btn["action"] == "toggle_section":
+                        ui_renderer.toggle_section(btn["section"])
+                    return
+                
+                if world_container.get_global_rect().has_point(mouse_event.position):
+                    var local_pos = mouse_event.position - world_container.global_position
+                    var world_pos = _screen_to_world(local_pos)
+                    _is_dragging = true
+                    _drag_start_pos = world_pos
+                    world_renderer.start_selection_drag(world_pos)
+            else:
+                if _is_dragging:
+                    _is_dragging = false
+                    var local_pos = mouse_event.position - world_container.global_position
+                    var world_pos = _screen_to_world(local_pos)
+                    var drag_distance = world_pos.distance_to(_drag_start_pos)
+                    
+                    if drag_distance < 5.0:
+                        var clicked_agent = _get_agent_at_world_position(world_pos)
+                        if not clicked_agent.is_empty():
+                            var add_to_selection = Input.is_key_pressed(KEY_CTRL)
+                            world_renderer.select_agent(int(clicked_agent.get("id", -1)), add_to_selection)
+                        else:
+                            world_renderer.deselect_all()
+                    else:
+                        var add_to_selection = Input.is_key_pressed(KEY_CTRL)
+                        var selected_agents = world_renderer.finish_selection_drag(add_to_selection)
+                        if selected_agents.size() > 0:
+                            _on_agents_selected(selected_agents)
+                    world_renderer.cancel_selection_drag()
+    
+    elif event is InputEventMouseMotion:
+        if _is_dragging:
+            var local_pos = event.position - world_container.global_position
+            var world_pos = _screen_to_world(local_pos)
+            world_renderer.update_selection_drag(world_pos)
+            
+    elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+        world_renderer.deselect_all()
+
+func _center_on_selected_agent() -> void:
+    var selected_ids = world_renderer.get_selected_agent_ids()
+    if selected_ids.size() == 1:
+        var target_id = selected_ids[0]
+        for agent in _agents:
+            if int(agent.get("id", -1)) == target_id:
+                var world_x = agent.get("x", 0.0) * _cell_size + _cell_size / 2.0
+                var world_y = agent.get("y", 0.0) * _cell_size + _cell_size / 2.0
+                camera.position = Vector2(world_x, world_y)
+                camera.wrap_camera_position()
+                break
+
+func _toggle_follow_agent() -> void:
+    var selected_ids = world_renderer.get_selected_agent_ids()
+    if selected_ids.size() == 1:
+        var target_id = selected_ids[0]
+        if _follow_agent_id == target_id:
+            _follow_agent_id = -1
+            ui_renderer.set_following_state(false)
+        else:
+            _follow_agent_id = target_id
+            ui_renderer.set_following_state(true)
+            _update_follow_camera()
+
+func _screen_to_world(screen_pos: Vector2) -> Vector2:
+    var viewport_center = Vector2(400, 400)
+    return (screen_pos - viewport_center) / camera.zoom.x + camera.position
+
+func _get_agent_at_world_position(world_pos: Vector2) -> Dictionary:
+    var world_px_w = float(_world_width) * _cell_size
+    var world_px_h = float(_world_height) * _cell_size
+    
+    var logical_x = fmod(world_pos.x, world_px_w)
+    var logical_y = fmod(world_pos.y, world_px_h)
+    if logical_x < 0: logical_x += world_px_w
+    if logical_y < 0: logical_y += world_px_h
+    
+    var cell_x = int(logical_x / _cell_size)
+    var cell_y = int(logical_y / _cell_size)
+    
+    for agent in _agents:
+        if int(agent.get("x", 0)) == cell_x and int(agent.get("y", 0)) == cell_y:
+            return agent
+    return {}
+
+func _on_agents_selected(agents_data: Array) -> void:
+    if _follow_agent_id != -1:
+        _follow_agent_id = -1
+        ui_renderer.set_following_state(false)
+        
+    if agents_data.size() == 1:
+        var agent_id = int(agents_data[0].get("id", -1))
+        ui_renderer.show_agent_inspector_loading(agent_id)
+        _send_command({"type": "request_agent_details", "agent_id": agent_id})
+    elif agents_data.size() > 1:
+        ui_renderer.show_group_inspector(agents_data)
+
+func _on_agents_deselected() -> void:
+    _follow_agent_id = -1
+    ui_renderer.set_following_state(false)
+    ui_renderer.hide_agent_inspector()
+    ui_renderer.hide_group_inspector()
+
+func _toggle_pause() -> void:
+    if not _is_connected: return
+    _is_paused = not _is_paused
+    _send_command({"type": "pause" if _is_paused else "resume"})
+    ui_renderer.update_control_state(_is_paused, _current_speed)
+
+func _set_speed(multiplier: float) -> void:
+    if not _is_connected: return
+    _current_speed = multiplier
+    _send_command({"type": "set_speed", "multiplier": int(multiplier)})
+    ui_renderer.update_control_state(_is_paused, _current_speed)
+
+func _send_command(cmd: Dictionary) -> void:
+    if _peer == null or _peer.get_ready_state() != WebSocketPeer.STATE_OPEN: return
+    _peer.send_text(JSON.stringify(cmd))
+
+func _connect_to_server() -> void:
+    _peer = WebSocketPeer.new()
+    _peer.connect_to_url(SERVER_URL)
+
+func _check_connection_state() -> void:
+    var state: int = _peer.get_ready_state()
+    match state:
+        WebSocketPeer.STATE_OPEN:
+            _is_connected = true
+            if not _was_connected_before:
+                _was_connected_before = true
+                ui_renderer.update_connection_status(true)
+                ui_renderer.update_control_state(_is_paused, _current_speed)
+                _send_command({"type": "get_presets"})
+        WebSocketPeer.STATE_CLOSED:
+            if _is_connected:
+                _is_connected = false
+                _was_connected_before = false
+                ui_renderer.update_connection_status(false)
+                get_tree().create_timer(2.0).timeout.connect(_connect_to_server)
+
+func _receive_data() -> void:
+    while _peer.get_available_packet_count() > 0:
+        var text: String = _peer.get_packet().get_string_from_utf8()
+        if text.is_empty(): continue
+        var json: JSON = JSON.new()
+        if json.parse(text) == OK:
+            _handle_message(json.get_data())
+
+func _handle_message(data: Dictionary) -> void:
+    var message_type: String = data.get("type", "")
+    match message_type:
+        "tick":
+            _tick_count = data.get("tick", 0)
+            _current_day = data.get("day", 0.0)
+            _agents = data.get("agents", [])
+            _stats = data.get("stats", {})
+            world_renderer.update_agents(_agents)
+            ui_renderer.update_tick_info(_tick_count, _current_day, _agents.size())
+            ui_renderer.update_stats(_stats)
+            
+            var selected_ids = world_renderer.get_selected_agent_ids()
+            if selected_ids.size() == 1:
+                var still_alive = false
+                for agent in _agents:
+                    if int(agent.get("id", -1)) == selected_ids[0]:
+                        still_alive = true
+                        break
+                if not still_alive:
+                    world_renderer.deselect_all()
+                    
+        "agent_details":
+            var details: Dictionary = data.get("data", {})
+            ui_renderer.show_agent_full_inspector(details)
+            
+        "agent_details_error":
+            ui_renderer.hide_agent_inspector()
+            
+        "status":
+            var status: String = data.get("status", "")
+            if status == "paused": _is_paused = true
+            elif status == "running": _is_paused = false
+            elif status.begins_with("speed:"): _current_speed = float(status.substr(6))
+            ui_renderer.update_control_state(_is_paused, _current_speed)
+        "presets_config":
+            ui_renderer.update_presets(data.get("presets", []))
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\websocket_client.gd.uid
+================================================================================
+
+uid://d2by4wyvf0nib
+
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\world_renderer.gd
+================================================================================
+
+extends Node2D
+
+signal agents_selected(agents_data: Array)
+signal agents_deselected()
+
+var _world_width: int = 100
+var _world_height: int = 100
+var _cell_size: float = 8.0
+
+const GRID_COLOR: Color = Color(0.4, 0.4, 0.5, 0.8)
+const GRID_LINE_WIDTH: float = 1.0
+
+const SELECTION_RING_COLOR: Color = Color(1.0, 1.0, 1.0)
+const SELECTION_RING_WIDTH: float = 2.0
+
+const COLOR_SICK: Color = Color(0.957, 0.263, 0.212)
+const COLOR_PREGNANT: Color = Color(1.0, 0.757, 0.027)
+const COLOR_YOUNG: Color = Color(0.129, 0.588, 0.953)
+const COLOR_SENIOR: Color = Color(0.620, 0.620, 0.620)
+
+const SPECIES_COLORS: Dictionary = {
+    "human": Color(0.298, 0.686, 0.314),
+    "mammal": Color(0.545, 0.765, 0.290),
+    "bird": Color(0.255, 0.412, 0.882),
+    "fish": Color(0.0, 0.749, 1.0),
+    "insect": Color(1.0, 0.647, 0.0),
+    "reptile": Color(0.545, 0.271, 0.075),
+    "amphibian": Color(0.0, 0.800, 0.500),
+    "bacteria": Color(0.855, 0.439, 0.839),
+    "plant": Color(0.133, 0.545, 0.133),
+    "fungus": Color(0.824, 0.706, 0.549),
+    "fantasy_creature": Color(1.0, 0.078, 0.576),
+}
+const DEFAULT_SPECIES_COLOR: Color = Color(0.8, 0.8, 0.8)
+
+var _agents: Array = []
+var _selected_agent_ids: Array = []
+var _selection_rect_start: Vector2 = Vector2.ZERO
+var _selection_rect_end: Vector2 = Vector2.ZERO
+var _is_dragging_selection: bool = false
+
+func update_agents(agents: Array) -> void:
+    _agents = agents
+    queue_redraw()
+
+func set_cell_size(size: float) -> void:
+    _cell_size = size
+    queue_redraw()
+
+func set_world_dimensions(width: int, height: int) -> void:
+    _world_width = width
+    _world_height = height
+    queue_redraw()
+
+func start_selection_drag(world_pos: Vector2) -> void:
+    _is_dragging_selection = true
+    _selection_rect_start = world_pos
+    _selection_rect_end = world_pos
+    queue_redraw()
+
+func update_selection_drag(world_pos: Vector2) -> void:
+    if _is_dragging_selection:
+        _selection_rect_end = world_pos
+        queue_redraw()
+
+func finish_selection_drag(add_to_selection: bool) -> Array:
+    _is_dragging_selection = false
+    
+    # Calcular el rectángulo de selección
+    var top_left = Vector2(min(_selection_rect_start.x, _selection_rect_end.x), 
+                           min(_selection_rect_start.y, _selection_rect_end.y))
+    var bottom_right = Vector2(max(_selection_rect_start.x, _selection_rect_end.x), 
+                               max(_selection_rect_start.y, _selection_rect_end.y))
+    var selection_rect = Rect2(top_left, bottom_right - top_left)
+    
+    var selected_agents: Array = []
+    
+    # Verificar si la CELDA del agente intersecta con el rectángulo de selección
+    for agent in _agents:
+        var ax = agent.get("x", 0.0) * _cell_size
+        var ay = agent.get("y", 0.0) * _cell_size
+        
+        # Crear el rectángulo de la celda del agente
+        var agent_rect = Rect2(ax, ay, _cell_size, _cell_size)
+        
+        # Si la celda del agente intersecta con el rectángulo de selección, se selecciona
+        if selection_rect.intersects(agent_rect) or selection_rect.has_point(agent_rect.get_center()):
+            selected_agents.append(agent)
+    
+    if add_to_selection:
+        for agent in selected_agents:
+            var agent_id = int(agent.get("id", -1))
+            if not _selected_agent_ids.has(agent_id):
+                _selected_agent_ids.append(agent_id)
+    else:
+        _selected_agent_ids = []
+        for agent in selected_agents:
+            _selected_agent_ids.append(int(agent.get("id", -1)))
+    
+    queue_redraw()
+    
+    var final_selected: Array = []
+    for agent in _agents:
+        if _selected_agent_ids.has(int(agent.get("id", -1))):
+            final_selected.append(agent)
+    
+    return final_selected
+
+func cancel_selection_drag() -> void:
+    _is_dragging_selection = false
+    queue_redraw()
+
+func select_agent(agent_id: int, add_to_selection: bool) -> void:
+    if add_to_selection:
+        if not _selected_agent_ids.has(agent_id):
+            _selected_agent_ids.append(agent_id)
+    else:
+        _selected_agent_ids = [agent_id]
+    
+    var selected_agents: Array = []
+    for agent in _agents:
+        if _selected_agent_ids.has(int(agent.get("id", -1))):
+            selected_agents.append(agent)
+    
+    queue_redraw()
+    emit_signal("agents_selected", selected_agents)
+
+func deselect_all() -> void:
+    _selected_agent_ids = []
+    queue_redraw()
+    emit_signal("agents_deselected")
+
+func get_selected_agent_ids() -> Array:
+    return _selected_agent_ids
+
+func _draw() -> void:
+    var w = float(_world_width) * _cell_size
+    var h = float(_world_height) * _cell_size
+    
+    # 1. FONDO CONTINUO
+    draw_rect(Rect2(Vector2(-w, -h), Vector2(w * 3.0, h * 3.0)), Color(0.12, 0.12, 0.18))
+    
+    # 2. REJILLA UNIFORME
+    for x in range(-_world_width, _world_width * 2 + 1):
+        var px = x * _cell_size
+        draw_line(Vector2(px, -h), Vector2(px, h * 2.0), GRID_COLOR, GRID_LINE_WIDTH)
+    
+    for y in range(-_world_height, _world_height * 2 + 1):
+        var py = y * _cell_size
+        draw_line(Vector2(-w, py), Vector2(w * 2.0, py), GRID_COLOR, GRID_LINE_WIDTH)
+    
+    # 3. AGENTES
+    var offsets = [
+        Vector2(-w, -h), Vector2(0, -h), Vector2(w, -h),
+        Vector2(-w, 0),  Vector2(0, 0),  Vector2(w, 0),
+        Vector2(-w, h),  Vector2(0, h),  Vector2(w, h)
+    ]
+    
+    for agent in _agents:
+        var ax = agent.get("x", 0.0) * _cell_size
+        var ay = agent.get("y", 0.0) * _cell_size
+        var size = _cell_size - 2.0
+        var color = _get_agent_color(agent)
+        
+        for offset in offsets:
+            draw_rect(Rect2(offset.x + ax + 1, offset.y + ay + 1, size, size), color)
+    
+    # 4. SELECCIÓN INDIVIDUAL (en las 9 posiciones del mosaico)
+    for agent in _agents:
+        if _selected_agent_ids.has(int(agent.get("id", -1))):
+            var ax = agent.get("x", 0.0) * _cell_size
+            var ay = agent.get("y", 0.0) * _cell_size
+            var margin = 2.0
+            
+            for offset in offsets:
+                var top_left = Vector2(offset.x + ax - margin, offset.y + ay - margin)
+                draw_rect(Rect2(top_left, Vector2(_cell_size + margin*2.0, _cell_size + margin*2.0)), 
+                         SELECTION_RING_COLOR, false, SELECTION_RING_WIDTH)
+    
+    # 5. RECTÁNGULO DE SELECCIÓN
+    if _is_dragging_selection:
+        var top_left = Vector2(min(_selection_rect_start.x, _selection_rect_end.x), 
+                               min(_selection_rect_start.y, _selection_rect_end.y))
+        var size = Vector2(abs(_selection_rect_end.x - _selection_rect_start.x), 
+                          abs(_selection_rect_end.y - _selection_rect_start.y))
+        var selection_rect = Rect2(top_left, size)
+        draw_rect(selection_rect, Color(0.2, 0.6, 0.9, 0.2))
+        draw_rect(selection_rect, Color(0.2, 0.6, 0.9), false, 2.0)
+
+func _get_agent_color(agent: Dictionary) -> Color:
+    if agent.get("is_sick", false): return COLOR_SICK
+    if agent.get("is_pregnant", false): return COLOR_PREGNANT
+    if not agent.get("is_adult", true): return COLOR_YOUNG
+    if agent.get("is_senior", false): return COLOR_SENIOR
+    return SPECIES_COLORS.get(agent.get("species", "human"), DEFAULT_SPECIES_COLOR)
+
+================================================================================
+ARCHIVO: .\godot\simulador-vida\scripts\world_renderer.gd.uid
+================================================================================
+
+uid://bcd6p12mwy66c
+
+
+================================================================================
+ARCHIVO: .\scenarios\bacteria.json
+================================================================================
+
+{
+  "name": "Cultivo bacteriano",
+  "description": "Crecimiento exponencial con resistencia a antibióticos.",
+  "species": [
+    {"id": "bacteria", "count": 300}
+  ],
+  "world": {
+    "width": 60,
+    "height": 60
+  },
+  "simulation": {
+    "max_ticks": 300,
+    "delta_days": 0.1,
+    "total_days": 30
+  },
+  "environment": {
+    "sector_size": 6
+  }
+}

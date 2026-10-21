@@ -19,18 +19,23 @@ Tipos de núcleo:
 - FAMILY: Pareja con hijos
 - SINGLE_PARENT: Un progenitor con hijos
 - DEPENDENT_CARE: Persona con dependientes a su cargo
+
+MIGRACIÓN HEXAGONAL:
+- center: Tuple[float, float] ahora representa (q, r)
+- get_distance_to_center(q, r): usa distancia hexagonal
+- update_center: posiciones ahora son (q, r)
 """
 
 from __future__ import annotations
 
 import logging
-import math
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
 
 class NucleusType(Enum):
     """Tipos de núcleo residencial."""
+
     SINGLE = "single"
     COUPLE = "couple"
     FAMILY = "family"
@@ -40,11 +45,12 @@ class NucleusType(Enum):
 
 class NucleusMemberRole(Enum):
     """Rol de un miembro dentro del núcleo."""
-    HEAD = "head"              # Cabeza del núcleo
-    PARTNER = "partner"        # Pareja del cabeza
-    CHILD = "child"            # Hijo/a
-    DEPENDENT = "dependent"    # Dependiente (anciano, enfermo, etc.)
-    OTHER = "other"            # Otro
+
+    HEAD = "head"  # Cabeza del núcleo
+    PARTNER = "partner"  # Pareja del cabeza
+    CHILD = "child"  # Hijo/a
+    DEPENDENT = "dependent"  # Dependiente (anciano, enfermo, etc.)
+    OTHER = "other"  # Otro
 
 
 class ResidentialNucleus:
@@ -53,16 +59,17 @@ class ResidentialNucleus:
     Un núcleo agrupa agentes que comparten residencia. Genera
     preferencias de proximidad pero NO restringe el movimiento.
 
-    GENÉTICA UNIVERSAL: La validación de capacidades sociales (can_form_pair_bond,
-    can_form_family_bonds) debe hacerse en los sistemas que crean núcleos,
-    no en esta clase que es una estructura de datos pura.
+    GENÉTICA UNIVERSAL: La validación de capacidades sociales
+    (can_form_pair_bond, can_form_family_bonds) debe hacerse en los
+    sistemas que crean núcleos, no en esta clase que es una estructura
+    de datos pura.
 
     Attributes:
         nucleus_id: Identificador único del núcleo.
         nucleus_type: Tipo de núcleo (single, couple, family, etc.).
         members: Dict de entity_id -> NucleusMemberRole.
-        center: Centro aproximado del núcleo (x, y).
-        target_distance: Distancia objetivo entre miembros (en casillas).
+        center: Centro aproximado del núcleo (q, r) hexagonal.
+        target_distance: Distancia objetivo entre miembros (en casillas hex).
     """
 
     _next_id: int = 1  # Contador estático para IDs únicos
@@ -72,14 +79,13 @@ class ResidentialNucleus:
         nucleus_type: NucleusType = NucleusType.SINGLE,
         target_distance: float = 2.0,
     ) -> None:
+        """Inicializa un núcleo residencial."""
         self.nucleus_id: int = ResidentialNucleus._next_id
         ResidentialNucleus._next_id += 1
-
         self.nucleus_type: NucleusType = nucleus_type
         self.members: Dict[int, NucleusMemberRole] = {}
-        self.center: Tuple[float, float] = (0.0, 0.0)
+        self.center: Tuple[float, float] = (0.0, 0.0)  # HEX: (q, r)
         self.target_distance: float = target_distance
-
         self.logger = logging.getLogger(f"Nucleus_{self.nucleus_id}")
 
     # =========================================================================
@@ -89,7 +95,7 @@ class ResidentialNucleus:
     @classmethod
     def create_single(cls, agent_id: int) -> "ResidentialNucleus":
         """Crea un núcleo para una persona sola.
-        
+
         GENÉTICA UNIVERSAL: Todos los organismos pueden estar solos.
         """
         nucleus = cls(nucleus_type=NucleusType.SINGLE, target_distance=0.0)
@@ -97,9 +103,11 @@ class ResidentialNucleus:
         return nucleus
 
     @classmethod
-    def create_couple(cls, agent_a_id: int, agent_b_id: int) -> "ResidentialNucleus":
+    def create_couple(
+        cls, agent_a_id: int, agent_b_id: int
+    ) -> "ResidentialNucleus":
         """Crea un núcleo para una pareja.
-        
+
         GENÉTICA UNIVERSAL: Este método asume que ambos agentes tienen
         capacidad de formar vínculos de pareja (can_form_pair_bond).
         La validación de capacidades debe hacerse en el sistema que llama
@@ -118,7 +126,7 @@ class ResidentialNucleus:
         children_ids: List[int],
     ) -> "ResidentialNucleus":
         """Crea un núcleo familiar.
-        
+
         GENÉTICA UNIVERSAL: Este método asume que los padres tienen
         capacidad de formar vínculos familiares (can_form_family_bonds).
         La validación de capacidades debe hacerse en el sistema que llama.
@@ -169,14 +177,18 @@ class ResidentialNucleus:
         return len(self.members) == 0
 
     # =========================================================================
-    # CÁLCULOS ESPACIALES
+    # CÁLCULOS ESPACIALES (HEXAGONAL)
     # =========================================================================
 
-    def update_center(self, positions: Dict[int, Tuple[float, float]]) -> None:
+    def update_center(
+        self, positions: Dict[int, Tuple[float, float]]
+    ) -> None:
         """Actualiza el centro del núcleo basándose en las posiciones actuales.
 
+        HEX: Las posiciones ahora son (q, r) hexagonales.
+
         Args:
-            positions: Dict de entity_id -> (x, y) para todos los miembros.
+            positions: Dict de entity_id -> (q, r) para todos los miembros.
         """
         member_positions = []
         for agent_id in self.members:
@@ -184,15 +196,26 @@ class ResidentialNucleus:
                 member_positions.append(positions[agent_id])
 
         if member_positions:
-            avg_x = sum(p[0] for p in member_positions) / len(member_positions)
-            avg_y = sum(p[1] for p in member_positions) / len(member_positions)
-            self.center = (avg_x, avg_y)
+            avg_q = sum(p[0] for p in member_positions) / len(member_positions)
+            avg_r = sum(p[1] for p in member_positions) / len(member_positions)
+            self.center = (avg_q, avg_r)
 
-    def get_distance_to_center(self, x: float, y: float) -> float:
-        """Calcula la distancia desde un punto al centro del núcleo."""
-        dx = x - self.center[0]
-        dy = y - self.center[1]
-        return math.sqrt(dx * dx + dy * dy)
+    def get_distance_to_center(self, q: float, r: float) -> float:
+        """Calcula la distancia hexagonal desde un punto al centro del núcleo.
+
+        HEX: Usa distancia hexagonal axial en lugar de euclidiana.
+
+        Args:
+            q: Coordenada Q del punto.
+            r: Coordenada R del punto.
+
+        Returns:
+            Distancia hexagonal al centro del núcleo.
+        """
+        dq = q - self.center[0]
+        dr = r - self.center[1]
+        # Distancia hexagonal axial
+        return float((abs(dq) + abs(dr) + abs(dq + dr)) // 2)
 
     # =========================================================================
     # LÓGICA DE TIPOS
@@ -229,7 +252,7 @@ class ResidentialNucleus:
 
     def on_marriage(self, agent_a_id: int, agent_b_id: int) -> None:
         """Se llama cuando dos agentes forman una pareja.
-        
+
         GENÉTICA UNIVERSAL: Asume que ambos agentes tienen can_form_pair_bond.
         La validación debe hacerse en el sistema que llama (MarriageSystem).
         """
@@ -243,32 +266,41 @@ class ResidentialNucleus:
 
         self.logger.info(
             "💍 Matrimonio: agentes %d y %d → Núcleo %d (%s)",
-            agent_a_id, agent_b_id, self.nucleus_id, self.nucleus_type.value,
+            agent_a_id,
+            agent_b_id,
+            self.nucleus_id,
+            self.nucleus_type.value,
         )
 
     def on_birth(self, child_id: int) -> None:
         """Se llama cuando nace un hijo en este núcleo.
-        
+
         GENÉTICA UNIVERSAL: Asume que los padres tienen can_form_family_bonds.
         La validación debe hacerse en el sistema que llama (ConceptionSystem).
         """
         self.add_member(child_id, NucleusMemberRole.CHILD)
         self.logger.info(
             "👶 Nacimiento: agente %d → Núcleo %d (%s)",
-            child_id, self.nucleus_id, self.nucleus_type.value,
+            child_id,
+            self.nucleus_id,
+            self.nucleus_type.value,
         )
 
     def on_death(self, agent_id: int) -> None:
         """Se llama cuando un miembro del núcleo fallece."""
         role = self.get_member_role(agent_id)
         self.remove_member(agent_id)
-
         self.logger.info(
             "⚰️ Muerte: agente %d (rol: %s) → Núcleo %d (%d miembros restantes)",
-            agent_id, role.value if role else "unknown", self.nucleus_id, self.size,
+            agent_id,
+            role.value if role else "unknown",
+            self.nucleus_id,
+            self.size,
         )
 
-    def on_child_independence(self, child_id: int) -> Optional["ResidentialNucleus"]:
+    def on_child_independence(
+        self, child_id: int
+    ) -> Optional["ResidentialNucleus"]:
         """Se llama cuando un hijo se independiza.
 
         GENÉTICA UNIVERSAL: La independencia requiere capacidades cognitivas
@@ -283,12 +315,12 @@ class ResidentialNucleus:
 
         self.remove_member(child_id)
         new_nucleus = ResidentialNucleus.create_single(child_id)
-
         self.logger.info(
             "🏠 Independización: agente %d deja Núcleo %d → nuevo Núcleo %d",
-            child_id, self.nucleus_id, new_nucleus.nucleus_id,
+            child_id,
+            self.nucleus_id,
+            new_nucleus.nucleus_id,
         )
-
         return new_nucleus
 
     # =========================================================================
@@ -307,6 +339,7 @@ class ResidentialNucleus:
         }
 
     def __repr__(self) -> str:
+        """Representación string del núcleo para debugging."""
         return (
             f"Nucleus(id={self.nucleus_id}, type={self.nucleus_type.value}, "
             f"members={self.size}, center={self.center})"

@@ -49,17 +49,18 @@ class EnvironmentContext:
         """Agrupa a los agentes por sector espacial para agilizar las consultas (O(1))."""
         sector_map = defaultdict(list)
         for person in state.get_all_persons():
-            key = (person.x // self.sector_size, person.y // self.sector_size)
+            # HEX: Usar q y r en lugar de x e y
+            key = (person.q // self.sector_size, person.r // self.sector_size)
             sector_map[key].append(person)
         return sector_map
 
-    def get_local_pressure(self, x: int, y: int) -> float:
+    def get_local_pressure(self, q: int, r: int) -> float:
         """Obtiene la presión espacial en una coordenada específica."""
-        return self.pressure_map.get((int(x), int(y)), 1.0)
+        return self.pressure_map.get((int(q), int(r)), 1.0)
 
-    def get_agents_in_sector(self, x: int, y: int) -> List[Any]:
+    def get_agents_in_sector(self, q: int, r: int) -> List[Any]:
         """Devuelve la lista de agentes presentes en el sector correspondiente."""
-        return self.sector_map.get((x // self.sector_size, y // self.sector_size), [])
+        return self.sector_map.get((q // self.sector_size, r // self.sector_size), [])
 
     # =====================================================================
     # OPTIMIZACIÓN CRÍTICA: Caché LRU para get_resources_at
@@ -67,22 +68,22 @@ class EnvironmentContext:
     # Se llama ~1M veces por simulación. Los cálculos trigonométricos son
     # costosos y deterministas (misma coordenada = mismo resultado).
     @lru_cache(maxsize=4096)
-    def _get_base_resource(self, x: int, y: int) -> float:
+    def _get_base_resource(self, q: int, r: int) -> float:
         """Calcula el recurso base determinista (Oasis vs Desiertos)."""
-        ruido = (math.sin(x * 0.15) + math.cos(y * 0.15)) / 2.0
+        ruido = (math.sin(q * 0.15) + math.cos(r * 0.15)) / 2.0
         return (ruido + 1.0) / 2.0
 
-    def get_resources_at(self, x: int, y: int) -> float:
+    def get_resources_at(self, q: int, r: int) -> float:
         """Calcula la disponibilidad de recursos (0.0 a 1.0).
         
         OPTIMIZACIÓN: Usa @lru_cache para el cálculo trigonométrico base,
         y un dict precalculado para el conteo de consumidores por sector.
         """
         # 1. Recurso base (CACHÉ LRU - evita recalcular trigonometría)
-        recurso_base = self._get_base_resource(int(x), int(y))
+        recurso_base = self._get_base_resource(int(q), int(r))
         
         # 2. Desgaste por sobreexplotación (O(1) gracias al dict precalculado)
-        sector_key = (int(x) // self.sector_size, int(y) // self.sector_size)
+        sector_key = (int(q) // self.sector_size, int(r) // self.sector_size)
         consumidores = self._sector_consumer_counts.get(sector_key, 0)
         desgaste = (consumidores / max(1, self.max_agents_per_sector)) * 0.8
         
@@ -92,48 +93,25 @@ class EnvironmentContext:
     # API DE TILES Y BIOMAS
     # =====================================================================
     
-    def get_tile_at(self, x: int, y: int) -> Optional[Any]:
-        """Retorna el tile en la posición dada.
-        
-        Args:
-            x: Coordenada X.
-            y: Coordenada Y.
-            
-        Returns:
-            El tile en esa posición, o None si no existe o no hay mapa de tiles.
-        """
+    def get_tile_at(self, q: int, r: int) -> Optional[Any]:
+        """Retorna el tile en la posición dada."""
         if self.tile_map is None:
             return None
-        return self.tile_map.get_tile(int(x), int(y))
+        return self.tile_map.get_tile(int(q), int(r))
     
-    def get_biome_at(self, x: int, y: int) -> Optional[Biome]:
+    def get_biome_at(self, q: int, r: int) -> Optional[Biome]:
         """Retorna el bioma en la posición dada.
         
         El bioma se calcula dinámicamente a partir de las variables del tile.
-        
-        Args:
-            x: Coordenada X.
-            y: Coordenada Y.
-            
-        Returns:
-            El bioma en esa posición, o None si no existe tile.
         """
-        tile = self.get_tile_at(x, y)
+        tile = self.get_tile_at(q, r)
         if tile is None:
             return None
         return BiomeClassifier.classify(tile)
     
-    def get_biome_name_at(self, x: int, y: int) -> str:
-        """Retorna el nombre del bioma en la posición dada como string.
-        
-        Args:
-            x: Coordenada X.
-            y: Coordenada Y.
-            
-        Returns:
-            Nombre del bioma, o "unknown" si no existe tile.
-        """
-        biome = self.get_biome_at(x, y)
+    def get_biome_name_at(self, q: int, r: int) -> str:
+        """Retorna el nombre del bioma en la posición dada como string."""
+        biome = self.get_biome_at(q, r)
         return str(biome) if biome is not None else "unknown"
     
     def has_tile_map(self) -> bool:

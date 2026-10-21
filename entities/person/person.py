@@ -1,7 +1,7 @@
 """Módulo de la entidad biológica y social principal.
 
 OPTIMIZACIONES APLICADAS:
-- entity_id, x, y son ahora atributos directos (no properties)
+- entity_id, q, r son ahora atributos directos (no properties)
 - _relationships es ahora Dict[int, Relationship] para búsqueda O(1)
 - _get_active_relationships() con caché
 - Property 'relationships' retorna lista bajo demanda para compatibilidad
@@ -35,8 +35,8 @@ class Person:
         self,
         config: SimulationConfig,
         entity_id: int,
-        x: int,
-        y: int,
+        q: int,
+        r: int,
         age: float = 0.0,
         genome: Optional[Genome] = None,
         gender: Optional[str] = None,
@@ -46,8 +46,8 @@ class Person:
         self.entity_id = entity_id
         self._species = species
 
-        self.x = x
-        self.y = y
+        self.q = q
+        self.r = r
         self._age = age
         self._gender = gender if gender else random.choice(["M", "F"])
         self._genome = genome if genome else Genome(species_baseline=species)
@@ -543,7 +543,11 @@ class Person:
         for motivation_name in list(self._motivations.keys()):
             self._motivations[motivation_name] = max(0.05, self._motivations[motivation_name] * decay_factor)
 
-    def set_position(self, x: int, y: int) -> None: self.x, self.y = x, y
+    def set_position(self, q: int, r: int) -> None:
+        """Actualiza la posición del agente en el grid hexagonal."""
+        self.q = q
+        self.r = r
+
     def add_age(self, increment_days: float) -> None:
         self._age += increment_days
         self._check_milestones()

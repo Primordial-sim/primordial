@@ -1,0 +1,175 @@
+================================================================================
+ARCHIVO: .\.github\PULL_REQUEST_TEMPLATE.md
+================================================================================
+
+## 📝 Descripción
+
+Breve descripción de los cambios realizados.
+
+## 🔗 Issue relacionado
+
+Fixes #(número del issue)
+
+Closes #(número del issue)
+
+## 🎯 Tipo de cambio
+
+Marca las opciones que apliquen:
+
+- [ ] 🐛 Bug fix (cambio que corrige un issue)
+- [ ] ✨ Nueva funcionalidad (cambio que añade funcionalidad)
+- [ ] 💥 Breaking change (cambio que rompe compatibilidad)
+- [ ] 📚 Documentación (cambios solo en documentación)
+- [ ] 🎨 Refactorización (cambio de código que no corrige bugs ni añade funcionalidad)
+- [ ] ⚡ Mejora de rendimiento
+- [ ] 🧪 Tests (añadir o modificar tests)
+- [ ] 🔧 Configuración (cambios en configuración, dependencias, etc.)
+
+## 🧪 Testing
+
+Describe las pruebas que has realizado:
+
+- [ ] Tests unitarios añadidos/modificados
+- [ ] Tests de integración añadidos/modificados
+- [ ] Pruebas manuales realizadas
+
+**Pasos para probar:**
+
+1. [...]
+2. [...]
+
+## 📸 Capturas de pantalla (si aplica)
+
+Si el cambio afecta la interfaz visual, añade capturas antes/después.
+
+## ✅ Checklist
+
+- [ ] Mi código sigue el estilo de código de este proyecto
+- [ ] He realizado una auto-revisión de mi propio código
+- [ ] He comentado mi código, especialmente en áreas difíciles de entender
+- [ ] He actualizado la documentación correspondiente
+- [ ] Mis cambios no generan nuevos warnings
+- [ ] He añadido tests que prueban mi corrección/funcionalidad
+- [ ] Los tests nuevos y existentes pasan localmente
+- [ ] Los cambios dependientes han sido mergeados y publicados
+
+## 📋 Notas adicionales
+
+Cualquier información adicional para los reviewers.
+
+## 🙏 Agradecimientos
+
+Menciona a personas que hayan ayudado con este PR (opcional).
+
+================================================================================
+ARCHIVO: .\.github\ISSUE_TEMPLATE\bug_report.md
+================================================================================
+
+---
+name: Reporte de Bug
+about: Ayúdanos a mejorar Primordial reportando un error
+title: '[BUG] '
+labels: bug
+assignees: ''
+
+---
+
+## 🐛 Descripción del bug
+
+Una descripción clara y concisa del error.
+
+## 🔄 Pasos para reproducir
+
+Pasos para reproducir el comportamiento:
+
+1. Ejecutar `python launcher.py` con estos parámetros: '...'
+2. Ver el error en '...'
+3. El comportamiento inesperado es '...'
+
+## ✅ Comportamiento esperado
+
+Una descripción clara de lo que esperabas que sucediera.
+
+## ❌ Comportamiento actual
+
+Lo que realmente sucedió.
+
+## 📸 Capturas de pantalla
+
+Si aplica, añade capturas de pantalla para ayudar a explicar el problema.
+
+## 🖥️ Entorno
+
+- **SO**: [ej: Windows 11, Ubuntu 22.04, macOS Sonoma]
+- **Versión de Python**: [ej: 3.13.1]
+- **Versión del proyecto**: [ej: main branch, commit hash]
+- **Hardware**: [CPU, RAM si es relevante]
+
+## 📋 Logs y mensajes de error
+
+```
+Pega aquí los mensajes de error, stack traces o logs relevantes
+```
+
+## 🔍 Contexto adicional
+
+Cualquier otra información sobre el problema que pueda ser útil.
+
+## 💡 Posible solución (opcional)
+
+Si tienes ideas sobre cómo resolver el problema, compártelas aquí.  
+
+================================================================================
+ARCHIVO: .\.github\ISSUE_TEMPLATE\feature_request.md
+================================================================================
+
+---
+name: Solicitud de Funcionalidad
+about: Sugiere una idea para Primordial
+title: '[FEATURE] '
+labels: enhancement
+assignees: ''
+
+---
+
+## 🎯 Problema relacionado
+
+¿Tu solicitud está relacionada con un problema? Descríbelo claramente.
+
+Ej: *Siempre me frustra cuando [...]*
+
+## 💡 Solución propuesta
+
+Describe la solución que te gustaría ver implementada.
+
+## 🔄 Alternativas consideradas
+
+¿Has considerado otras soluciones o enfoques? Descríbelos.
+
+## 📊 Impacto esperado
+
+¿Cómo mejoraría esta funcionalidad el proyecto?
+
+- **Para usuarios**: [...]
+- **Para el motor de simulación**: [...]
+- **Para la comunidad**: [...]
+
+## 🎨 Mockups o ejemplos (opcional)
+
+Si puedes proporcionar bocetos, diagramas o ejemplos de cómo debería funcionar, añádelos aquí.
+
+## 📚 Contexto adicional
+
+Cualquier otra información relevante sobre la solicitud.
+
+## 🔗 Issues relacionados
+
+Si esta funcionalidad está relacionada con otros issues existentes, enlázalos aquí.
+
+Ej: *Relacionado con #42*
+
+## ✅ Checklist de viabilidad
+
+- [ ] He buscado si ya existe una solicitud similar
+- [ ] La funcionalidad se alinea con la visión del proyecto
+- [ ] Estoy dispuesto a ayudar con el desarrollo/testing (opcional)

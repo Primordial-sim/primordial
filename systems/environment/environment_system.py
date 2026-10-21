@@ -1,6 +1,6 @@
 """Módulo responsable del Entorno: Presión espacial, Clima y Recursos.
 
-Calcula la presión espacial basada en densidad poblacional y actúa como 
+Calcula la presión espacial basada en densidad poblacional y actúa como
 infraestructura base para futuras expansiones de clima y catástrofes.
 
 Integra:
@@ -8,8 +8,11 @@ Integra:
 - Sistema de dinámica ambiental (escala media y lenta)
 - Sistema de catástrofes (eventos catastróficos mayores)
 
-OPTIMIZACIÓN: Se elimina la precomputación O(N) de pressure_map. 
+OPTIMIZACIÓN: Se elimina la precomputación O(N) de pressure_map.
 Ahora la presión se calcula bajo demanda en O(1) a través de EnvironmentContext.
+
+MIGRACIÓN HEXAGONAL:
+- Coordenadas (x, y) → (q, r) en métodos legacy
 """
 
 import logging
@@ -26,6 +29,8 @@ from systems.environment.feedback_system import FeedbackSystem
 
 
 class Season(Enum):
+    """Estaciones del año."""
+
     SPRING = auto()
     SUMMER = auto()
     AUTUMN = auto()
@@ -33,6 +38,8 @@ class Season(Enum):
 
 
 class Weather(Enum):
+    """Condiciones meteorológicas."""
+
     CLEAR = auto()
     RAINY = auto()
     STORMY = auto()
@@ -41,6 +48,8 @@ class Weather(Enum):
 
 
 class BiomeType(Enum):
+    """Tipos de bioma (legacy, ahora se usa BiomeClassifier)."""
+
     PLAINS = auto()
     FOREST = auto()
     DESERT = auto()
@@ -51,15 +60,21 @@ class EnvironmentSystem:
     """Calcula la presión espacial y gestiona la infraestructura climática."""
 
     def __init__(self, config: SimulationConfig) -> None:
+        """Inicializa el sistema ambiental."""
         self.config = config
         self.logger = logging.getLogger(self.__class__.__name__)
+
         self.current_season: Season = Season.SPRING
         self.current_weather: Weather = Weather.CLEAR
         self.days_in_current_season: float = 0.0
-        self.season_duration_days: float = getattr(config.environment, 'season_duration_days', 90.0)
+        self.season_duration_days: float = getattr(
+            config.environment, "season_duration_days", 90.0
+        )
+
         self.biome_map: Dict[Tuple[int, int], BiomeType] = {}
         self.resource_grid: Dict[Tuple[int, int], Dict[str, float]] = {}
         self.danger_zones: Dict[Tuple[int, int], float] = {}
+
         self.dynamics = EnvironmentDynamics(world_config=None, config=self.config)
         self.feedback_system = FeedbackSystem(self.config)
 
@@ -76,9 +91,12 @@ class EnvironmentSystem:
         # =====================================================================
         if self.current_season is None:
             self.current_season = Season.SPRING
-            self.logger.warning("current_season era None, reinicializado a SPRING")
-            
+            self.logger.warning(
+                "current_season era None, reinicializado a SPRING"
+            )
+
         self.days_in_current_season += delta_days
+
         if self.days_in_current_season >= self.season_duration_days:
             self.days_in_current_season = 0.0
             self._advance_season()
@@ -88,7 +106,7 @@ class EnvironmentSystem:
         # Inyectar datos climáticos en el contexto
         context.current_season = self.current_season
         context.current_weather = self.current_weather
-        
+
         # =====================================================================
         # 2. DINÁMICA AMBIENTAL Y CATÁSTROFES (NUEVO)
         # =====================================================================
@@ -97,9 +115,9 @@ class EnvironmentSystem:
             delta_days=delta_days,
             current_season=self.current_season,
             current_weather=self.current_weather,
-            world_config=getattr(state, 'world_config', None),
+            world_config=getattr(state, "world_config", None),
         )
-        
+
         # Registrar eventos catastróficos en el log
         if occurred_events:
             for event in occurred_events:
@@ -116,60 +134,135 @@ class EnvironmentSystem:
         )
 
     def _advance_season(self) -> None:
+        """Avanza a la siguiente estación."""
         if self.current_season is None:
             self.current_season = Season.SPRING
-            
+
         seasons = list(Season)
         try:
             next_index = (seasons.index(self.current_season) + 1) % len(seasons)
             self.current_season = seasons[next_index]
-            self.logger.info(f"🌍 El entorno ha cambiado de estación a: {self.current_season.name}")
+            self.logger.info(
+                f"🌍 El entorno ha cambiado de estación a: "
+                f"{self.current_season.name}"
+            )
         except ValueError as e:
-            self.logger.error(f"Error avanzado estación: {e}. Forzando SPRING.")
+            self.logger.error(
+                f"Error avanzado estación: {e}. Forzando SPRING."
+            )
             self.current_season = Season.SPRING
 
     def _update_weather_placeholder(self, delta_days: float) -> None:
+        """Actualiza el clima (placeholder simple)."""
         if self.current_season is None:
             return
-            
+
         if random.random() < (0.01 * delta_days):
             if self.current_season == Season.WINTER:
-                self.current_weather = random.choice([Weather.CLEAR, Weather.RAINY, Weather.BLIZZARD])
+                self.current_weather = random.choice(
+                    [Weather.CLEAR, Weather.RAINY, Weather.BLIZZARD]
+                )
             elif self.current_season == Season.SUMMER:
-                self.current_weather = random.choice([Weather.CLEAR, Weather.DROUGHT])
+                self.current_weather = random.choice(
+                    [Weather.CLEAR, Weather.DROUGHT]
+                )
             else:
-                self.current_weather = random.choice([Weather.CLEAR, Weather.RAINY, Weather.STORMY])
+                self.current_weather = random.choice(
+                    [Weather.CLEAR, Weather.RAINY, Weather.STORMY]
+                )
 
-    def get_biome_at(self, x: float, y: float) -> BiomeType:
-        return self.biome_map.get((int(x), int(y)), BiomeType.PLAINS)
+    # =========================================================================
+    # MÉTODOS LEGACY (mantenidos para compatibilidad)
+    # =========================================================================
 
-    def get_resource_level(self, x: float, y: float, resource_type: str) -> float:
-        cell_resources = self.resource_grid.get((int(x), int(y)))
+    def get_biome_at(self, q: float, r: float) -> BiomeType:
+        """Obtiene el bioma en una coordenada hexagonal.
+
+        HEX: Usa coordenadas hexagonales (q, r) en lugar de (x, y).
+
+        Args:
+            q: Coordenada Q (hexagonal).
+            r: Coordenada R (hexagonal).
+
+        Returns:
+            Tipo de bioma en esa posición.
+        """
+        return self.biome_map.get((int(q), int(r)), BiomeType.PLAINS)
+
+    def get_resource_level(self, q: float, r: float, resource_type: str) -> float:
+        """Obtiene el nivel de un recurso en una coordenada hexagonal.
+
+        HEX: Usa coordenadas hexagonales (q, r) en lugar de (x, y).
+
+        Args:
+            q: Coordenada Q (hexagonal).
+            r: Coordenada R (hexagonal).
+            resource_type: Tipo de recurso a consultar.
+
+        Returns:
+            Nivel del recurso (default: 100.0).
+        """
+        cell_resources = self.resource_grid.get((int(q), int(r)))
         if cell_resources:
             return cell_resources.get(resource_type, 100.0)
         return 100.0
 
-    def get_danger_level(self, x: float, y: float) -> float:
-        biome = self.get_biome_at(x, y)
-        base_danger = 0.3 if biome in [BiomeType.DESERT, BiomeType.TUNDRA] else 0.0
-        return min(1.0, self.danger_zones.get((int(x), int(y)), 0.0) + base_danger)
+    def get_danger_level(self, q: float, r: float) -> float:
+        """Obtiene el nivel de peligro en una coordenada hexagonal.
 
-    def trigger_catastrophe(self, x: float, y: float, radius: float, severity: float) -> None:
-        """Método legacy para activar catástrofes manuales (compatibilidad)."""
-        self.logger.warning(f"¡CATÁSTROFE ACTIVADA en ({x}, {y}) con radio {radius}!")
-        for dx in range(int(-radius), int(radius) + 1):
-            for dy in range(int(-radius), int(radius) + 1):
-                target_coord = (int(x + dx), int(y + dy))
+        HEX: Usa coordenadas hexagonales (q, r) en lugar de (x, y).
+
+        Args:
+            q: Coordenada Q (hexagonal).
+            r: Coordenada R (hexagonal).
+
+        Returns:
+            Nivel de peligro [0.0, 1.0].
+        """
+        biome = self.get_biome_at(q, r)
+        base_danger = (
+            0.3 if biome in [BiomeType.DESERT, BiomeType.TUNDRA] else 0.0
+        )
+        return min(1.0, self.danger_zones.get((int(q), int(r)), 0.0) + base_danger)
+
+    def trigger_catastrophe(
+        self, q: float, r: float, radius: float, severity: float
+    ) -> None:
+        """Método legacy para activar catástrofes manuales (compatibilidad).
+
+        HEX: Usa coordenadas hexagonales (q, r) en lugar de (x, y).
+
+        Args:
+            q: Coordenada Q del epicentro (hexagonal).
+            r: Coordenada R del epicentro (hexagonal).
+            radius: Radio de efecto.
+            severity: Severidad del evento.
+        """
+        self.logger.warning(
+            f"¡CATÁSTROFE ACTIVADA en ({q}, {r}) con radio {radius}!"
+        )
+
+        # HEX: Iterar en patrón hexagonal en lugar de cuadrado
+        radius_int = int(radius)
+        for dq in range(-radius_int, radius_int + 1):
+            dr_min = max(-radius_int, -dq - radius_int)
+            dr_max = min(radius_int, -dq + radius_int)
+            for dr in range(dr_min, dr_max + 1):
+                target_coord = (int(q + dq), int(r + dr))
                 self.danger_zones[target_coord] = severity
-    
+
+    # =========================================================================
+    # MÉTODOS DE CONSULTA (NUEVOS)
+    # =========================================================================
+
     def get_catastrophe_summary(self) -> dict:
         """Retorna un resumen de la actividad catastrófica (NUEVO)."""
         return self.dynamics.get_catastrophe_summary()
-    
+
     def get_catastrophe_history(self) -> list:
         """Retorna el historial completo de catástrofes (NUEVO)."""
         return self.dynamics.catastrophe_system.get_history()
-    
+
     def get_recent_catastrophes(self, count: int = 10) -> list:
         """Retorna las N catástrofes más recientes (NUEVO)."""
         return self.dynamics.catastrophe_system.get_recent_events(count)

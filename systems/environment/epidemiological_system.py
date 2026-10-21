@@ -1,10 +1,14 @@
 """Módulo responsable de la interacción entre los agentes y los patógenos del entorno.
 
-Gestiona la retroalimentación de enfermedades: los agentes infectados exhalan 
-y contaminan el entorno (fómites), y las celdas altamente contaminadas 
+Gestiona la retroalimentación de enfermedades: los agentes infectados exhalan
+y contaminan el entorno (fómites), y las celdas altamente contaminadas
 infectan a los agentes sanos instanciando nuevas cepas ambientales.
 
 CORRECCIÓN: Valores de configuración centralizados, sin hardcodear.
+
+MIGRACIÓN HEXAGONAL:
+- person.x/y → person.q/r
+- Coordenadas del epidemiological_map usan (q, r)
 """
 
 from __future__ import annotations
@@ -24,6 +28,7 @@ class EpidemiologicalSystem:
     """Gestiona el rastro viral dejado por enfermos y el contagio por fómites."""
 
     def __init__(self, config: SimulationConfig) -> None:
+        """Inicializa el sistema epidemiológico."""
         self.config = config
         self.logger = logging.getLogger(self.__class__.__name__)
 
@@ -34,10 +39,12 @@ class EpidemiologicalSystem:
         delta_days: float,
         context: EnvironmentContext,
     ) -> None:
-        """Procesa la retroalimentación virus-entorno-agente en cada tick."""
+        """Procesa la retroalimentación virus-entorno-agente en cada tick.
+        
+        HEX: Usa person.q, person.r en lugar de person.x, person.y.
+        """
         env_cfg = self.config.environment
         dis_cfg = self.config.diseases
-
         ep_map = state.epidemiological_map
         all_persons = state.get_all_persons()
 
@@ -54,10 +61,14 @@ class EpidemiologicalSystem:
                     if infection_state.is_contagious():
                         is_contagious = True
                         break
-                
+
                 if is_contagious:
                     exhalation_rate = env_cfg.viral_exhalation_rate
-                    ep_map.add_viral_load(person.x, person.y, amount=(exhalation_rate * delta_days))
+                    # HEX: Usar coordenadas hexagonales q, r
+                    ep_map.add_viral_load(
+                        person.q, person.r,
+                        amount=(exhalation_rate * delta_days)
+                    )
 
         # =====================================================================
         # 2. CONTAGIO: El entorno infecta a los agentes sanos
@@ -65,18 +76,22 @@ class EpidemiologicalSystem:
         base_transmission_rate = env_cfg.environmental_transmission_rate
         viral_load_threshold = env_cfg.viral_load_threshold
         viral_to_risk_factor = env_cfg.viral_to_risk_factor
-        
         daily_transmission_rate = base_transmission_rate * viral_to_risk_factor
 
         # CORRECCIÓN: Obtener valores de configuración en lugar de hardcodear
-        environmental_asymptomatic_chance = getattr(dis_cfg, 'environmental_asymptomatic_chance', 0.3)
-        environmental_incubation_days = getattr(dis_cfg, 'environmental_incubation_days', 5.0)
+        environmental_asymptomatic_chance = getattr(
+            dis_cfg, 'environmental_asymptomatic_chance', 0.3
+        )
+        environmental_incubation_days = getattr(
+            dis_cfg, 'environmental_incubation_days', 5.0
+        )
 
         for person in all_persons:
             if person.entity_id in pending.deaths or getattr(person, "is_sick", False):
                 continue
 
-            viral_load = ep_map.get_viral_load(person.x, person.y)
+            # HEX: Usar coordenadas hexagonales q, r
+            viral_load = ep_map.get_viral_load(person.q, person.r)
 
             if viral_load > viral_load_threshold:
                 daily_risk = viral_load * daily_transmission_rate
@@ -92,12 +107,15 @@ class EpidemiologicalSystem:
                         asymptomatic_chance=environmental_asymptomatic_chance,
                         incubation_days=environmental_incubation_days,
                     )
-
                     pending.register_infection(person.entity_id, env_pathogen)
+
                     self.logger.debug(
-                        "🦠 Agente %s contagiado por rastro ambiental (carga viral: %.2f)",
+                        "🦠 Agente %s contagiado por rastro ambiental "
+                        "(carga viral: %.2f en q=%d, r=%d)",
                         person.entity_id,
                         viral_load,
+                        person.q,
+                        person.r,
                     )
 
         # =====================================================================

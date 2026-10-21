@@ -1,0 +1,3189 @@
+================================================================================
+ARCHIVO: .\systems\environment\biome_classifier.py
+================================================================================
+
+"""Clasificador de biomas basado en variables de tile.
+
+El bioma NO se almacena en el tile, se calcula dinámicamente a partir
+de las variables ambientales. Esto permite que los biomas emerjan
+naturalmente y cambien cuando cambian las condiciones.
+
+Principio: "El bioma es una consecuencia, no un dato."
+"""
+
+from __future__ import annotations
+
+from enum import Enum, auto
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from systems.environment.tile import Tile
+
+
+class Biome(Enum):
+    """Tipos de biomas derivados de variables ambientales."""
+    OCEAN = auto()
+    DEEP_OCEAN = auto()
+    LAKE = auto()
+    BEACH = auto()
+    DESERT = auto()
+    SAVANNA = auto()
+    GRASSLAND = auto()
+    FOREST = auto()
+    RAINFOREST = auto()
+    TUNDRA = auto()
+    TAIGA = auto()
+    MOUNTAIN = auto()
+    SNOW_PEAK = auto()
+    WETLAND = auto()
+    URBAN = auto()
+    
+    def __str__(self) -> str:
+        return self.name.lower().replace('_', ' ')
+
+
+class BiomeClassifier:
+    """Clasifica tiles en biomas basándose en variables ambientales."""
+    
+    @staticmethod
+    def classify(tile: Tile) -> Biome:
+        """Determina el bioma de un tile basándose en sus variables.
+        
+        Reglas de clasificación (simplificadas):
+        - Agua alta + profundidad → Océano
+        - Agua alta + poca profundidad → Lago
+        - Temperatura alta + agua baja → Desierto
+        - Temperatura alta + agua alta → Selva
+        - Temperatura baja + altitud alta → Tundra
+        - Vegetación alta → Bosque
+        """
+
+        # Zonas urbanas (alta urbanización)
+        if hasattr(tile, 'urbanization') and tile.urbanization > 0.7:
+            return Biome.URBAN
+
+        # Océanos profundos
+        if tile.water > 0.9 and tile.height < -50:
+            return Biome.DEEP_OCEAN
+        
+        # Océanos y mares
+        if tile.water > 0.8 and tile.salinity > 0.7:
+            return Biome.OCEAN
+        
+        # Lagos (agua dulce)
+        if tile.water > 0.7 and tile.salinity < 0.3:
+            return Biome.LAKE
+        
+        # Playas (transición tierra-agua)
+        if tile.water > 0.3 and tile.water < 0.7 and tile.slope < 0.2:
+            return Biome.BEACH
+        
+        # Humedales
+        if tile.water > 0.4 and tile.vegetation > 0.3 and tile.slope < 0.1:
+            return Biome.WETLAND
+        
+        # Picos nevados
+        if tile.height > 2000 and tile.temperature < 0.2:
+            return Biome.SNOW_PEAK
+        
+        # Montañas
+        if tile.height > 1500 or tile.slope > 0.8:
+            return Biome.MOUNTAIN
+        
+        # Desiertos (calor + sequedad)
+        if tile.temperature > 0.7 and tile.humidity < 0.3 and tile.vegetation < 0.1:
+            return Biome.DESERT
+        
+        # Selvas tropicales (calor + humedad alta)
+        if tile.temperature > 0.7 and tile.humidity > 0.7 and tile.vegetation > 0.8:
+            return Biome.RAINFOREST
+        
+        # Sabanas (calor + vegetación media)
+        if tile.temperature > 0.6 and tile.vegetation > 0.3 and tile.vegetation < 0.6:
+            return Biome.SAVANNA
+        
+        # Tundra (frío extremo)
+        if tile.temperature < 0.3 and tile.vegetation < 0.3:
+            return Biome.TUNDRA
+        
+        # Taiga (bosques boreales)
+        if tile.temperature < 0.4 and tile.vegetation > 0.5:
+            return Biome.TAIGA
+        
+        # Bosques (vegetación alta)
+        if tile.vegetation > 0.6:
+            return Biome.FOREST
+        
+        # Praderas (vegetación media, temperatura moderada)
+        if tile.vegetation > 0.2 and tile.vegetation < 0.6:
+            return Biome.GRASSLAND
+        
+        # Por defecto: pradera
+        return Biome.GRASSLAND
+    
+    @staticmethod
+    def get_biome_name(tile: Tile) -> str:
+        """Retorna el nombre del bioma como string."""
+        return str(BiomeClassifier.classify(tile))
+
+================================================================================
+ARCHIVO: .\systems\environment\catastrophe_model.py
+================================================================================
+
+"""Modelos de datos para eventos catastróficos.
+
+Cada catástrofe es un evento puntual que altera drásticamente el entorno
+en una zona específica. Las catástrofes son la fuerza principal de cambio
+geológico y ecológico a gran escala.
+
+Principio: "Las catástrofes no son errores del sistema, son el motor
+de la transformación del mundo."
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import Enum, auto
+
+
+class CatastropheType(Enum):
+    """Tipos de catástrofes disponibles."""
+    EARTHQUAKE = auto()        # Terremoto
+    VOLCANIC_ERUPTION = auto() # Erupción volcánica
+    FLOOD = auto()             # Inundación
+    METEORITE = auto()         # Impacto de meteorito
+    FIRE = auto()              # Incendio
+    DROUGHT = auto()           # Sequía
+    STORM = auto()             # Tormenta / huracán
+    LANDSLIDE = auto()         # Deslizamiento de tierra
+
+
+class CatastropheSeverity(Enum):
+    """Niveles de severidad de una catástrofe."""
+    MINOR = "minor"          # Menor: efectos locales
+    MODERATE = "moderate"    # Moderada: efectos regionales
+    MAJOR = "major"          # Mayor: efectos extensos
+    CATASTROPHIC = "catastrophic"  # Catastrófica: efectos masivos
+
+
+@dataclass
+class CatastropheEvent:
+    """Representa un evento catastrófico ocurrido en el mundo.
+    
+    Attributes:
+        event_id: Identificador único del evento.
+        catastrophe_type: Tipo de catástrofe.
+        severity: Nivel de severidad.
+        epicenter_x: Coordenada X del epicentro.
+        epicenter_y: Coordenada Y del epicentro.
+        radius: Radio de efecto en tiles.
+        intensity: Intensidad del evento [0.0, 1.0].
+        occurred_day: Día simulado en que ocurrió.
+        tiles_affected: Número de tiles afectados.
+        description: Descripción legible del evento.
+    """
+    
+    event_id: int
+    catastrophe_type: CatastropheType
+    severity: CatastropheSeverity
+    epicenter_x: int
+    epicenter_y: int
+    radius: int
+    intensity: float
+    occurred_day: float
+    tiles_affected: int = 0
+    description: str = ""
+    
+    def to_dict(self) -> dict:
+        """Serializa el evento para logging o exportación."""
+        return {
+            "event_id": self.event_id,
+            "type": self.catastrophe_type.name,
+            "severity": self.severity.value,
+            "epicenter": (self.epicenter_x, self.epicenter_y),
+            "radius": self.radius,
+            "intensity": self.intensity,
+            "occurred_day": self.occurred_day,
+            "tiles_affected": self.tiles_affected,
+            "description": self.description,
+        }
+    
+    def __str__(self) -> str:
+        return (
+            f"[{self.severity.value.upper()}] {self.catastrophe_type.name} "
+            f"en ({self.epicenter_x}, {self.epicenter_y}) "
+            f"radio={self.radius}, intensidad={self.intensity:.2f}, "
+            f"tiles={self.tiles_affected}"
+        )
+
+
+# Contador global para IDs únicos de eventos
+_catastrophe_id_counter = 0
+
+
+def generate_catastrophe_id() -> int:
+    """Genera el siguiente ID único para catástrofes."""
+    global _catastrophe_id_counter
+    _catastrophe_id_counter += 1
+    return _catastrophe_id_counter
+
+
+def severity_from_intensity(intensity: float) -> CatastropheSeverity:
+    """Determina la severidad a partir de la intensidad.
+    
+    Args:
+        intensity: Intensidad [0.0, 1.0].
+        
+    Returns:
+        Nivel de severidad correspondiente.
+    """
+    if intensity >= 0.85:
+        return CatastropheSeverity.CATASTROPHIC
+    elif intensity >= 0.6:
+        return CatastropheSeverity.MAJOR
+    elif intensity >= 0.35:
+        return CatastropheSeverity.MODERATE
+    else:
+        return CatastropheSeverity.MINOR
+
+================================================================================
+ARCHIVO: .\systems\environment\catastrophe_system.py
+================================================================================
+
+"""Sistema de eventos catastróficos.
+
+Gestiona la ocurrencia, ejecución y registro de catástrofes naturales
+que alteran drásticamente el entorno.
+
+Cada tipo de catástrofe tiene:
+- Una probabilidad base (escalada por WorldConfig)
+- Un radio de efecto
+- Efectos específicos sobre las variables del tile
+- Una severidad calculada
+
+Principio: "Las catástrofes son el motor de cambio geológico y ecológico."
+"""
+
+from __future__ import annotations
+
+import logging
+import math
+import random
+from typing import List, Optional, TYPE_CHECKING
+
+from systems.environment.catastrophe_model import (
+    CatastropheType,
+    CatastropheEvent,
+    generate_catastrophe_id,
+    severity_from_intensity,
+)
+
+if TYPE_CHECKING:
+    from core.state.world_state import WorldState
+    from systems.environment.world_config import WorldConfig
+    from systems.environment.environment_system import Season
+
+
+class CatastropheSystem:
+    """Gestiona todos los tipos de catástrofes del mundo."""
+    
+    # Historial máximo de catástrofes registradas
+    MAX_HISTORY = 500
+    
+    def __init__(self, world_config: Optional['WorldConfig'] = None) -> None:
+        self.logger = logging.getLogger(self.__class__.__name__)
+        
+        # Referencia a WorldConfig (se actualiza en process)
+        self.world_config = world_config
+        
+        # Historial de catástrofes ocurridas
+        self.history: List[CatastropheEvent] = []
+        
+        # Probabilidades base diarias
+        self.base_probabilities = {
+            CatastropheType.EARTHQUAKE: 0.0001,
+            CatastropheType.VOLCANIC_ERUPTION: 0.00005,
+            CatastropheType.FLOOD: 0.0005,
+            CatastropheType.METEORITE: 0.00001,
+            CatastropheType.FIRE: 0.001,
+            CatastropheType.DROUGHT: 0.0005,
+            CatastropheType.STORM: 0.0008,
+            CatastropheType.LANDSLIDE: 0.0003,
+        }
+    
+    def process(
+        self,
+        state: 'WorldState',
+        delta_days: float,
+        current_season: 'Season',
+        world_config: Optional['WorldConfig'] = None,
+    ) -> List[CatastropheEvent]:
+        """Evalúa y ejecuta catástrofes para el tick actual.
+        
+        Args:
+            state: Estado del mundo con tile_map.
+            delta_days: Días transcurridos.
+            current_season: Estación actual.
+            world_config: Configuración física del mundo.
+            
+        Returns:
+            Lista de catástrofes ocurridas en este tick.
+        """
+        if not state.has_tile_map():
+            return []
+        
+        if world_config is not None:
+            self.world_config = world_config
+        
+        occurred_events: List[CatastropheEvent] = []
+        
+        # Evaluar cada tipo de catástrofe
+        for catastrophe_type in CatastropheType:
+            probability = self._calculate_probability(
+                catastrophe_type, delta_days, current_season
+            )
+            
+            if random.random() < probability:
+                event = self._execute_catastrophe(
+                    state=state,
+                    catastrophe_type=catastrophe_type,
+                    current_day=getattr(state, 'world_days_elapsed', 0.0),
+                )
+                
+                if event is not None:
+                    occurred_events.append(event)
+                    self._register_event(event)
+        
+        return occurred_events
+    
+    def _calculate_probability(
+        self,
+        catastrophe_type: CatastropheType,
+        delta_days: float,
+        current_season: 'Season',
+    ) -> float:
+        """Calcula la probabilidad de una catástrofe escalada por WorldConfig.
+        
+        Args:
+            catastrophe_type: Tipo de catástrofe.
+            delta_days: Días transcurridos.
+            current_season: Estación actual.
+            
+        Returns:
+            Probabilidad ajustada para este tick.
+        """
+        from systems.environment.environment_system import Season
+        
+        base = self.base_probabilities[catastrophe_type]
+        multiplier = 1.0
+        
+        # Escalado por WorldConfig
+        if self.world_config is not None:
+            if catastrophe_type in [CatastropheType.EARTHQUAKE, CatastropheType.VOLCANIC_ERUPTION]:
+                # Actividad geológica afecta terremotos y volcanes
+                multiplier *= (0.5 + self.world_config.geological_activity * 2.0)
+            
+            elif catastrophe_type == CatastropheType.FLOOD:
+                # Cobertura de agua y humedad afectan inundaciones
+                multiplier *= (0.5 + self.world_config.water_coverage)
+                multiplier *= (0.5 + self.world_config.global_humidity)
+            
+            elif catastrophe_type == CatastropheType.LANDSLIDE:
+                # Tasa de erosión afecta deslizamientos
+                multiplier *= (0.5 + self.world_config.erosion_rate * 2.0)
+            
+            elif catastrophe_type == CatastropheType.STORM:
+                # Humedad global afecta tormentas
+                multiplier *= (0.5 + self.world_config.global_humidity * 1.5)
+        
+        # Escalado por estación
+        if catastrophe_type == CatastropheType.FIRE:
+            if current_season == Season.SUMMER:
+                multiplier *= 3.0
+            elif current_season == Season.WINTER:
+                multiplier *= 0.1
+        
+        elif catastrophe_type == CatastropheType.DROUGHT:
+            if current_season == Season.SUMMER:
+                multiplier *= 2.5
+            elif current_season == Season.WINTER:
+                multiplier *= 0.2
+        
+        elif catastrophe_type == CatastropheType.STORM:
+            if current_season == Season.AUTUMN:
+                multiplier *= 2.0
+            elif current_season == Season.SPRING:
+                multiplier *= 1.5
+        
+        elif catastrophe_type == CatastropheType.FLOOD:
+            if current_season == Season.SPRING:
+                multiplier *= 2.0  # Deshielo
+        
+        return base * multiplier * delta_days
+    
+    def _execute_catastrophe(
+        self,
+        state: 'WorldState',
+        catastrophe_type: CatastropheType,
+        current_day: float,
+    ) -> Optional[CatastropheEvent]:
+        """Ejecuta una catástrofe específica y retorna el evento.
+        
+        Args:
+            state: Estado del mundo.
+            catastrophe_type: Tipo de catástrofe a ejecutar.
+            current_day: Día simulado actual.
+            
+        Returns:
+            CatastropheEvent con los detalles, o None si no se pudo ejecutar.
+        """
+        # Elegir epicentro aleatorio
+        x = random.randint(0, state.width - 1)
+        y = random.randint(0, state.height - 1)
+        
+        # Ejecutar según tipo
+        if catastrophe_type == CatastropheType.EARTHQUAKE:
+            return self._execute_earthquake(state, x, y, current_day)
+        elif catastrophe_type == CatastropheType.VOLCANIC_ERUPTION:
+            return self._execute_volcanic_eruption(state, x, y, current_day)
+        elif catastrophe_type == CatastropheType.FLOOD:
+            return self._execute_flood(state, x, y, current_day)
+        elif catastrophe_type == CatastropheType.METEORITE:
+            return self._execute_meteorite(state, x, y, current_day)
+        elif catastrophe_type == CatastropheType.FIRE:
+            return self._execute_fire(state, x, y, current_day)
+        elif catastrophe_type == CatastropheType.DROUGHT:
+            return self._execute_drought(state, x, y, current_day)
+        elif catastrophe_type == CatastropheType.STORM:
+            return self._execute_storm(state, x, y, current_day)
+        elif catastrophe_type == CatastropheType.LANDSLIDE:
+            return self._execute_landslide(state, x, y, current_day)
+        
+        return None
+    
+    # =========================================================================
+    # EJECUCIÓN DE CADA TIPO DE CATÁSTROFE
+    # =========================================================================
+    
+    def _execute_earthquake(
+        self, state: 'WorldState', x: int, y: int, current_day: float
+    ) -> CatastropheEvent:
+        """Terremoto: altera alturas y pendientes en una zona."""
+        intensity = random.uniform(0.3, 1.0)
+        radius = int(5 + intensity * 15)  # Radio 5-20
+        
+        tiles_affected = 0
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                dist = math.sqrt(dx * dx + dy * dy)
+                if dist > radius:
+                    continue
+                
+                tile = state.get_tile_at(x + dx, y + dy)
+                if tile is None:
+                    continue
+                
+                # Efecto disminuye con la distancia
+                distance_factor = 1.0 - (dist / radius)
+                effect = intensity * distance_factor
+                
+                # Cambios de altura (subsidencia o elevación)
+                height_change = random.uniform(-50, 30) * effect
+                tile.height += height_change
+                
+                # Aumentar pendiente (terreno se fractura)
+                tile.slope = min(1.0, tile.slope + effect * 0.5)
+                
+                # Aumentar rocosidad (rocas expuestas)
+                tile.rockiness = min(1.0, tile.rockiness + effect * 0.3)
+                
+                # Reducir vegetación (destrucción)
+                tile.vegetation = max(0.0, tile.vegetation - effect * 0.4)
+                
+                tiles_affected += 1
+        
+        event = CatastropheEvent(
+            event_id=generate_catastrophe_id(),
+            catastrophe_type=CatastropheType.EARTHQUAKE,
+            severity=severity_from_intensity(intensity),
+            epicenter_x=x,
+            epicenter_y=y,
+            radius=radius,
+            intensity=intensity,
+            occurred_day=current_day,
+            tiles_affected=tiles_affected,
+            description=f"Terremoto de magnitud {intensity * 10:.1f} en ({x}, {y})",
+        )
+        
+        self.logger.warning(f"🌋 {event}")
+        return event
+    
+    def _execute_volcanic_eruption(
+        self, state: 'WorldState', x: int, y: int, current_day: float
+    ) -> CatastropheEvent:
+        """Erupción volcánica: lava, ceniza, fertilización."""
+        intensity = random.uniform(0.4, 1.0)
+        radius = int(3 + intensity * 10)  # Radio 3-13
+        
+        tiles_affected = 0
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                dist = math.sqrt(dx * dx + dy * dy)
+                if dist > radius:
+                    continue
+                
+                tile = state.get_tile_at(x + dx, y + dy)
+                if tile is None:
+                    continue
+                
+                distance_factor = 1.0 - (dist / radius)
+                effect = intensity * distance_factor
+                
+                # Zona cercana al volcán: destrucción total
+                if dist < radius * 0.3:
+                    tile.vegetation = 0.0
+                    tile.organic_matter = 0.0
+                    tile.height += 100 * effect  # Elevación por lava
+                    tile.rockiness = 1.0
+                    tile.temperature = min(1.0, tile.temperature + 0.3)
+                else:
+                    # Zona externa: ceniza fertilizante
+                    tile.vegetation = max(0.0, tile.vegetation - effect * 0.3)
+                    tile.fertility = min(1.0, tile.fertility + effect * 0.4)
+                    tile.organic_matter = min(1.0, tile.organic_matter + effect * 0.2)
+                
+                tiles_affected += 1
+        
+        event = CatastropheEvent(
+            event_id=generate_catastrophe_id(),
+            catastrophe_type=CatastropheType.VOLCANIC_ERUPTION,
+            severity=severity_from_intensity(intensity),
+            epicenter_x=x,
+            epicenter_y=y,
+            radius=radius,
+            intensity=intensity,
+            occurred_day=current_day,
+            tiles_affected=tiles_affected,
+            description=f"Erupción volcánica VEI {int(intensity * 8)} en ({x}, {y})",
+        )
+        
+        self.logger.warning(f"🌋 {event}")
+        return event
+    
+    def _execute_flood(
+        self, state: 'WorldState', x: int, y: int, current_day: float
+    ) -> CatastropheEvent:
+        """Inundación: aumenta agua en zonas bajas."""
+        intensity = random.uniform(0.3, 0.9)
+        radius = int(8 + intensity * 20)  # Radio 8-28
+        
+        tiles_affected = 0
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                dist = math.sqrt(dx * dx + dy * dy)
+                if dist > radius:
+                    continue
+                
+                tile = state.get_tile_at(x + dx, y + dy)
+                if tile is None:
+                    continue
+                
+                distance_factor = 1.0 - (dist / radius)
+                effect = intensity * distance_factor
+                
+                # Solo afecta zonas bajas (no montañas)
+                if tile.height < 200.0:
+                    # Aumentar agua
+                    tile.water = min(1.0, tile.water + effect * 0.6)
+                    tile.humidity = min(1.0, tile.humidity + effect * 0.4)
+                    
+                    # Erosión por agua
+                    if tile.slope > 0.2:
+                        tile.height -= effect * 10
+                        tile.slope = max(0.0, tile.slope - effect * 0.1)
+                    
+                    # Reducir vegetación (ahogamiento)
+                    if tile.water > 0.7:
+                        tile.vegetation = max(0.0, tile.vegetation - effect * 0.3)
+                    
+                    tiles_affected += 1
+        
+        event = CatastropheEvent(
+            event_id=generate_catastrophe_id(),
+            catastrophe_type=CatastropheType.FLOOD,
+            severity=severity_from_intensity(intensity),
+            epicenter_x=x,
+            epicenter_y=y,
+            radius=radius,
+            intensity=intensity,
+            occurred_day=current_day,
+            tiles_affected=tiles_affected,
+            description=f"Inundación severa en ({x}, {y})",
+        )
+        
+        self.logger.warning(f"🌊 {event}")
+        return event
+    
+    def _execute_meteorite(
+        self, state: 'WorldState', x: int, y: int, current_day: float
+    ) -> CatastropheEvent:
+        """Meteorito: devastación puntual extrema."""
+        intensity = random.uniform(0.5, 1.0)
+        radius = int(2 + intensity * 8)  # Radio 2-10
+        
+        tiles_affected = 0
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                dist = math.sqrt(dx * dx + dy * dy)
+                if dist > radius:
+                    continue
+                
+                tile = state.get_tile_at(x + dx, y + dy)
+                if tile is None:
+                    continue
+                
+                distance_factor = 1.0 - (dist / radius)
+                effect = intensity * distance_factor
+                
+                # Cráter: destrucción total
+                if dist < radius * 0.4:
+                    tile.vegetation = 0.0
+                    tile.organic_matter = 0.0
+                    tile.fertility = 0.0
+                    tile.height -= 200 * effect  # Cráter profundo
+                    tile.rockiness = 1.0
+                    tile.water = 0.0
+                else:
+                    # Zona de impacto: destrucción severa
+                    tile.vegetation = max(0.0, tile.vegetation - effect * 0.8)
+                    tile.organic_matter = max(0.0, tile.organic_matter - effect * 0.5)
+                    tile.height -= 50 * effect
+                
+                tiles_affected += 1
+        
+        event = CatastropheEvent(
+            event_id=generate_catastrophe_id(),
+            catastrophe_type=CatastropheType.METEORITE,
+            severity=severity_from_intensity(intensity),
+            epicenter_x=x,
+            epicenter_y=y,
+            radius=radius,
+            intensity=intensity,
+            occurred_day=current_day,
+            tiles_affected=tiles_affected,
+            description=f"💥 Impacto de meteorito en ({x}, {y})",
+        )
+        
+        self.logger.warning(f"☄️ {event}")
+        return event
+    
+    def _execute_fire(
+        self, state: 'WorldState', x: int, y: int, current_day: float
+    ) -> CatastropheEvent:
+        """Incendio: destruye vegetación."""
+        intensity = random.uniform(0.3, 1.0)
+        radius = int(3 + intensity * 10)  # Radio 3-13
+        
+        tiles_affected = 0
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                dist = math.sqrt(dx * dx + dy * dy)
+                if dist > radius:
+                    continue
+                
+                tile = state.get_tile_at(x + dx, y + dy)
+                if tile is None or tile.vegetation < 0.2:
+                    continue  # Solo afecta zonas con vegetación
+                
+                distance_factor = 1.0 - (dist / radius)
+                effect = intensity * distance_factor
+                
+                # Reducir vegetación drásticamente
+                tile.vegetation = max(0.0, tile.vegetation - effect * 0.8)
+                tile.organic_matter = max(0.0, tile.organic_matter - effect * 0.5)
+                
+                # Cenizas fertilizan el suelo
+                tile.fertility = min(1.0, tile.fertility + effect * 0.2)
+                
+                tiles_affected += 1
+        
+        event = CatastropheEvent(
+            event_id=generate_catastrophe_id(),
+            catastrophe_type=CatastropheType.FIRE,
+            severity=severity_from_intensity(intensity),
+            epicenter_x=x,
+            epicenter_y=y,
+            radius=radius,
+            intensity=intensity,
+            occurred_day=current_day,
+            tiles_affected=tiles_affected,
+            description=f"🔥 Incendio forestal en ({x}, {y})",
+        )
+        
+        self.logger.warning(f"🔥 {event}")
+        return event
+    
+    def _execute_drought(
+        self, state: 'WorldState', x: int, y: int, current_day: float
+    ) -> CatastropheEvent:
+        """Sequía: reduce agua y humedad."""
+        intensity = random.uniform(0.3, 0.9)
+        radius = int(10 + intensity * 20)  # Radio 10-30
+        
+        tiles_affected = 0
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                dist = math.sqrt(dx * dx + dy * dy)
+                if dist > radius:
+                    continue
+                
+                tile = state.get_tile_at(x + dx, y + dy)
+                if tile is None:
+                    continue
+                
+                distance_factor = 1.0 - (dist / radius)
+                effect = intensity * distance_factor
+                
+                # Reducir agua y humedad
+                tile.water = max(0.0, tile.water - effect * 0.5)
+                tile.humidity = max(0.0, tile.humidity - effect * 0.4)
+                
+                # Reducir vegetación si hay poca agua
+                if tile.water < 0.3:
+                    tile.vegetation = max(0.0, tile.vegetation - effect * 0.3)
+                
+                tiles_affected += 1
+        
+        event = CatastropheEvent(
+            event_id=generate_catastrophe_id(),
+            catastrophe_type=CatastropheType.DROUGHT,
+            severity=severity_from_intensity(intensity),
+            epicenter_x=x,
+            epicenter_y=y,
+            radius=radius,
+            intensity=intensity,
+            occurred_day=current_day,
+            tiles_affected=tiles_affected,
+            description=f"🏜️ Sequía severa en ({x}, {y})",
+        )
+        
+        self.logger.warning(f"🏜️ {event}")
+        return event
+    
+    def _execute_storm(
+        self, state: 'WorldState', x: int, y: int, current_day: float
+    ) -> CatastropheEvent:
+        """Tormenta: vientos fuertes, lluvia, erosión."""
+        intensity = random.uniform(0.3, 1.0)
+        radius = int(5 + intensity * 15)  # Radio 5-20
+        
+        tiles_affected = 0
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                dist = math.sqrt(dx * dx + dy * dy)
+                if dist > radius:
+                    continue
+                
+                tile = state.get_tile_at(x + dx, y + dy)
+                if tile is None:
+                    continue
+                
+                distance_factor = 1.0 - (dist / radius)
+                effect = intensity * distance_factor
+                
+                # Aumentar agua y humedad (lluvia)
+                tile.water = min(1.0, tile.water + effect * 0.3)
+                tile.humidity = min(1.0, tile.humidity + effect * 0.4)
+                
+                # Viento daña vegetación alta
+                if tile.vegetation > 0.6:
+                    tile.vegetation = max(0.0, tile.vegetation - effect * 0.3)
+                
+                # Erosión por viento y lluvia
+                if tile.slope > 0.3:
+                    tile.height -= effect * 5
+                    tile.slope = max(0.0, tile.slope - effect * 0.05)
+                
+                tiles_affected += 1
+        
+        event = CatastropheEvent(
+            event_id=generate_catastrophe_id(),
+            catastrophe_type=CatastropheType.STORM,
+            severity=severity_from_intensity(intensity),
+            epicenter_x=x,
+            epicenter_y=y,
+            radius=radius,
+            intensity=intensity,
+            occurred_day=current_day,
+            tiles_affected=tiles_affected,
+            description=f"⛈️ Tormenta severa en ({x}, {y})",
+        )
+        
+        self.logger.warning(f"⛈️ {event}")
+        return event
+    
+    def _execute_landslide(
+        self, state: 'WorldState', x: int, y: int, current_day: float
+    ) -> Optional[CatastropheEvent]:
+        """Deslizamiento: movimiento de tierra en pendientes.
+        
+        Returns:
+            CatastropheEvent si ocurre, None si no hay pendiente adecuada.
+        """
+        # Solo ocurre en zonas con pendiente alta
+        tile = state.get_tile_at(x, y)
+        if tile is None or tile.slope < 0.4:
+            # Buscar una zona con pendiente alta cerca
+            found = False
+            for search_x in range(max(0, x - 10), min(state.width, x + 10)):
+                for search_y in range(max(0, y - 10), min(state.height, y + 10)):
+                    t = state.get_tile_at(search_x, search_y)
+                    if t is not None and t.slope > 0.4:
+                        x, y = search_x, search_y
+                        found = True
+                        break
+                if found:
+                    break
+            
+            if not found:
+                # No hay pendiente alta: no ocurre deslizamiento
+                return None
+        
+        intensity = random.uniform(0.3, 0.9)
+        radius = int(2 + intensity * 6)  # Radio 2-8
+        
+        tiles_affected = 0
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                dist = math.sqrt(dx * dx + dy * dy)
+                if dist > radius:
+                    continue
+                
+                tile = state.get_tile_at(x + dx, y + dy)
+                if tile is None:
+                    continue
+                
+                distance_factor = 1.0 - (dist / radius)
+                effect = intensity * distance_factor
+                
+                # Reducir altura y pendiente (la tierra se desplaza)
+                tile.height -= effect * 30
+                tile.slope = max(0.0, tile.slope - effect * 0.3)
+                
+                # Reducir vegetación
+                tile.vegetation = max(0.0, tile.vegetation - effect * 0.5)
+                
+                # Aumentar rocosidad (rocas expuestas)
+                tile.rockiness = min(1.0, tile.rockiness + effect * 0.3)
+                
+                tiles_affected += 1
+        
+        event = CatastropheEvent(
+            event_id=generate_catastrophe_id(),
+            catastrophe_type=CatastropheType.LANDSLIDE,
+            severity=severity_from_intensity(intensity),
+            epicenter_x=x,
+            epicenter_y=y,
+            radius=radius,
+            intensity=intensity,
+            occurred_day=current_day,
+            tiles_affected=tiles_affected,
+            description=f"⛰️ Deslizamiento de tierra en ({x}, {y})",
+        )
+        
+        self.logger.warning(f"⛰️ {event}")
+        return event
+    
+    # =========================================================================
+    # REGISTRO Y CONSULTA
+    # =========================================================================
+    
+    def _register_event(self, event: CatastropheEvent) -> None:
+        """Registra un evento en el historial."""
+        self.history.append(event)
+        
+        # Limitar el historial
+        if len(self.history) > self.MAX_HISTORY:
+            self.history = self.history[-self.MAX_HISTORY:]
+    
+    def get_history(self) -> List[CatastropheEvent]:
+        """Retorna el historial completo de catástrofes."""
+        return list(self.history)
+    
+    def get_recent_events(self, count: int = 10) -> List[CatastropheEvent]:
+        """Retorna los N eventos más recientes."""
+        return self.history[-count:] if self.history else []
+    
+    def get_events_by_type(
+        self, catastrophe_type: CatastropheType
+    ) -> List[CatastropheEvent]:
+        """Retorna todos los eventos de un tipo específico."""
+        return [e for e in self.history if e.catastrophe_type == catastrophe_type]
+    
+    def get_event_count(self) -> int:
+        """Retorna el número total de catástrofes registradas."""
+        return len(self.history)
+    
+    def get_event_count_by_type(self) -> dict:
+        """Retorna el conteo de catástrofes por tipo."""
+        counts = {}
+        for event in self.history:
+            type_name = event.catastrophe_type.name
+            counts[type_name] = counts.get(type_name, 0) + 1
+        return counts
+    
+    def get_summary(self) -> dict:
+        """Retorna un resumen de la actividad catastrófica."""
+        return {
+            "total_events": len(self.history),
+            "by_type": self.get_event_count_by_type(),
+            "recent": [str(e) for e in self.get_recent_events(5)],
+        }
+
+================================================================================
+ARCHIVO: .\systems\environment\density_system.py
+================================================================================
+
+"""Módulo de servicios espaciales para consultas de densidad poblacional.
+
+Provee algoritmos de búsqueda y consulta de densidad espacial.
+Aunque su método process() está vacío (no modifica estado), proporciona
+métodos de utilidad que otros sistemas pueden usar como dependencias inyectadas.
+"""
+
+from core.state.world_state import WorldState
+from core.state.pending_changes import PendingChanges
+from systems.environment.environment_context import EnvironmentContext
+from core.config.simulation_config import SimulationConfig
+
+
+class DensitySystem:
+    """Provee algoritmos de búsqueda y consulta de densidad espacial."""
+
+    def __init__(self, config: SimulationConfig) -> None:
+        """Inicializa el sistema vinculándolo a la configuración central.
+        
+        Args:
+            config: Configuración centralizada de la simulación.
+        """
+        self.config = config
+
+    def get_density_factor(self, x: int, y: int, context: EnvironmentContext) -> float:
+        """Calcula matemáticamente la ocupación real de un sector en base a su capacidad.
+        
+        Args:
+            x: Coordenada X.
+            y: Coordenada Y.
+            context: Contexto ambiental del tick.
+            
+        Returns:
+            Factor de densidad (0.0 = vacío, 1.0 = capacidad máxima, >1.0 = sobrepoblado).
+        """
+        env_cfg = self.config.environment
+        
+        # Convertimos coordenadas exactas a coordenadas de sector (grid)
+        sector_x = x // env_cfg.sector_size
+        sector_y = y // env_cfg.sector_size
+        
+        # Consultamos el censo del sector en O(1) gracias al mapa del contexto
+        agents = context.sector_map.get((sector_x, sector_y), [])
+        
+        # Retornamos el factor (0.0 = vacío, >1.0 = sobrepoblado)
+        return len(agents) / max(1, env_cfg.max_agents_per_sector)
+
+    def find_best_nearby_cell(
+        self,
+        x: int,
+        y: int,
+        radius: int,
+        mode: str,
+        width: int,
+        height: int,
+        context: EnvironmentContext,
+    ) -> tuple:
+        """Busca la coordenada óptima en un radio dado según criterios de densidad.
+        
+        Args:
+            x: Coordenada X de origen.
+            y: Coordenada Y de origen.
+            radius: Radio de búsqueda en celdas.
+            mode: 'min' (huida/aislamiento), 'max' (búsqueda de comunidad/gregarismo).
+            width: Ancho del mapa.
+            height: Alto del mapa.
+            context: Contexto ambiental del tick.
+            
+        Returns:
+            Tupla (x, y) de la mejor celda encontrada.
+        """
+        best_cell = (x, y)
+        best_value = self.get_density_factor(x, y, context)
+        
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                nx, ny = x + dx, y + dy
+                
+                # Descartamos coordenadas fuera de los límites del mapa
+                if 0 <= nx < width and 0 <= ny < height:
+                    current_value = self.get_density_factor(nx, ny, context)
+                    
+                    if mode == "min" and current_value < best_value:
+                        best_value = current_value
+                        best_cell = (nx, ny)
+                    elif mode == "max" and current_value > best_value:
+                        best_value = current_value
+                        best_cell = (nx, ny)
+                            
+        return best_cell
+
+    def process(
+        self,
+        state: WorldState,
+        pending: PendingChanges,
+        delta_days: float,
+        context: EnvironmentContext,
+    ) -> None:
+        """Cumple el contrato de la interfaz base sin realizar mutaciones directas.
+        
+        DensitySystem es un sistema de consulta, no modifica estado.
+        Su propósito es proveer métodos de utilidad a otros sistemas.
+        """
+
+
+================================================================================
+ARCHIVO: .\systems\environment\environment_context.py
+================================================================================
+
+"""Módulo que define el contexto espacial, ambiental y topográfico para la simulación.
+
+Provee a los sistemas de una instantánea (snapshot) de la distribución demográfica,
+la presión del entorno y la disponibilidad de recursos en el tick actual.
+
+OPTIMIZACIONES APLICADAS:
+- @lru_cache en get_resources_at para evitar recalcular trigonometría
+- sector_key precachado por coordenada
+"""
+
+from __future__ import annotations
+
+import math
+from collections import defaultdict
+from functools import lru_cache
+from typing import List, Tuple, Dict, Any, Optional
+
+from core.state.world_state import WorldState
+from core.config.simulation_config import SimulationConfig
+
+from systems.environment.biome_classifier import BiomeClassifier, Biome
+
+
+class EnvironmentContext:
+    """Representa el estado del entorno, distribuyendo recursos y agentes."""
+
+    def __init__(self, state: WorldState, config: Optional[SimulationConfig] = None) -> None:
+        if config is not None:
+            self.sector_size = config.environment.sector_size
+            self.max_agents_per_sector = config.environment.max_agents_per_sector
+        else:
+            self.sector_size = 10
+            self.max_agents_per_sector = 8
+        
+        self.sector_map = self._build_sector_map(state)
+        self.pressure_map: Dict[Tuple[int, int], float] = {}
+        self.current_season: Any = None
+        self.current_weather: Any = None
+        
+        # OPTIMIZACIÓN: Precalcular conteo de agentes por sector (para get_resources_at)
+        self._sector_consumer_counts: Dict[Tuple[int, int], int] = {
+            sector: len(agents) for sector, agents in self.sector_map.items()
+        }
+
+        # Referencia al mapa de tiles (si existe)
+        self.tile_map = getattr(state, 'tile_map', None)
+
+    def _build_sector_map(self, state: WorldState) -> Dict[Tuple[int, int], List[Any]]:
+        """Agrupa a los agentes por sector espacial para agilizar las consultas (O(1))."""
+        sector_map = defaultdict(list)
+        for person in state.get_all_persons():
+            # HEX: Usar q y r en lugar de x e y
+            key = (person.q // self.sector_size, person.r // self.sector_size)
+            sector_map[key].append(person)
+        return sector_map
+
+    def get_local_pressure(self, q: int, r: int) -> float:
+        """Obtiene la presión espacial en una coordenada específica."""
+        return self.pressure_map.get((int(q), int(r)), 1.0)
+
+    def get_agents_in_sector(self, q: int, r: int) -> List[Any]:
+        """Devuelve la lista de agentes presentes en el sector correspondiente."""
+        return self.sector_map.get((q // self.sector_size, r // self.sector_size), [])
+
+    # =====================================================================
+    # OPTIMIZACIÓN CRÍTICA: Caché LRU para get_resources_at
+    # =====================================================================
+    # Se llama ~1M veces por simulación. Los cálculos trigonométricos son
+    # costosos y deterministas (misma coordenada = mismo resultado).
+    @lru_cache(maxsize=4096)
+    def _get_base_resource(self, q: int, r: int) -> float:
+        """Calcula el recurso base determinista (Oasis vs Desiertos)."""
+        ruido = (math.sin(q * 0.15) + math.cos(r * 0.15)) / 2.0
+        return (ruido + 1.0) / 2.0
+
+    def get_resources_at(self, q: int, r: int) -> float:
+        """Calcula la disponibilidad de recursos (0.0 a 1.0).
+        
+        OPTIMIZACIÓN: Usa @lru_cache para el cálculo trigonométrico base,
+        y un dict precalculado para el conteo de consumidores por sector.
+        """
+        # 1. Recurso base (CACHÉ LRU - evita recalcular trigonometría)
+        recurso_base = self._get_base_resource(int(q), int(r))
+        
+        # 2. Desgaste por sobreexplotación (O(1) gracias al dict precalculado)
+        sector_key = (int(q) // self.sector_size, int(r) // self.sector_size)
+        consumidores = self._sector_consumer_counts.get(sector_key, 0)
+        desgaste = (consumidores / max(1, self.max_agents_per_sector)) * 0.8
+        
+        return max(0.0, min(1.0, recurso_base - desgaste))
+
+    # =====================================================================
+    # API DE TILES Y BIOMAS
+    # =====================================================================
+    
+    def get_tile_at(self, q: int, r: int) -> Optional[Any]:
+        """Retorna el tile en la posición dada."""
+        if self.tile_map is None:
+            return None
+        return self.tile_map.get_tile(int(q), int(r))
+    
+    def get_biome_at(self, q: int, r: int) -> Optional[Biome]:
+        """Retorna el bioma en la posición dada.
+        
+        El bioma se calcula dinámicamente a partir de las variables del tile.
+        """
+        tile = self.get_tile_at(q, r)
+        if tile is None:
+            return None
+        return BiomeClassifier.classify(tile)
+    
+    def get_biome_name_at(self, q: int, r: int) -> str:
+        """Retorna el nombre del bioma en la posición dada como string."""
+        biome = self.get_biome_at(q, r)
+        return str(biome) if biome is not None else "unknown"
+    
+    def has_tile_map(self) -> bool:
+        """Verifica si hay un mapa de tiles disponible."""
+        return self.tile_map is not None
+
+================================================================================
+ARCHIVO: .\systems\environment\environment_dynamics.py
+================================================================================
+
+"""Dinámica ambiental del mundo.
+
+Implementa cambios lentos en el entorno siguiendo tres escalas temporales:
+- Rápida: catástrofes naturales (cada tick)
+- Media: vegetación y fertilidad (cada 10-30 días)
+- Lenta: erosión y geología (cada 100-365 días)
+
+Las catástrofes se delegan al CatastropheSystem.
+
+Principio: "El entorno cambia, no evoluciona."
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING, Optional, List
+
+from systems.environment.catastrophe_system import CatastropheSystem
+
+if TYPE_CHECKING:
+    from core.config.simulation_config import SimulationConfig
+    from core.state.world_state import WorldState
+    from systems.environment.world_config import WorldConfig
+    from systems.environment.environment_system import Season, Weather
+    from systems.environment.catastrophe_model import CatastropheEvent
+
+
+class EnvironmentDynamics:
+    """Gestiona los cambios lentos del entorno."""
+    
+    def __init__(
+        self,
+        world_config: Optional['WorldConfig'] = None,
+        config: Optional['SimulationConfig'] = None,
+    ) -> None:
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.world_config = world_config
+        self.config = config
+        
+        # Contadores de tiempo para cada escala
+        self._medium_scale_counter: float = 0.0
+        self._slow_scale_counter: float = 0.0
+        
+        # Intervalos de actualización (en días simulados)
+        self.medium_scale_interval: float = 15.0  # Cada 15 días
+        self.slow_scale_interval: float = 180.0   # Cada 180 días (6 meses)
+        
+        # Sistema de catástrofes (delegado)
+        self.catastrophe_system = CatastropheSystem(world_config)
+    
+    def _get_param(self, name: str, default: float) -> float:
+        """Lee un parámetro de dinámica ambiental desde la config en caliente."""
+        if self.config is not None:
+            dynamics_cfg = getattr(self.config, 'environment_dynamics', None)
+            if dynamics_cfg is not None:
+                return getattr(dynamics_cfg, name, default)
+        return default
+
+    
+    def process(
+        self,
+        state: 'WorldState',
+        delta_days: float,
+        current_season: 'Season',
+        current_weather: 'Weather',
+        world_config: Optional['WorldConfig'] = None,
+    ) -> List['CatastropheEvent']:
+        """Procesa los cambios ambientales del mundo.
+        
+        Args:
+            state: Estado del mundo con tile_map.
+            delta_days: Días transcurridos desde el último tick.
+            current_season: Estación actual.
+            current_weather: Clima actual.
+            world_config: Configuración física del mundo (opcional).
+            
+        Returns:
+            Lista de catástrofes ocurridas en este tick.
+        """
+        if not state.has_tile_map():
+            return []
+        
+        if world_config is not None:
+            self.world_config = world_config
+            self.catastrophe_system.world_config = world_config
+        
+        # Escala rápida: CATÁSTROFES (delegado a CatastropheSystem)
+        occurred_events = self.catastrophe_system.process(
+            state=state,
+            delta_days=delta_days,
+            current_season=current_season,
+            world_config=self.world_config,
+        )
+        
+        # Escala media: vegetación y fertilidad
+        self._medium_scale_counter += delta_days
+        if self._medium_scale_counter >= self._get_param('medium_scale_interval', self.medium_scale_interval):
+            self._process_medium_scale(state, current_season)
+            self._medium_scale_counter = 0.0
+        
+        # Escala lenta: erosión y geología
+        self._slow_scale_counter += delta_days
+        if self._slow_scale_counter >= self._get_param('slow_scale_interval', self.slow_scale_interval):
+            self._process_slow_scale(state)
+            self._slow_scale_counter = 0.0
+        
+        return occurred_events
+    
+    def _process_medium_scale(
+        self,
+        state: 'WorldState',
+        current_season: 'Season',
+    ) -> None:
+        """Procesa cambios a escala media: vegetación y fertilidad."""
+        from systems.environment.environment_system import Season
+        
+        if state.tile_map is None:
+            return
+        
+        # Factor estacional para crecimiento
+        growth_factor = 1.0
+        if current_season == Season.SPRING:
+            growth_factor = 1.5
+        elif current_season == Season.SUMMER:
+            growth_factor = 1.2
+        elif current_season == Season.AUTUMN:
+            growth_factor = 0.8
+        elif current_season == Season.WINTER:
+            growth_factor = 0.3
+        
+        # Procesar todos los tiles
+        for x in range(state.width):
+            for y in range(state.height):
+                tile = state.get_tile_at(x, y)
+                if tile is None:
+                    continue
+                
+                # Crecimiento vegetal
+                if tile.water > 0.2 and tile.temperature > 0.2 and tile.fertility > 0.3:
+                    # Condiciones favorables para crecimiento
+                    growth_potential = (tile.water + tile.temperature + tile.fertility) / 3.0
+                    growth_rate = growth_potential * 0.05 * growth_factor
+                    
+                    # La vegetación crece más lento cerca de su máximo
+                    if tile.vegetation < 0.9:
+                        tile.vegetation = min(1.0, tile.vegetation + growth_rate)
+                
+                elif tile.vegetation > 0.1:
+                    # Condiciones desfavorables: la vegetación decae
+                    decay_rate = 0.02
+                    tile.vegetation = max(0.0, tile.vegetation - decay_rate)
+                
+                # Acumulación de materia orgánica
+                if tile.vegetation > 0.4:
+                    # La vegetación alta produce materia orgánica
+                    organic_growth = tile.vegetation * 0.01
+                    tile.organic_matter = min(1.0, tile.organic_matter + organic_growth)
+                
+                elif tile.organic_matter > 0.1:
+                    # La materia orgánica se descompone lentamente
+                    decay_rate = 0.005
+                    tile.organic_matter = max(0.0, tile.organic_matter - decay_rate)
+                
+                # Fertilidad depende de materia orgánica
+                if tile.organic_matter > 0.3:
+                    # Alta materia orgánica aumenta fertilidad
+                    fertility_growth = tile.organic_matter * 0.005
+                    tile.fertility = min(1.0, tile.fertility + fertility_growth)
+                
+                elif tile.fertility > 0.2:
+                    # La fertilidad decae sin materia orgánica
+                    decay_rate = 0.003
+                    tile.fertility = max(0.0, tile.fertility - decay_rate)
+    
+    def _process_slow_scale(self, state: 'WorldState') -> None:
+        """Procesa cambios a escala lenta: erosión y geología."""
+        if state.tile_map is None:
+            return
+        
+        # Procesar todos los tiles
+        for x in range(state.width):
+            for y in range(state.height):
+                tile = state.get_tile_at(x, y)
+                if tile is None:
+                    continue
+                
+                # Erosión: tiles con pendiente alta pierden altura
+                if tile.slope > 0.3 and tile.height > 100.0:
+                    # La erosión es más fuerte en pendientes pronunciadas
+                    erosion_rate = tile.slope * 5.0  # metros por 180 días
+                    
+                    # La vegetación protege contra la erosión
+                    if tile.vegetation > 0.5:
+                        erosion_rate *= 0.3
+                    
+                    tile.height = max(0.0, tile.height - erosion_rate)
+                    
+                    # Recalcular pendiente después de erosión
+                    self._recalculate_slope(state, x, y)
+                
+                # Sedimentación: tiles bajos cerca de agua ganan altura
+                if tile.height < 50.0 and tile.water > 0.3:
+                    sedimentation_rate = 2.0  # metros por 180 días
+                    tile.height = min(200.0, tile.height + sedimentation_rate)
+    
+    def _recalculate_slope(self, state: 'WorldState', x: int, y: int) -> None:
+        """Recalcula la pendiente de un tile basándose en sus vecinos."""
+        tile = state.get_tile_at(x, y)
+        if tile is None:
+            return
+        
+        # Obtener alturas de vecinos
+        neighbors = []
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            neighbor = state.get_tile_at(x + dx, y + dy)
+            if neighbor:
+                neighbors.append(neighbor.height)
+        
+        if not neighbors:
+            return
+        
+        # Calcular diferencia máxima con vecinos
+        max_diff = max(abs(tile.height - h) for h in neighbors)
+        
+        # Normalizar a [0, 1] (asumiendo diferencia máxima de 100m)
+        tile.slope = min(1.0, max_diff / 100.0)
+    
+    def get_catastrophe_summary(self) -> dict:
+        """Retorna un resumen de la actividad catastrófica."""
+        return self.catastrophe_system.get_summary()
+    
+    def get_catastrophe_history(self) -> list:
+        """Retorna el historial completo de catástrofes."""
+        return self.catastrophe_system.get_history()
+    
+    def get_recent_catastrophes(self, count: int = 10) -> list:
+        """Retorna las N catástrofes más recientes."""
+        return self.catastrophe_system.get_recent_events(count)
+
+================================================================================
+ARCHIVO: .\systems\environment\environment_system.py
+================================================================================
+
+"""Módulo responsable del Entorno: Presión espacial, Clima y Recursos.
+
+Calcula la presión espacial basada en densidad poblacional y actúa como 
+infraestructura base para futuras expansiones de clima y catástrofes.
+
+Integra:
+- Infraestructura climática (estaciones y clima)
+- Sistema de dinámica ambiental (escala media y lenta)
+- Sistema de catástrofes (eventos catastróficos mayores)
+
+OPTIMIZACIÓN: Se elimina la precomputación O(N) de pressure_map. 
+Ahora la presión se calcula bajo demanda en O(1) a través de EnvironmentContext.
+"""
+
+import logging
+import random
+from enum import Enum, auto
+from typing import Dict, Tuple
+
+from systems.environment.environment_context import EnvironmentContext
+from systems.environment.environment_dynamics import EnvironmentDynamics
+from core.state.world_state import WorldState
+from core.state.pending_changes import PendingChanges
+from core.config.simulation_config import SimulationConfig
+from systems.environment.feedback_system import FeedbackSystem
+
+
+class Season(Enum):
+    SPRING = auto()
+    SUMMER = auto()
+    AUTUMN = auto()
+    WINTER = auto()
+
+
+class Weather(Enum):
+    CLEAR = auto()
+    RAINY = auto()
+    STORMY = auto()
+    DROUGHT = auto()
+    BLIZZARD = auto()
+
+
+class BiomeType(Enum):
+    PLAINS = auto()
+    FOREST = auto()
+    DESERT = auto()
+    TUNDRA = auto()
+
+
+class EnvironmentSystem:
+    """Calcula la presión espacial y gestiona la infraestructura climática."""
+
+    def __init__(self, config: SimulationConfig) -> None:
+        self.config = config
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.current_season: Season = Season.SPRING
+        self.current_weather: Weather = Weather.CLEAR
+        self.days_in_current_season: float = 0.0
+        self.season_duration_days: float = getattr(config.environment, 'season_duration_days', 90.0)
+        self.biome_map: Dict[Tuple[int, int], BiomeType] = {}
+        self.resource_grid: Dict[Tuple[int, int], Dict[str, float]] = {}
+        self.danger_zones: Dict[Tuple[int, int], float] = {}
+        self.dynamics = EnvironmentDynamics(world_config=None, config=self.config)
+        self.feedback_system = FeedbackSystem(self.config)
+
+    def process(
+        self,
+        state: WorldState,
+        pending: PendingChanges,
+        delta_days: float,
+        context: EnvironmentContext,
+    ) -> None:
+        """Actualiza el reloj climático y procesa la dinámica ambiental."""
+        # =====================================================================
+        # 1. INFRAESTRUCTURA CLIMÁTICA (Segura contra estados None)
+        # =====================================================================
+        if self.current_season is None:
+            self.current_season = Season.SPRING
+            self.logger.warning("current_season era None, reinicializado a SPRING")
+            
+        self.days_in_current_season += delta_days
+        if self.days_in_current_season >= self.season_duration_days:
+            self.days_in_current_season = 0.0
+            self._advance_season()
+
+        self._update_weather_placeholder(delta_days)
+
+        # Inyectar datos climáticos en el contexto
+        context.current_season = self.current_season
+        context.current_weather = self.current_weather
+        
+        # =====================================================================
+        # 2. DINÁMICA AMBIENTAL Y CATÁSTROFES (NUEVO)
+        # =====================================================================
+        occurred_events = self.dynamics.process(
+            state=state,
+            delta_days=delta_days,
+            current_season=self.current_season,
+            current_weather=self.current_weather,
+            world_config=getattr(state, 'world_config', None),
+        )
+        
+        # Registrar eventos catastróficos en el log
+        if occurred_events:
+            for event in occurred_events:
+                self.logger.info(f"⚠️ Catástrofe: {event}")
+
+        # =====================================================================
+        # 3. RETROALIMENTACIÓN ORGANISMOS-ENTORNO (NUEVO)
+        # =====================================================================
+        self.feedback_system.process(
+            state=state,
+            pending=pending,
+            delta_days=delta_days,
+            context=context,
+        )
+
+    def _advance_season(self) -> None:
+        if self.current_season is None:
+            self.current_season = Season.SPRING
+            
+        seasons = list(Season)
+        try:
+            next_index = (seasons.index(self.current_season) + 1) % len(seasons)
+            self.current_season = seasons[next_index]
+            self.logger.info(f"🌍 El entorno ha cambiado de estación a: {self.current_season.name}")
+        except ValueError as e:
+            self.logger.error(f"Error avanzado estación: {e}. Forzando SPRING.")
+            self.current_season = Season.SPRING
+
+    def _update_weather_placeholder(self, delta_days: float) -> None:
+        if self.current_season is None:
+            return
+            
+        if random.random() < (0.01 * delta_days):
+            if self.current_season == Season.WINTER:
+                self.current_weather = random.choice([Weather.CLEAR, Weather.RAINY, Weather.BLIZZARD])
+            elif self.current_season == Season.SUMMER:
+                self.current_weather = random.choice([Weather.CLEAR, Weather.DROUGHT])
+            else:
+                self.current_weather = random.choice([Weather.CLEAR, Weather.RAINY, Weather.STORMY])
+
+    def get_biome_at(self, x: float, y: float) -> BiomeType:
+        return self.biome_map.get((int(x), int(y)), BiomeType.PLAINS)
+
+    def get_resource_level(self, x: float, y: float, resource_type: str) -> float:
+        cell_resources = self.resource_grid.get((int(x), int(y)))
+        if cell_resources:
+            return cell_resources.get(resource_type, 100.0)
+        return 100.0
+
+    def get_danger_level(self, x: float, y: float) -> float:
+        biome = self.get_biome_at(x, y)
+        base_danger = 0.3 if biome in [BiomeType.DESERT, BiomeType.TUNDRA] else 0.0
+        return min(1.0, self.danger_zones.get((int(x), int(y)), 0.0) + base_danger)
+
+    def trigger_catastrophe(self, x: float, y: float, radius: float, severity: float) -> None:
+        """Método legacy para activar catástrofes manuales (compatibilidad)."""
+        self.logger.warning(f"¡CATÁSTROFE ACTIVADA en ({x}, {y}) con radio {radius}!")
+        for dx in range(int(-radius), int(radius) + 1):
+            for dy in range(int(-radius), int(radius) + 1):
+                target_coord = (int(x + dx), int(y + dy))
+                self.danger_zones[target_coord] = severity
+    
+    def get_catastrophe_summary(self) -> dict:
+        """Retorna un resumen de la actividad catastrófica (NUEVO)."""
+        return self.dynamics.get_catastrophe_summary()
+    
+    def get_catastrophe_history(self) -> list:
+        """Retorna el historial completo de catástrofes (NUEVO)."""
+        return self.dynamics.catastrophe_system.get_history()
+    
+    def get_recent_catastrophes(self, count: int = 10) -> list:
+        """Retorna las N catástrofes más recientes (NUEVO)."""
+        return self.dynamics.catastrophe_system.get_recent_events(count)
+
+    def get_feedback_summary(self, state: WorldState) -> dict:
+        """Retorna un resumen de la retroalimentación actual (NUEVO)."""
+        return self.feedback_system.get_impact_summary(state)
+
+================================================================================
+ARCHIVO: .\systems\environment\epidemiological_map.py
+================================================================================
+
+"""Estructura de datos espacial para el rastreo de cargas virales ambientales."""
+
+from collections import defaultdict
+import logging
+
+class EpidemiologicalMap:
+    """Almacén de datos (Sparse Grid) para la concentración de patógenos en el mapa."""
+
+    def __init__(self, max_viral_load: float) -> None:
+        """Inicializa la cuadrícula dispersa con el límite biológico del virus."""
+        # defaultdict permite no consumir memoria RAM en zonas seguras (vacías)
+        self.grid = defaultdict(float)
+        self.max_viral_load = max_viral_load
+        self.logger = logging.getLogger("EpidemiologicalMap")
+
+    def add_viral_load(self, x: int, y: int, amount: float) -> None:
+        """Incrementa la carga viral de una coordenada, topada por el límite máximo."""
+        coord = (int(x), int(y))
+        new_val = self.grid[coord] + amount
+        self.grid[coord] = min(new_val, self.max_viral_load)
+
+    def get_viral_load(self, x: int, y: int) -> float:
+        """Devuelve la carga viral presente en una coordenada específica."""
+        return self.grid.get((int(x), int(y)), 0.0)
+
+    def decay_viral_load(self, factor: float) -> None:
+        """Aplica disipación atmosférica reduciendo la carga de todo el mapa.
+        
+        Elimina las coordenadas cuya carga es insignificante para liberar memoria.
+        """
+        keys_to_delete = []
+        for coord in self.grid:
+            self.grid[coord] *= factor
+            if self.grid[coord] < 0.01:
+                keys_to_delete.append(coord)
+        
+        for coord in keys_to_delete:
+            del self.grid[coord]
+
+================================================================================
+ARCHIVO: .\systems\environment\epidemiological_system.py
+================================================================================
+
+"""Módulo responsable de la interacción entre los agentes y los patógenos del entorno.
+
+Gestiona la retroalimentación de enfermedades: los agentes infectados exhalan 
+y contaminan el entorno (fómites), y las celdas altamente contaminadas 
+infectan a los agentes sanos instanciando nuevas cepas ambientales.
+
+CORRECCIÓN: Valores de configuración centralizados, sin hardcodear.
+"""
+
+from __future__ import annotations
+
+import logging
+import math
+import random
+
+from core.config.simulation_config import SimulationConfig
+from core.state.pending_changes import PendingChanges
+from core.state.world_state import WorldState
+from systems.diseases.pathogen import Pathogen
+from systems.environment.environment_context import EnvironmentContext
+
+
+class EpidemiologicalSystem:
+    """Gestiona el rastro viral dejado por enfermos y el contagio por fómites."""
+
+    def __init__(self, config: SimulationConfig) -> None:
+        self.config = config
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    def process(
+        self,
+        state: WorldState,
+        pending: PendingChanges,
+        delta_days: float,
+        context: EnvironmentContext,
+    ) -> None:
+        """Procesa la retroalimentación virus-entorno-agente en cada tick."""
+        env_cfg = self.config.environment
+        dis_cfg = self.config.diseases
+
+        ep_map = state.epidemiological_map
+        all_persons = state.get_all_persons()
+
+        # =====================================================================
+        # 1. PROPAGACIÓN: Los agentes enfermos contaminan el entorno
+        # =====================================================================
+        for person in all_persons:
+            if person.entity_id in pending.deaths:
+                continue
+
+            if getattr(person, "is_sick", False):
+                is_contagious = False
+                for infection_state in person.active_infections.values():
+                    if infection_state.is_contagious():
+                        is_contagious = True
+                        break
+                
+                if is_contagious:
+                    exhalation_rate = env_cfg.viral_exhalation_rate
+                    ep_map.add_viral_load(person.x, person.y, amount=(exhalation_rate * delta_days))
+
+        # =====================================================================
+        # 2. CONTAGIO: El entorno infecta a los agentes sanos
+        # =====================================================================
+        base_transmission_rate = env_cfg.environmental_transmission_rate
+        viral_load_threshold = env_cfg.viral_load_threshold
+        viral_to_risk_factor = env_cfg.viral_to_risk_factor
+        
+        daily_transmission_rate = base_transmission_rate * viral_to_risk_factor
+
+        # CORRECCIÓN: Obtener valores de configuración en lugar de hardcodear
+        environmental_asymptomatic_chance = getattr(dis_cfg, 'environmental_asymptomatic_chance', 0.3)
+        environmental_incubation_days = getattr(dis_cfg, 'environmental_incubation_days', 5.0)
+
+        for person in all_persons:
+            if person.entity_id in pending.deaths or getattr(person, "is_sick", False):
+                continue
+
+            viral_load = ep_map.get_viral_load(person.x, person.y)
+
+            if viral_load > viral_load_threshold:
+                daily_risk = viral_load * daily_transmission_rate
+                total_risk = 1.0 - math.exp(-daily_risk * delta_days)
+
+                if random.random() < total_risk:
+                    env_pathogen = Pathogen(
+                        family="Environmental",
+                        variant_id=1,
+                        virulence=dis_cfg.base_virulence,
+                        transmission=dis_cfg.base_transmission,
+                        lethality=dis_cfg.base_lethality,
+                        asymptomatic_chance=environmental_asymptomatic_chance,
+                        incubation_days=environmental_incubation_days,
+                    )
+
+                    pending.register_infection(person.entity_id, env_pathogen)
+                    self.logger.debug(
+                        "🦠 Agente %s contagiado por rastro ambiental (carga viral: %.2f)",
+                        person.entity_id,
+                        viral_load,
+                    )
+
+        # =====================================================================
+        # 3. DECAIMIENTO: El virus se disipa o muere en el ambiente
+        # =====================================================================
+        decay_factor = env_cfg.viral_decay_factor
+        decay = decay_factor ** delta_days
+        ep_map.decay_viral_load(factor=decay)
+
+================================================================================
+ARCHIVO: .\systems\environment\feedback_system.py
+================================================================================
+
+"""Sistema de retroalimentación organismos-entorno.
+
+Cierra el ciclo de retroalimentación:
+1. Organismos impactan el entorno (OrganismImpactCalculator)
+2. Entorno cambia (FeedbackSystem aplica los impactos)
+3. Nuevas condiciones afectan a los organismos (ciclo se repite)
+
+Principio: "El entorno es un resultado emergente de la vida que contiene."
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import TYPE_CHECKING, Optional
+
+from systems.environment.organism_impact import OrganismImpactCalculator, TileImpact
+
+if TYPE_CHECKING:
+    from core.config.simulation_config import SimulationConfig
+    from core.state.world_state import WorldState
+    from core.state.pending_changes import PendingChanges
+    from systems.environment.environment_context import EnvironmentContext
+
+
+class FeedbackSystem:
+    """Sistema que aplica el impacto de los organismos al entorno."""
+    
+    def __init__(self, config: Optional['SimulationConfig'] = None) -> None:
+        self.config = config
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.impact_calculator = OrganismImpactCalculator()
+        
+        # Contador para procesamiento periódico (no cada tick)
+        self._process_counter: float = 0.0
+        self.process_interval: float = 5.0  # Respaldo; la fuente de verdad es config.feedback.process_interval_days
+        
+        # Factor de escala para los impactos (ajustable)
+        self.impact_scale: float = 1.0
+
+    def _get_process_interval(self) -> float:
+        """Devuelve el intervalo de procesamiento leyendo la config en caliente."""
+        if self.config is not None:
+            feedback_cfg = getattr(self.config, 'feedback', None)
+            if feedback_cfg is not None:
+                return getattr(feedback_cfg, 'process_interval_days', self.process_interval)
+        return self.process_interval
+    
+    def process(
+        self,
+        state: 'WorldState',
+        pending: 'PendingChanges',
+        delta_days: float,
+        context: 'EnvironmentContext',
+    ) -> None:
+        """Procesa la retroalimentación organismos-entorno.
+        
+        Args:
+            state: Estado del mundo con tile_map y persons.
+            pending: Búfer de cambios pendientes.
+            delta_days: Días transcurridos.
+            context: Contexto ambiental.
+        """
+        if not state.has_tile_map():
+            return
+        
+        # Procesar solo cada N días para optimización (lectura en caliente)
+        self._process_counter += delta_days
+        if self._process_counter < self._get_process_interval():
+            return
+        
+        self._process_counter = 0.0
+        
+        # Calcular impacto acumulado de todos los organismos
+        persons = list(state.get_all_persons())
+        if not persons:
+            return
+        
+        # CORRECCIÓN: Verificar que tile_map no sea None antes de acceder
+        tile_map = state.tile_map
+        if tile_map is None:
+            return
+        
+        accumulated_impacts = self.impact_calculator.calculate_accumulated(
+            persons=persons,
+            tile_map=tile_map.tiles,
+        )
+        
+        # Aplicar impactos al tile_map
+        tiles_modified = 0
+        for (x, y), impact in accumulated_impacts.items():
+            tile = state.get_tile_at(x, y)
+            if tile is None:
+                continue
+            
+            self._apply_impact(tile, impact)
+            tiles_modified += 1
+        
+        if tiles_modified > 0:
+            self.logger.debug(
+                f"🔄 Retroalimentación: {tiles_modified} tiles modificados "
+                f"por {len(persons)} organismos"
+            )
+    
+    def _apply_impact(self, tile, impact: TileImpact) -> None:
+        """Aplica un impacto acumulado a un tile.
+        
+        Args:
+            tile: El tile a modificar.
+            impact: El impacto acumulado a aplicar.
+        """
+        scale = self.impact_scale
+        
+        # Aplicar vegetación
+        if impact.vegetation_delta != 0.0:
+            tile.vegetation += impact.vegetation_delta * scale
+            tile.vegetation = max(0.0, min(1.0, tile.vegetation))
+        
+        # Aplicar materia orgánica
+        if impact.organic_matter_delta != 0.0:
+            tile.organic_matter += impact.organic_matter_delta * scale
+            tile.organic_matter = max(0.0, min(1.0, tile.organic_matter))
+        
+        # Aplicar fertilidad
+        if impact.fertility_delta != 0.0:
+            tile.fertility += impact.fertility_delta * scale
+            tile.fertility = max(0.0, min(1.0, tile.fertility))
+        
+        # Aplicar agua
+        if impact.water_delta != 0.0:
+            tile.water += impact.water_delta * scale
+            tile.water = max(0.0, min(1.0, tile.water))
+        
+        # Aplicar humedad
+        if impact.humidity_delta != 0.0:
+            tile.humidity += impact.humidity_delta * scale
+            tile.humidity = max(0.0, min(1.0, tile.humidity))
+        
+        # Aplicar altura
+        if impact.height_delta != 0.0:
+            tile.height += impact.height_delta * scale
+            # La altura puede ser negativa (océanos) o positiva (montañas)
+        
+        # Aplicar pendiente
+        if impact.slope_delta != 0.0:
+            tile.slope += impact.slope_delta * scale
+            tile.slope = max(0.0, min(1.0, tile.slope))
+        
+        # Aplicar temperatura
+        if impact.temperature_delta != 0.0:
+            tile.temperature += impact.temperature_delta * scale
+            tile.temperature = max(0.0, min(1.0, tile.temperature))
+        
+        # Aplicar urbanización (si el tile tiene esta variable)
+        if impact.urbanization_delta != 0.0:
+            if hasattr(tile, 'urbanization'):
+                tile.urbanization += impact.urbanization_delta * scale
+                tile.urbanization = max(0.0, min(1.0, tile.urbanization))
+    
+    def get_impact_summary(self, state: 'WorldState') -> dict:
+        """Retorna un resumen del impacto actual de los organismos.
+        
+        Args:
+            state: Estado del mundo.
+            
+        Returns:
+            Diccionario con estadísticas de impacto.
+        """
+        if not state.has_tile_map():
+            return {"total_organisms": 0, "tiles_with_impact": 0}
+        
+        persons = list(state.get_all_persons())
+        if not persons:
+            return {"total_organisms": 0, "tiles_with_impact": 0}
+        
+        # Verificar que tile_map no sea None antes de acceder
+        tile_map = state.tile_map
+        if tile_map is None:
+            return {"total_organisms": 0, "tiles_with_impact": 0}
+        
+        accumulated = self.impact_calculator.calculate_accumulated(
+            persons=persons,
+            tile_map=tile_map.tiles,
+        )
+        
+        # Calcular estadísticas
+        total_vegetation_impact = sum(
+            abs(i.vegetation_delta) for i in accumulated.values()
+        )
+        total_fertility_impact = sum(
+            abs(i.fertility_delta) for i in accumulated.values()
+        )
+        
+        return {
+            "total_organisms": len(persons),
+            "tiles_with_impact": len(accumulated),
+            "total_vegetation_impact": total_vegetation_impact,
+            "total_fertility_impact": total_fertility_impact,
+        }
+
+================================================================================
+ARCHIVO: .\systems\environment\habitat_compatibility.py
+================================================================================
+
+"""Calculador de compatibilidad entre especies y tiles.
+
+Determina qué tan adecuado es un tile para una especie específica,
+basándose en las preferencias de hábitat de la especie y las variables
+ambientales reales del tile.
+
+La compatibilidad es un valor [0.0, 1.0]:
+- 1.0 = Perfecto: el tile cumple todas las preferencias de la especie
+- 0.5 = Aceptable: el tile es habitable pero no ideal
+- 0.0 = Inhabitable: el tile no cumple las necesidades mínimas
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from systems.environment.tile import Tile
+    from systems.environment.habitat_preference import HabitatPreference
+
+
+class HabitatCompatibility:
+    """Calcula la compatibilidad entre una especie y un tile."""
+    
+    @staticmethod
+    def calculate(
+        tile: 'Tile',
+        preference: 'HabitatPreference',
+    ) -> float:
+        """Calcula la compatibilidad entre un tile y las preferencias de hábitat.
+        
+        Usa una función gaussiana ponderada para cada variable:
+        - Cuanto más cerca del ideal, mayor puntuación
+        - La tolerancia determina qué tan rápido cae la puntuación
+        
+        Args:
+            tile: El tile a evaluar.
+            preference: Las preferencias de hábitat de la especie.
+            
+        Returns:
+            Puntuación de compatibilidad [0.0, 1.0].
+        """
+        # Calcular puntuación para cada variable
+        scores = []
+        weights = []
+        
+        # Temperatura (peso alto: muy importante)
+        scores.append(HabitatCompatibility._score_variable(
+            tile.temperature,
+            preference.temperature_ideal,
+            preference.temperature_tolerance,
+        ))
+        weights.append(1.5)
+        
+        # Humedad (peso medio-alto)
+        scores.append(HabitatCompatibility._score_variable(
+            tile.humidity,
+            preference.humidity_ideal,
+            preference.humidity_tolerance,
+        ))
+        weights.append(1.2)
+        
+        # Agua (peso alto: crítico para muchas especies)
+        scores.append(HabitatCompatibility._score_variable(
+            tile.water,
+            preference.water_ideal,
+            preference.water_tolerance,
+        ))
+        weights.append(1.5)
+        
+        # Vegetación (peso medio)
+        scores.append(HabitatCompatibility._score_variable(
+            tile.vegetation,
+            preference.vegetation_ideal,
+            preference.vegetation_tolerance,
+        ))
+        weights.append(1.0)
+        
+        # Altitud (peso medio-bajo)
+        scores.append(HabitatCompatibility._score_variable(
+            HabitatCompatibility._normalize_altitude(tile.height),
+            preference.altitude_ideal,
+            preference.altitude_tolerance,
+        ))
+        weights.append(0.8)
+        
+        # Pendiente (peso medio-bajo)
+        scores.append(HabitatCompatibility._score_variable(
+            tile.slope,
+            preference.slope_ideal,
+            preference.slope_tolerance,
+        ))
+        weights.append(0.8)
+        
+        # Fertilidad (peso medio)
+        scores.append(HabitatCompatibility._score_variable(
+            tile.fertility,
+            preference.fertility_ideal,
+            preference.fertility_tolerance,
+        ))
+        weights.append(1.0)
+        
+        # Salinidad (peso alto para especies acuáticas)
+        scores.append(HabitatCompatibility._score_variable(
+            tile.salinity,
+            preference.salinity_ideal,
+            preference.salinity_tolerance,
+        ))
+        weights.append(1.3)
+        
+        # Rococidad (peso bajo)
+        scores.append(HabitatCompatibility._score_variable(
+            tile.rockiness,
+            preference.rockiness_ideal,
+            preference.rockiness_tolerance,
+        ))
+        weights.append(0.7)
+        
+        # Media ponderada
+        total_score = sum(s * w for s, w in zip(scores, weights))
+        total_weight = sum(weights)
+        
+        return total_score / total_weight
+    
+    @staticmethod
+    def _score_variable(
+        actual: float,
+        ideal: float,
+        tolerance: float,
+    ) -> float:
+        """Calcula la puntuación de una variable individual.
+        
+        Usa una función gaussiana: score = exp(-((actual - ideal) / tolerance)^2)
+        - Si actual == ideal: score = 1.0
+        - Si |actual - ideal| == tolerance: score ≈ 0.37
+        - Si |actual - ideal| == 2 * tolerance: score ≈ 0.018
+        
+        Args:
+            actual: Valor real de la variable en el tile.
+            ideal: Valor ideal para la especie.
+            tolerance: Tolerancia de la especie a esta variable.
+            
+        Returns:
+            Puntuación [0.0, 1.0].
+        """
+        if tolerance <= 0.0:
+            # Sin tolerancia: solo el valor ideal es aceptable
+            return 1.0 if abs(actual - ideal) < 0.01 else 0.0
+        
+        import math
+        deviation = (actual - ideal) / tolerance
+        score = math.exp(-deviation * deviation)
+        
+        return max(0.0, min(1.0, score))
+    
+    @staticmethod
+    def _normalize_altitude(height: float) -> float:
+        """Convierte altitud en metros a un valor [0.0, 1.0].
+        
+        Asume que:
+        - -500m (océano profundo) = 0.0
+        - 0m (nivel del mar) = 0.2
+        - 3000m (montaña alta) = 1.0
+        """
+        # Normalizar: -500 → 0.0, 0 → 0.2, 3000 → 1.0
+        normalized = (height + 500.0) / 3500.0
+        return max(0.0, min(1.0, normalized))
+    
+    @staticmethod
+    def get_compatibility_level(score: float) -> str:
+        """Convierte un score numérico en una categoría legible.
+        
+        Args:
+            score: Puntuación de compatibilidad [0.0, 1.0].
+            
+        Returns:
+            Categoría: "inhabitable", "poor", "acceptable", "good", "ideal"
+        """
+        if score >= 0.85:
+            return "ideal"
+        elif score >= 0.65:
+            return "good"
+        elif score >= 0.45:
+            return "acceptable"
+        elif score >= 0.25:
+            return "poor"
+        else:
+            return "inhabitable"
+
+================================================================================
+ARCHIVO: .\systems\environment\habitat_preference.py
+================================================================================
+
+"""Preferencias ecológicas de una especie.
+
+Cada especie define las condiciones ambientales que necesita para prosperar.
+NO define biomas directamente; solo define rangos de variables ambientales.
+
+Ejemplo:
+- Humano: temperatura 15-30°C, agua alta, pendiente baja
+- Pez: agua muy alta, profundidad alta, salinidad media
+- Pino: temperatura baja, altitud alta, suelo pobre
+
+La compatibilidad con un tile se calcula comparando estas preferencias
+con las variables reales del tile.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass
+class HabitatPreference:
+    """Define las preferencias ambientales de una especie.
+    
+    Cada preferencia tiene un valor ideal [0.0, 1.0] y una tolerancia [0.0, 1.0].
+    La tolerancia indica cuánto puede desviarse el ambiente del ideal.
+    
+    Attributes:
+        temperature_ideal: Temperatura ideal [0.0 = frío, 1.0 = calor]
+        temperature_tolerance: Tolerancia de temperatura [0.0 = estricto, 1.0 = flexible]
+        humidity_ideal: Humedad ideal [0.0 = árido, 1.0 = saturado]
+        humidity_tolerance: Tolerancia de humedad
+        water_ideal: Nivel de agua ideal [0.0 = seco, 1.0 = acuático]
+        water_tolerance: Tolerancia al agua
+        vegetation_ideal: Vegetación ideal [0.0 = sin vegetación, 1.0 = selva]
+        vegetation_tolerance: Tolerancia de vegetación
+        altitude_ideal: Altitud ideal [0.0 = nivel del mar, 1.0 = montaña]
+        altitude_tolerance: Tolerancia de altitud
+        slope_ideal: Pendiente ideal [0.0 = plano, 1.0 = acantilado]
+        slope_tolerance: Tolerancia de pendiente
+        fertility_ideal: Fertilidad ideal [0.0 = estéril, 1.0 = fértil]
+        fertility_tolerance: Tolerancia de fertilidad
+        salinity_ideal: Salinidad ideal [0.0 = dulce, 1.0 = salado]
+        salinity_tolerance: Tolerancia de salinidad
+    """
+    
+    # Temperatura
+    temperature_ideal: float = 0.5
+    temperature_tolerance: float = 0.3
+    
+    # Humedad
+    humidity_ideal: float = 0.5
+    humidity_tolerance: float = 0.3
+    
+    # Agua
+    water_ideal: float = 0.2
+    water_tolerance: float = 0.3
+    
+    # Vegetación
+    vegetation_ideal: float = 0.4
+    vegetation_tolerance: float = 0.3
+    
+    # Altitud
+    altitude_ideal: float = 0.2
+    altitude_tolerance: float = 0.4
+    
+    # Pendiente
+    slope_ideal: float = 0.2
+    slope_tolerance: float = 0.3
+    
+    # Fertilidad
+    fertility_ideal: float = 0.5
+    fertility_tolerance: float = 0.3
+    
+    # Salinidad
+    salinity_ideal: float = 0.1
+    salinity_tolerance: float = 0.3
+    
+    # Rococidad
+    rockiness_ideal: float = 0.2
+    rockiness_tolerance: float = 0.4
+    
+    def to_dict(self) -> dict:
+        """Serializa las preferencias para debugging."""
+        return {
+            'temperature': (self.temperature_ideal, self.temperature_tolerance),
+            'humidity': (self.humidity_ideal, self.humidity_tolerance),
+            'water': (self.water_ideal, self.water_tolerance),
+            'vegetation': (self.vegetation_ideal, self.vegetation_tolerance),
+            'altitude': (self.altitude_ideal, self.altitude_tolerance),
+            'slope': (self.slope_ideal, self.slope_tolerance),
+            'fertility': (self.fertility_ideal, self.fertility_tolerance),
+            'salinity': (self.salinity_ideal, self.salinity_tolerance),
+            'rockiness': (self.rockiness_ideal, self.rockiness_tolerance),
+        }
+
+
+# =============================================================================
+# PRESETS DE PREFERENCIAS PARA ESPECIES COMUNES
+# =============================================================================
+
+def create_human_habitat() -> HabitatPreference:
+    """Humanos: prefieren llanuras templadas con acceso a agua."""
+    return HabitatPreference(
+        temperature_ideal=0.5,
+        temperature_tolerance=0.25,
+        humidity_ideal=0.5,
+        humidity_tolerance=0.25,
+        water_ideal=0.3,
+        water_tolerance=0.3,
+        vegetation_ideal=0.5,
+        vegetation_tolerance=0.3,
+        altitude_ideal=0.15,
+        altitude_tolerance=0.25,
+        slope_ideal=0.1,
+        slope_tolerance=0.2,
+        fertility_ideal=0.7,
+        fertility_tolerance=0.3,
+        salinity_ideal=0.05,
+        salinity_tolerance=0.1,
+    )
+
+
+def create_fish_habitat() -> HabitatPreference:
+    """Peces: necesitan agua abundante (alta profundidad)."""
+    return HabitatPreference(
+        temperature_ideal=0.5,
+        temperature_tolerance=0.3,
+        humidity_ideal=0.8,
+        humidity_tolerance=0.3,
+        water_ideal=0.9,
+        water_tolerance=0.15,
+        vegetation_ideal=0.2,
+        vegetation_tolerance=0.4,
+        altitude_ideal=0.1,
+        altitude_tolerance=0.2,
+        slope_ideal=0.0,
+        slope_tolerance=0.5,
+        fertility_ideal=0.4,
+        fertility_tolerance=0.4,
+        salinity_ideal=0.5,
+        salinity_tolerance=0.5,  # Alta tolerancia: agua dulce o salada
+    )
+
+
+def create_bird_habitat() -> HabitatPreference:
+    """Aves: prefieren áreas abiertas con vegetación moderada."""
+    return HabitatPreference(
+        temperature_ideal=0.5,
+        temperature_tolerance=0.35,
+        humidity_ideal=0.4,
+        humidity_tolerance=0.35,
+        water_ideal=0.2,
+        water_tolerance=0.4,
+        vegetation_ideal=0.4,
+        vegetation_tolerance=0.35,
+        altitude_ideal=0.3,
+        altitude_tolerance=0.4,
+        slope_ideal=0.15,
+        slope_tolerance=0.25,
+        fertility_ideal=0.5,
+        fertility_tolerance=0.35,
+        salinity_ideal=0.1,
+        salinity_tolerance=0.2,
+    )
+
+
+def create_goat_habitat() -> HabitatPreference:
+    """Cabras: prefieren terrenos montañosos con vegetación escasa."""
+    return HabitatPreference(
+        temperature_ideal=0.45,
+        temperature_tolerance=0.3,
+        humidity_ideal=0.3,
+        humidity_tolerance=0.3,
+        water_ideal=0.15,
+        water_tolerance=0.25,
+        vegetation_ideal=0.25,
+        vegetation_tolerance=0.3,
+        altitude_ideal=0.6,
+        altitude_tolerance=0.3,
+        slope_ideal=0.5,
+        slope_tolerance=0.3,
+        fertility_ideal=0.3,
+        fertility_tolerance=0.35,
+        salinity_ideal=0.05,
+        salinity_tolerance=0.15,
+        rockiness_ideal=0.6,
+        rockiness_tolerance=0.3,
+    )
+
+
+def create_pine_habitat() -> HabitatPreference:
+    """Pinos: prefieren climas fríos y suelos pobres."""
+    return HabitatPreference(
+        temperature_ideal=0.3,
+        temperature_tolerance=0.25,
+        humidity_ideal=0.45,
+        humidity_tolerance=0.3,
+        water_ideal=0.25,
+        water_tolerance=0.25,
+        vegetation_ideal=0.5,
+        vegetation_tolerance=0.3,
+        altitude_ideal=0.5,
+        altitude_tolerance=0.35,
+        slope_ideal=0.2,
+        slope_tolerance=0.35,
+        fertility_ideal=0.3,
+        fertility_tolerance=0.4,
+        salinity_ideal=0.0,
+        salinity_tolerance=0.1,
+    )
+
+
+def create_desert_plant_habitat() -> HabitatPreference:
+    """Plantas desérticas: calor extremo, poca agua."""
+    return HabitatPreference(
+        temperature_ideal=0.85,
+        temperature_tolerance=0.2,
+        humidity_ideal=0.1,
+        humidity_tolerance=0.15,
+        water_ideal=0.05,
+        water_tolerance=0.15,
+        vegetation_ideal=0.1,
+        vegetation_tolerance=0.3,
+        altitude_ideal=0.2,
+        altitude_tolerance=0.3,
+        slope_ideal=0.1,
+        slope_tolerance=0.3,
+        fertility_ideal=0.2,
+        fertility_tolerance=0.4,
+        salinity_ideal=0.1,
+        salinity_tolerance=0.3,
+    )
+
+
+def create_aquatic_plant_habitat() -> HabitatPreference:
+    """Plantas acuáticas: mucha agua, poca pendiente."""
+    return HabitatPreference(
+        temperature_ideal=0.5,
+        temperature_tolerance=0.3,
+        humidity_ideal=0.9,
+        humidity_tolerance=0.15,
+        water_ideal=0.85,
+        water_tolerance=0.2,
+        vegetation_ideal=0.3,
+        vegetation_tolerance=0.4,
+        altitude_ideal=0.1,
+        altitude_tolerance=0.2,
+        slope_ideal=0.0,
+        slope_tolerance=0.15,
+        fertility_ideal=0.6,
+        fertility_tolerance=0.3,
+        salinity_ideal=0.2,
+        salinity_tolerance=0.5,
+    )
+
+
+def create_fungus_habitat() -> HabitatPreference:
+    """Hongos: prefieren humedad alta y materia orgánica."""
+    return HabitatPreference(
+        temperature_ideal=0.4,
+        temperature_tolerance=0.35,
+        humidity_ideal=0.7,
+        humidity_tolerance=0.25,
+        water_ideal=0.3,
+        water_tolerance=0.3,
+        vegetation_ideal=0.5,
+        vegetation_tolerance=0.3,
+        altitude_ideal=0.2,
+        altitude_tolerance=0.4,
+        slope_ideal=0.1,
+        slope_tolerance=0.4,
+        fertility_ideal=0.7,
+        fertility_tolerance=0.3,
+        salinity_ideal=0.05,
+        salinity_tolerance=0.1,
+    )
+
+
+def create_bacteria_habitat() -> HabitatPreference:
+    """Bacterias: muy tolerantes, sobreviven en casi cualquier lugar."""
+    return HabitatPreference(
+        temperature_ideal=0.5,
+        temperature_tolerance=0.6,  # Muy tolerante
+        humidity_ideal=0.5,
+        humidity_tolerance=0.6,
+        water_ideal=0.4,
+        water_tolerance=0.5,
+        vegetation_ideal=0.3,
+        vegetation_tolerance=0.6,
+        altitude_ideal=0.2,
+        altitude_tolerance=0.6,
+        slope_ideal=0.1,
+        slope_tolerance=0.6,
+        fertility_ideal=0.5,
+        fertility_tolerance=0.6,
+        salinity_ideal=0.3,
+        salinity_tolerance=0.6,
+    )
+
+
+# =============================================================================
+# REGISTRO DE PRESETS
+# =============================================================================
+
+HABITAT_PRESETS = {
+    'human': create_human_habitat,
+    'fish': create_fish_habitat,
+    'bird': create_bird_habitat,
+    'goat': create_goat_habitat,
+    'pine': create_pine_habitat,
+    'desert_plant': create_desert_plant_habitat,
+    'aquatic_plant': create_aquatic_plant_habitat,
+    'fungus': create_fungus_habitat,
+    'bacteria': create_bacteria_habitat,
+}
+
+================================================================================
+ARCHIVO: .\systems\environment\organism_impact.py
+================================================================================
+
+"""Calculadora de impacto de organismos en el entorno.
+
+Cada organismo modifica el tile donde se encuentra basándose en sus
+rasgos genéticos. Este es el primer paso del ciclo de retroalimentación:
+organismos → entorno.
+
+Principio: "Los organismos no solo se adaptan al entorno, lo transforman."
+"""
+
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from entities.person.person import Person
+    from systems.environment.tile import Tile
+
+
+@dataclass
+class TileImpact:
+    """Representa las modificaciones que un organismo aplica a un tile.
+    
+    Todos los valores son deltas (cambios) que se suman a las variables
+    actuales del tile. Valores positivos aumentan, negativos reducen.
+    
+    Attributes:
+        vegetation_delta: Cambio en vegetación [-0.1, 0.1]
+        organic_matter_delta: Cambio en materia orgánica [-0.1, 0.1]
+        fertility_delta: Cambio en fertilidad [-0.1, 0.1]
+        water_delta: Cambio en agua [-0.1, 0.1]
+        humidity_delta: Cambio en humedad [-0.1, 0.1]
+        height_delta: Cambio en altura [-5.0, 5.0] (metros)
+        slope_delta: Cambio en pendiente [-0.1, 0.1]
+        temperature_delta: Cambio en temperatura [-0.1, 0.1]
+        urbanization_delta: Cambio en urbanización [-0.1, 0.1]
+    """
+    
+    vegetation_delta: float = 0.0
+    organic_matter_delta: float = 0.0
+    fertility_delta: float = 0.0
+    water_delta: float = 0.0
+    humidity_delta: float = 0.0
+    height_delta: float = 0.0
+    slope_delta: float = 0.0
+    temperature_delta: float = 0.0
+    urbanization_delta: float = 0.0
+    
+    def is_empty(self) -> bool:
+        """Verifica si el impacto es nulo."""
+        return (
+            self.vegetation_delta == 0.0 and
+            self.organic_matter_delta == 0.0 and
+            self.fertility_delta == 0.0 and
+            self.water_delta == 0.0 and
+            self.humidity_delta == 0.0 and
+            self.height_delta == 0.0 and
+            self.slope_delta == 0.0 and
+            self.temperature_delta == 0.0 and
+            self.urbanization_delta == 0.0
+        )
+
+
+class OrganismImpactCalculator:
+    """Calcula el impacto de un organismo en su tile actual."""
+    
+    def __init__(self) -> None:
+        self.logger = logging.getLogger(self.__class__.__name__)
+    
+    def calculate(self, person: 'Person', tile: 'Tile') -> TileImpact:
+        """Calcula el impacto de un organismo en un tile.
+        
+        Args:
+            person: El organismo que está en el tile.
+            tile: El tile donde está el organismo.
+            
+        Returns:
+            TileImpact con las modificaciones a aplicar.
+        """
+        genome = person.genome
+        
+        # Obtener rasgos relevantes
+        photosynthesis = genome.get_trait_value("photosynthesis") if genome.has_trait("photosynthesis") else 0.0
+        heterotrophy = genome.get_trait_value("heterotrophy") if genome.has_trait("heterotrophy") else 0.0
+        intelligence = genome.get_trait_value("intelligence") if genome.has_trait("intelligence") else 0.0
+        sociability = genome.get_trait_value("sociability") if genome.has_trait("sociability") else 0.0
+        metabolism = genome.get_trait_value("metabolism") if genome.has_trait("metabolism") else 0.5
+        growth_rate = genome.get_trait_value("growth_rate") if genome.has_trait("growth_rate") else 0.5
+        flight = genome.get_trait_value("flight") if genome.has_trait("flight") else 0.0
+        swimming = genome.get_trait_value("swimming") if genome.has_trait("swimming") else 0.0
+        symbiosis = genome.get_trait_value("symbiosis") if genome.has_trait("symbiosis") else 0.0
+        
+        impact = TileImpact()
+        
+        # =====================================================================
+        # PLANTAS Y ORGANISMOS FOTOSINTÉTICOS
+        # =====================================================================
+        if photosynthesis > 0.5:
+            # Producen vegetación y materia orgánica
+            impact.vegetation_delta += 0.02 * photosynthesis
+            impact.organic_matter_delta += 0.01 * photosynthesis
+            impact.fertility_delta += 0.005 * photosynthesis
+            
+            # Absorben agua y CO2 (reducen ligeramente el agua)
+            impact.water_delta -= 0.005 * photosynthesis
+        
+        # =====================================================================
+        # HERBÍVOROS Y CONSUMIDORES
+        # =====================================================================
+        if heterotrophy > 0.5 and photosynthesis < 0.3 and symbiosis < 1.0:
+            # Consumen vegetación
+            consumption_rate = 0.015 * heterotrophy * metabolism
+            impact.vegetation_delta -= consumption_rate
+            
+            # Producen materia orgánica (excrementos, cuerpos)
+            impact.organic_matter_delta += 0.008 * heterotrophy
+            
+            # Erosión por pisoteo (si son grandes/móviles)
+            speed = genome.get_trait_value("speed") if genome.has_trait("speed") else 0.5
+            if speed > 0.7:
+                impact.slope_delta += 0.002 * speed
+                impact.height_delta -= 0.1 * speed
+        
+        # =====================================================================
+        # HUMANOS Y ORGANISMOS INTELIGENTES
+        # =====================================================================
+        if intelligence > 1.0 and sociability > 0.8:
+            # Agricultura: aumenta fertilidad pero reduce vegetación natural
+            impact.fertility_delta += 0.01 * intelligence
+            impact.vegetation_delta -= 0.01 * intelligence
+            
+            # Urbanización: reduce vegetación y aumenta temperatura (isla de calor)
+            if sociability > 1.2:
+                impact.urbanization_delta += 0.02 * sociability
+                impact.temperature_delta += 0.005 * sociability
+                impact.vegetation_delta -= 0.01 * sociability
+            
+            # Modificación del terreno
+            impact.height_delta += 0.5 * intelligence  # Construcciones
+        
+        # =====================================================================
+        # HONGOS Y DESCOMPONEDORES
+        # =====================================================================
+        if growth_rate > 1.0 and heterotrophy > 0.5 and photosynthesis < 0.2:
+            # Descomponen materia orgánica y la convierten en fertilidad
+            impact.organic_matter_delta -= 0.01 * growth_rate
+            impact.fertility_delta += 0.015 * growth_rate
+        
+        # =====================================================================
+        # ORGANISMOS SIMBIÓTICOS (hongos, líquenes, bacterias simbióticas)
+        # =====================================================================
+        if symbiosis > 0.5:
+            # Los organismos simbióticos mejoran la fertilidad del suelo
+            # más de lo que lo harían solo por descomposición.
+            # Las redes de micelio aportan nutrientes a las plantas cercanas.
+            impact.fertility_delta += 0.01 * symbiosis
+            
+            # Retienen más agua (el micelio actúa como esponja)
+            impact.water_delta += 0.005 * symbiosis
+            
+            # Producen materia orgánica (biomasa simbiótica)
+            impact.organic_matter_delta += 0.005 * symbiosis
+            
+            # Si el tile tiene vegetación, el symbiosis la potencia
+            # (las micorrizas mejoran el crecimiento de plantas)
+            if tile.vegetation > 0.3:
+                impact.vegetation_delta += 0.008 * symbiosis
+        
+        # =====================================================================
+        # ORGANISMOS ACUÁTICOS
+        # =====================================================================
+        if swimming > 1.0:
+            # Movimiento en agua: redistribuyen sedimentos
+            impact.water_delta += 0.005 * swimming
+            impact.height_delta -= 0.05 * swimming  # Erosión acuática
+        
+        # =====================================================================
+        # AVES Y DISPERSORES DE SEMILLAS
+        # =====================================================================
+        if flight > 1.0:
+            # Dispersan semillas: aumentan vegetación en áreas nuevas
+            if tile.vegetation < 0.5:
+                impact.vegetation_delta += 0.01 * flight
+        
+        return impact
+    
+    def calculate_accumulated(
+        self,
+        persons: list,
+        tile_map: dict,
+    ) -> dict:
+        """Calcula el impacto acumulado de todos los organismos.
+        
+        Incluye el efecto simbiótico de redes de micelio que conectan
+        tiles adyacentes con vegetación.
+        
+        Args:
+            persons: Lista de todos los organismos.
+            tile_map: Diccionario de tiles del mundo.
+            
+        Returns:
+            Diccionario de (x, y) -> TileImpact acumulado.
+        """
+        accumulated: dict = {}
+        
+        # =====================================================================
+        # PASO 1: Acumular impactos individuales
+        # =====================================================================
+        for person in persons:
+            x, y = int(person.x), int(person.y)
+            tile = tile_map.get((x, y))
+            
+            if tile is None:
+                continue
+            
+            impact = self.calculate(person, tile)
+            
+            if impact.is_empty():
+                continue
+            
+            # Acumular impacto
+            if (x, y) not in accumulated:
+                accumulated[(x, y)] = TileImpact()
+            
+            acc = accumulated[(x, y)]
+            acc.vegetation_delta += impact.vegetation_delta
+            acc.organic_matter_delta += impact.organic_matter_delta
+            acc.fertility_delta += impact.fertility_delta
+            acc.water_delta += impact.water_delta
+            acc.humidity_delta += impact.humidity_delta
+            acc.height_delta += impact.height_delta
+            acc.slope_delta += impact.slope_delta
+            acc.temperature_delta += impact.temperature_delta
+            acc.urbanization_delta += impact.urbanization_delta
+        
+        # =====================================================================
+        # PASO 2: Efecto simbiótico de red (hongos conectan tiles vecinos)
+        # =====================================================================
+        # Identificar tiles con alta presencia simbiótica
+        symbiosis_by_tile: dict = {}
+        for person in persons:
+            symbiosis = person.genome.get_trait_value("symbiosis") if person.genome.has_trait("symbiosis") else 0.0
+            if symbiosis > 0.5:
+                x, y = int(person.x), int(person.y)
+                symbiosis_by_tile[(x, y)] = symbiosis_by_tile.get((x, y), 0.0) + symbiosis
+        
+        # Aplicar efecto a tiles adyacentes con vegetación
+        # Esto representa las redes de micelio que conectan plantas cercanas
+        for (x, y), total_symbiosis in symbiosis_by_tile.items():
+            # Buscar tiles adyacentes (8 direcciones)
+            for dx in [-1, 0, 1]:
+                for dy in [-1, 0, 1]:
+                    if dx == 0 and dy == 0:
+                        continue  # Saltar el tile central
+                    
+                    neighbor_key = (x + dx, y + dy)
+                    neighbor_tile = tile_map.get(neighbor_key)
+                    
+                    if neighbor_tile is None:
+                        continue
+                    
+                    # Solo aplicar efecto si el tile vecino tiene vegetación
+                    if neighbor_tile.vegetation > 0.3:
+                        # El hongo mejora la fertilidad del tile vecino
+                        symbiosis_boost = 0.003 * total_symbiosis
+                        
+                        if neighbor_key not in accumulated:
+                            accumulated[neighbor_key] = TileImpact()
+                        
+                        accumulated[neighbor_key].fertility_delta += symbiosis_boost
+                        
+                        # También mejora ligeramente la retención de agua
+                        accumulated[neighbor_key].water_delta += symbiosis_boost * 0.5
+        
+        return accumulated
+
+================================================================================
+ARCHIVO: .\systems\environment\tile.py
+================================================================================
+
+"""Modelo de Tile con variables ambientales continuas.
+
+Cada tile del mundo almacena variables físicas continuas (altura, temperatura,
+humedad, agua, vegetación, etc.). Los biomas NO se almacenan, se calculan
+dinámicamente a partir de estas variables.
+
+Principio fundamental: "El bioma es una consecuencia, no un dato."
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass
+class Tile:
+    """Representa una casilla del mundo con variables ambientales continuas.
+    
+    Todas las variables están normalizadas en el rango [0.0, 1.0] excepto
+    'height' que usa una escala absoluta (metros sobre el nivel del mar).
+    
+    Attributes:
+        height: Altitud en metros (puede ser negativa para océanos)
+        slope: Pendiente del terreno [0.0 = plano, 1.0 = acantilado]
+        temperature: Temperatura relativa [0.0 = helado, 1.0 = extremo calor]
+        humidity: Humedad ambiental [0.0 = árido, 1.0 = saturado]
+        water: Presencia de agua superficial [0.0 = seco, 1.0 = lago profundo]
+        fertility: Fertilidad del suelo [0.0 = estéril, 1.0 = muy fértil]
+        vegetation: Cobertura vegetal [0.0 = sin vegetación, 1.0 = selva densa]
+        organic_matter: Materia orgánica [0.0 = sin materia, 1.0 = suelo rico]
+        rockiness: Rococidad [0.0 = sin rocas, 1.0 = terreno rocoso]
+        salinity: Salinidad [0.0 = dulce, 1.0 = salado como océano]
+    """
+    
+    # Topografía
+    height: float = 0.0           # Metros sobre nivel del mar
+    slope: float = 0.0            # [0.0, 1.0]
+    
+    # Clima
+    temperature: float = 0.5      # [0.0, 1.0]
+    humidity: float = 0.5         # [0.0, 1.0]
+    
+    # Hidrología
+    water: float = 0.0            # [0.0, 1.0]
+    salinity: float = 0.0         # [0.0, 1.0]
+    
+    # Suelo y vegetación
+    fertility: float = 0.5        # [0.0, 1.0]
+    vegetation: float = 0.0       # [0.0, 1.0]
+    organic_matter: float = 0.0   # [0.0, 1.0]
+    rockiness: float = 0.0        # [0.0, 1.0]
+
+    # Urbanización (impacto humano)
+    urbanization: float = 0.0
+    
+    def normalize(self) -> None:
+        """Asegura que todas las variables estén en [0.0, 1.0]."""
+        for attr in ['slope', 'temperature', 'humidity', 'water', 'salinity',
+                     'fertility', 'vegetation', 'organic_matter', 'rockiness']:
+            value = getattr(self, attr)
+            setattr(self, attr, max(0.0, min(1.0, value)))
+    
+    def to_dict(self) -> dict:
+        """Serializa el tile para debugging o exportación."""
+        return {
+            'height': self.height,
+            'slope': self.slope,
+            'temperature': self.temperature,
+            'humidity': self.humidity,
+            'water': self.water,
+            'fertility': self.fertility,
+            'vegetation': self.vegetation,
+            'organic_matter': self.organic_matter,
+            'rockiness': self.rockiness,
+            'salinity': self.salinity,
+            'urbanization': self.urbanization,
+        }
+
+================================================================================
+ARCHIVO: .\systems\environment\tile_map.py
+================================================================================
+
+"""Mapa de tiles del mundo.
+
+Almacena el grid completo de tiles hexagonales y proporciona acceso eficiente.
+"""
+
+from __future__ import annotations
+
+from typing import Dict, Optional, Tuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from systems.environment.tile import Tile
+
+
+class TileMap:
+    """Grid de tiles del mundo con acceso por coordenadas hexagonales.
+    
+    Attributes:
+        width: Ancho del mapa en tiles (q).
+        height: Alto del mapa en tiles (r).
+        tiles: Diccionario de (q, r) -> Tile.
+    """
+    
+    def __init__(self, width: int, height: int) -> None:
+        self.width = width
+        self.height = height
+        self.tiles: Dict[Tuple[int, int], Tile] = {}
+    
+    def set_tile(self, q: int, r: int, tile: Tile) -> None:
+        """Establece un tile en la posición dada."""
+        if 0 <= q < self.width and 0 <= r < self.height:
+            self.tiles[(q, r)] = tile
+    
+    def get_tile(self, q: int, r: int) -> Optional[Tile]:
+        """Retorna el tile en la posición dada, o None si no existe."""
+        return self.tiles.get((int(q), int(r)))
+    
+    def has_tile(self, q: int, r: int) -> bool:
+        """Verifica si existe un tile en la posición dada."""
+        return (int(q), int(r)) in self.tiles
+    
+    def get_all_tiles(self) -> list[Tile]:
+        """Retorna todos los tiles del mapa."""
+        return list(self.tiles.values())
+    
+    def get_tile_count(self) -> int:
+        """Retorna el número de tiles en el mapa."""
+        return len(self.tiles)
+    
+    def is_initialized(self) -> bool:
+        """Verifica si el mapa ha sido inicializado (tiene tiles)."""
+        return len(self.tiles) > 0
+
+================================================================================
+ARCHIVO: .\systems\environment\tile_map_initializer.py
+================================================================================
+
+"""Inicializador procedural del mapa de tiles.
+
+Genera un mapa coherente de tiles basándose en WorldConfig.
+Usa ruido pseudo-aleatorio determinista para crear terreno realista:
+montañas, océanos, llanuras, etc.
+
+Este inicializador es simple pero funcional. En sesiones futuras
+puede mejorarse con algoritmos más sofisticados (Perlin noise, etc.)
+"""
+
+from __future__ import annotations
+
+import math
+import random
+from typing import Optional, TYPE_CHECKING
+
+from systems.environment.tile import Tile
+from systems.environment.tile_map import TileMap
+from systems.environment.world_config import WorldConfig
+
+if TYPE_CHECKING:
+    pass
+
+
+class TileMapInitializer:
+    """Genera proceduralmente el mapa de tiles del mundo."""
+    
+    def __init__(self, world_config: Optional[WorldConfig] = None, seed: int = 42) -> None:
+        self.world_config = world_config or WorldConfig()
+        self.seed = seed
+        random.seed(seed)
+    
+    def initialize(self, width: int, height: int) -> TileMap:
+        """Genera un mapa de tiles coherente.
+        
+        Algoritmo simplificado:
+        1. Generar campo de altura usando ruido pseudo-aleatorio
+        2. Aplicar nivel del mar para determinar agua/tierra
+        3. Generar temperatura basada en latitud y altitud
+        4. Generar humedad basada en proximidad al agua
+        5. Generar vegetación basada en temperatura + humedad + fertilidad
+        """
+        tile_map = TileMap(width, height)
+        
+        # 1. Generar campo de altura
+        height_field = self._generate_height_field(width, height)
+        
+        # 2. Crear tiles con todas las variables
+        for x in range(width):
+            for y in range(height):
+                tile = self._create_tile(
+                    x=x,
+                    y=y,
+                    width=width,
+                    map_height=height,
+                    height_field=height_field,
+                )
+                tile_map.set_tile(x, y, tile)
+        
+        return tile_map
+    
+    def _generate_height_field(self, width: int, height: int) -> list[list[float]]:
+        """Genera un campo de altura usando múltiples octavas de ruido.
+        
+        Combina varias frecuencias para crear terreno realista:
+        - Baja frecuencia: continentes y océanos
+        - Alta frecuencia: montañas y valles
+        """
+        field = [[0.0] * height for _ in range(width)]
+        
+        # Múltiples octavas de ruido para detalle progresivo
+        octaves = [
+            (0.05, 0.5),   # Frecuencia baja, amplitud alta (continentes)
+            (0.1, 0.3),    # Frecuencia media (cordilleras)
+            (0.2, 0.15),   # Frecuencia alta (montañas)
+            (0.4, 0.05),   # Frecuencia muy alta (colinas)
+        ]
+        
+        for freq, amp in octaves:
+            offset_x = random.uniform(0, 1000)
+            offset_y = random.uniform(0, 1000)
+            
+            for x in range(width):
+                for y in range(height):
+                    # Ruido pseudo-aleatorio determinista usando sin/cos
+                    noise = (
+                        math.sin((x + offset_x) * freq) *
+                        math.cos((y + offset_y) * freq)
+                    )
+                    # Normalizar a [0, 1]
+                    noise = (noise + 1.0) / 2.0
+                    field[x][y] += noise * amp
+        
+        return field
+    
+    def _create_tile(
+        self,
+        x: int,
+        y: int,
+        width: int,
+        map_height: int,
+        height_field: list[list[float]],
+    ) -> Tile:
+        """Crea un tile individual con todas sus variables.
+        
+        Args:
+            x: Coordenada X del tile.
+            y: Coordenada Y del tile.
+            width: Ancho del mapa en tiles.
+            map_height: Alto del mapa en tiles (renombrado para evitar colisión
+                        con la variable local 'height' que es altitud en metros).
+            height_field: Campo de alturas generado proceduralmente.
+        """
+        # Altura base del campo de ruido
+        raw_height = height_field[x][y]
+        
+        # Convertir a metros: [-500m, 3000m]
+        # Ajustar según water_coverage del WorldConfig
+        sea_level_threshold = 1.0 - self.world_config.water_coverage
+        is_ocean = raw_height < sea_level_threshold
+        
+        # CORRECCIÓN: Usar 'elevation' para la altitud del tile en metros
+        # y evitar confusión con parámetros del mapa
+        if is_ocean:
+            # Océano: altura negativa proporcional a la profundidad
+            elevation = -500.0 * (1.0 - raw_height / sea_level_threshold)
+        else:
+            # Tierra: altura positiva
+            land_height = (raw_height - sea_level_threshold) / (1.0 - sea_level_threshold)
+            elevation = land_height * 3000.0
+        
+        # Aplicar nivel del mar del WorldConfig
+        elevation -= self.world_config.sea_level
+        
+        # Pendiente: calcular gradiente con vecinos
+        slope = self._calculate_slope(x, y, width, map_height, height_field)
+        
+        # Agua: basada en si está bajo el nivel del mar
+        if is_ocean:
+            water = 0.8 + 0.2 * (1.0 - raw_height / sea_level_threshold)
+            salinity = 0.9  # Agua salada
+        else:
+            # Lagos y ríos (probabilidad baja)
+            water = 0.1 if raw_height > sea_level_threshold + 0.1 else 0.3
+            salinity = 0.1  # Agua dulce
+        
+        # Temperatura: basada en latitud (y) y altitud
+        # Latitud: 0.0 en ecuador (centro), 1.0 en polos (bordes)
+        latitude_factor = abs(y - map_height / 2) / (map_height / 2)
+        # Altitud: cada 1000m reduce temperatura en 0.1
+        altitude_factor = max(0.0, elevation / 10000.0)
+        
+        base_temp = self.world_config.mean_temperature
+        temperature = base_temp - (latitude_factor * 0.3) - (altitude_factor * 0.3)
+        temperature = max(0.0, min(1.0, temperature))
+        
+        # Humedad: mayor cerca del agua, menor en montañas
+        humidity = self.world_config.global_humidity
+        if water > 0.3:
+            humidity += 0.3  # Cerca del agua
+        if elevation > 1500:
+            humidity -= 0.2  # Montañas son más secas
+        humidity = max(0.0, min(1.0, humidity))
+        
+        # Fertilidad: mayor en llanuras cerca del agua
+        fertility = 0.3
+        if not is_ocean and elevation < 500 and slope < 0.3:
+            fertility = 0.7  # Llanuras fértiles
+        if water > 0.3 and not is_ocean:
+            fertility += 0.2  # Cerca del agua
+        fertility = max(0.0, min(1.0, fertility))
+        
+        # Vegetación: basada en temperatura + humedad + fertilidad
+        if is_ocean:
+            vegetation = 0.0  # Sin vegetación en océanos
+        else:
+            veg_potential = (temperature + humidity + fertility) / 3.0
+            # Reducir en pendientes pronunciadas
+            veg_potential *= (1.0 - slope)
+            vegetation = max(0.0, min(1.0, veg_potential))
+        
+        # Materia orgánica: correlacionada con vegetación
+        organic_matter = vegetation * 0.8 if not is_ocean else 0.0
+        
+        # Rococidad: mayor en montañas y pendientes
+        rockiness = slope * 0.7
+        if elevation > 1500:
+            rockiness += 0.3
+        rockiness = max(0.0, min(1.0, rockiness))
+        
+        return Tile(
+            height=elevation,
+            slope=slope,
+            temperature=temperature,
+            humidity=humidity,
+            water=water,
+            salinity=salinity,
+            fertility=fertility,
+            vegetation=vegetation,
+            organic_matter=organic_matter,
+            rockiness=rockiness,
+        )
+    
+    def _calculate_slope(
+        self,
+        x: int,
+        y: int,
+        width: int,
+        map_height: int,
+        height_field: list[list[float]],
+    ) -> float:
+        """Calcula la pendiente en un punto usando el gradiente.
+        
+        Args:
+            x: Coordenada X del tile.
+            y: Coordenada Y del tile.
+            width: Ancho del mapa en tiles.
+            map_height: Alto del mapa en tiles (para wrapping).
+            height_field: Campo de alturas generado proceduralmente.
+        """
+            
+        # Obtener valores de vecinos (con wrapping)
+        left = height_field[(x - 1) % width][y]
+        right = height_field[(x + 1) % width][y]
+        up = height_field[x][(y - 1) % map_height]
+        down = height_field[x][(y + 1) % map_height]
+        
+        # Gradiente en X e Y
+        dx = abs(right - left) / 2.0
+        dy = abs(down - up) / 2.0
+        
+        # Magnitud del gradiente
+        gradient = math.sqrt(dx * dx + dy * dy)
+        
+        # Normalizar a [0, 1] (asumiendo gradiente máximo ~0.5)
+        slope = min(1.0, gradient / 0.5)
+        
+        return slope
+
+================================================================================
+ARCHIVO: .\systems\environment\world_config.py
+================================================================================
+
+"""Configuración física global del mundo.
+
+Define las leyes físicas del mundo antes de generar el terreno:
+gravedad, temperatura media, nivel del mar, cantidad de agua, etc.
+
+Estos parámetros son constantes globales que afectan a todo el mapa.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass
+class WorldConfig:
+    """Parámetros físicos globales del mundo.
+    
+    Attributes:
+        gravity: Gravedad relativa (1.0 = Tierra)
+        mean_temperature: Temperatura media global [0.0, 1.0]
+        sea_level: Nivel del mar en metros
+        water_coverage: Fracción del mundo cubierta por agua [0.0, 1.0]
+        radiation: Radiación solar relativa [0.0, 1.0]
+        geological_activity: Actividad geológica [0.0, 1.0]
+        erosion_rate: Tasa de erosión global [0.0, 1.0]
+        global_humidity: Humedad global base [0.0, 1.0]
+    """
+    
+    gravity: float = 1.0
+    mean_temperature: float = 0.5
+    sea_level: float = 0.0
+    water_coverage: float = 0.7
+    radiation: float = 0.5
+    geological_activity: float = 0.3
+    erosion_rate: float = 0.5
+    global_humidity: float = 0.5
+    
+    def to_dict(self) -> dict:
+        """Serializa la configuración para debugging."""
+        return {
+            'gravity': self.gravity,
+            'mean_temperature': self.mean_temperature,
+            'sea_level': self.sea_level,
+            'water_coverage': self.water_coverage,
+            'radiation': self.radiation,
+            'geological_activity': self.geological_activity,
+            'erosion_rate': self.erosion_rate,
+            'global_humidity': self.global_humidity,
+        }

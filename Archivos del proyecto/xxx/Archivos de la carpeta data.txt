@@ -1,0 +1,3742 @@
+================================================================================
+ARCHIVO: .\data\data_historica.json
+================================================================================
+
+{
+    "pipeline_state": "finalized",
+    "active_systems": [
+        "GenealogySystem",
+        "AgingSystem",
+        "DensitySystem",
+        "EnvironmentSystem",
+        "MovementSystem",
+        "DiseaseSystem",
+        "MortalitySystem",
+        "ConceptionSystem",
+        "GestationSystem",
+        "RelationshipSystem",
+        "AdoptionSystem",
+        "FreeWillSystem",
+        "EvolutionEngine"
+    ]
+}
+
+================================================================================
+ARCHIVO: .\data\historico_evolucion.json
+================================================================================
+
+[
+    {
+        "time_days": 0.0,
+        "population_size": 50,
+        "generation_avg": 0.0,
+        "generation_max": 0,
+        "generation_min": 0,
+        "gene_averages": {},
+        "gene_variances": {},
+        "selection_differentials": {},
+        "genes_in_extinction_risk": [],
+        "dominant_lineages": []
+    },
+    {
+        "time_days": 30.0,
+        "population_size": 50,
+        "generation_avg": 0.0,
+        "generation_max": 0,
+        "generation_min": 0,
+        "gene_averages": {},
+        "gene_variances": {},
+        "selection_differentials": {},
+        "genes_in_extinction_risk": [],
+        "dominant_lineages": []
+    },
+    {
+        "time_days": 60.0,
+        "population_size": 50,
+        "generation_avg": 0.0,
+        "generation_max": 0,
+        "generation_min": 0,
+        "gene_averages": {},
+        "gene_variances": {},
+        "selection_differentials": {},
+        "genes_in_extinction_risk": [],
+        "dominant_lineages": []
+    },
+    {
+        "time_days": 90.0,
+        "population_size": 50,
+        "generation_avg": 0.0,
+        "generation_max": 0,
+        "generation_min": 0,
+        "gene_averages": {},
+        "gene_variances": {},
+        "selection_differentials": {},
+        "genes_in_extinction_risk": [],
+        "dominant_lineages": []
+    },
+    {
+        "time_days": 120.0,
+        "population_size": 50,
+        "generation_avg": 0.0,
+        "generation_max": 0,
+        "generation_min": 0,
+        "gene_averages": {},
+        "gene_variances": {},
+        "selection_differentials": {},
+        "genes_in_extinction_risk": [],
+        "dominant_lineages": []
+    },
+    {
+        "time_days": 150.0,
+        "population_size": 50,
+        "generation_avg": 0.0,
+        "generation_max": 0,
+        "generation_min": 0,
+        "gene_averages": {},
+        "gene_variances": {},
+        "selection_differentials": {},
+        "genes_in_extinction_risk": [],
+        "dominant_lineages": []
+    },
+    {
+        "time_days": 180.0,
+        "population_size": 50,
+        "generation_avg": 0.0,
+        "generation_max": 0,
+        "generation_min": 0,
+        "gene_averages": {},
+        "gene_variances": {},
+        "selection_differentials": {},
+        "genes_in_extinction_risk": [],
+        "dominant_lineages": []
+    },
+    {
+        "time_days": 210.0,
+        "population_size": 50,
+        "generation_avg": 0.0,
+        "generation_max": 0,
+        "generation_min": 0,
+        "gene_averages": {},
+        "gene_variances": {},
+        "selection_differentials": {},
+        "genes_in_extinction_risk": [],
+        "dominant_lineages": []
+    },
+    {
+        "time_days": 240.0,
+        "population_size": 50,
+        "generation_avg": 0.0,
+        "generation_max": 0,
+        "generation_min": 0,
+        "gene_averages": {},
+        "gene_variances": {},
+        "selection_differentials": {},
+        "genes_in_extinction_risk": [],
+        "dominant_lineages": []
+    },
+    {
+        "time_days": 270.0,
+        "population_size": 50,
+        "generation_avg": 0.0,
+        "generation_max": 0,
+        "generation_min": 0,
+        "gene_averages": {},
+        "gene_variances": {},
+        "selection_differentials": {},
+        "genes_in_extinction_risk": [],
+        "dominant_lineages": []
+    },
+    {
+        "time_days": 300.0,
+        "population_size": 51,
+        "generation_avg": 0.0,
+        "generation_max": 0,
+        "generation_min": 0,
+        "gene_averages": {},
+        "gene_variances": {},
+        "selection_differentials": {},
+        "genes_in_extinction_risk": [],
+        "dominant_lineages": []
+    },
+    {
+        "time_days": 330.0,
+        "population_size": 51,
+        "generation_avg": 0.0,
+        "generation_max": 0,
+        "generation_min": 0,
+        "gene_averages": {},
+        "gene_variances": {},
+        "selection_differentials": {},
+        "genes_in_extinction_risk": [],
+        "dominant_lineages": []
+    },
+    {
+        "time_days": 360.0,
+        "population_size": 51,
+        "generation_avg": 0.0,
+        "generation_max": 0,
+        "generation_min": 0,
+        "gene_averages": {},
+        "gene_variances": {},
+        "selection_differentials": {},
+        "genes_in_extinction_risk": [],
+        "dominant_lineages": []
+    }
+]
+
+================================================================================
+ARCHIVO: .\data\simulation_metrics.json
+================================================================================
+
+[
+    {
+        "day": 1.0,
+        "year": 0.0,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 50,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.14,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.0,
+            "avg_stress": 0.0,
+            "avg_happiness": 0.8,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 2.0,
+        "year": 0.01,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.15,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.0,
+            "avg_stress": 0.0,
+            "avg_happiness": 0.944,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 3.0,
+        "year": 0.01,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.15,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.0,
+            "avg_stress": 0.0,
+            "avg_happiness": 0.998,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 4.0,
+        "year": 0.01,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.15,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.0,
+            "avg_stress": 0.0,
+            "avg_happiness": 0.999,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 5.0,
+        "year": 0.01,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.15,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.0,
+            "avg_stress": 0.0,
+            "avg_happiness": 0.999,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 6.0,
+        "year": 0.02,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.16,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.0,
+            "avg_stress": 0.0,
+            "avg_happiness": 0.999,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 7.0,
+        "year": 0.02,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.16,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.0,
+            "avg_stress": 0.0,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 8.0,
+        "year": 0.02,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.16,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.0,
+            "avg_stress": 0.0,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 9.0,
+        "year": 0.02,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.17,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.0,
+            "avg_stress": 0.0,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 10.0,
+        "year": 0.03,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.17,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.0,
+            "avg_stress": 0.0,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 11.0,
+        "year": 0.03,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.17,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.0,
+            "avg_stress": 0.012,
+            "avg_happiness": 0.988,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 12.0,
+        "year": 0.03,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.17,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.002,
+            "avg_stress": 0.024,
+            "avg_happiness": 0.98,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 13.0,
+        "year": 0.04,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.18,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.024,
+            "avg_happiness": 0.987,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 14.0,
+        "year": 0.04,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.18,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.024,
+            "avg_happiness": 0.992,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 15.0,
+        "year": 0.04,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.18,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.024,
+            "avg_happiness": 0.996,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 16.0,
+        "year": 0.04,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.19,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.024,
+            "avg_happiness": 0.998,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 17.0,
+        "year": 0.05,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.19,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.036,
+            "avg_happiness": 0.988,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 18.0,
+        "year": 0.05,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.19,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.005,
+            "avg_stress": 0.036,
+            "avg_happiness": 0.993,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 19.0,
+        "year": 0.05,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.19,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.005,
+            "avg_stress": 0.036,
+            "avg_happiness": 0.998,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 20.0,
+        "year": 0.05,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.2,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.004,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 21.0,
+        "year": 0.06,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.2,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.004,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 22.0,
+        "year": 0.06,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.2,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.004,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 23.0,
+        "year": 0.06,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.2,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.004,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 24.0,
+        "year": 0.07,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.21,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.004,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 25.0,
+        "year": 0.07,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.21,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.004,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 26.0,
+        "year": 0.07,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.21,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.004,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 27.0,
+        "year": 0.07,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.22,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 28.0,
+        "year": 0.08,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.22,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 29.0,
+        "year": 0.08,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.22,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 30.0,
+        "year": 0.08,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.22,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 31.0,
+        "year": 0.08,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.23,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 32.0,
+        "year": 0.09,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.23,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 33.0,
+        "year": 0.09,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.23,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 34.0,
+        "year": 0.09,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.24,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 0,
+            "single_count": 50,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 35.0,
+        "year": 0.1,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.24,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 1,
+            "single_count": 49,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 36.0,
+        "year": 0.1,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.24,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 1,
+            "single_count": 49,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 37.0,
+        "year": 0.1,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.24,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 1,
+            "single_count": 49,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 38.0,
+        "year": 0.1,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.25,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.002,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 1,
+            "single_count": 49,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 39.0,
+        "year": 0.11,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.25,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.002,
+            "avg_stress": 0.036,
+            "avg_happiness": 1.0,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 2,
+            "single_count": 48,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 40.0,
+        "year": 0.11,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.25,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.002,
+            "avg_stress": 0.048,
+            "avg_happiness": 0.988,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 3,
+            "single_count": 47,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 41.0,
+        "year": 0.11,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.25,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.004,
+            "avg_stress": 0.048,
+            "avg_happiness": 0.99,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 3,
+            "single_count": 47,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 42.0,
+        "year": 0.12,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.26,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.004,
+            "avg_stress": 0.048,
+            "avg_happiness": 0.993,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 7,
+            "single_count": 43,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 43.0,
+        "year": 0.12,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.26,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.004,
+            "avg_stress": 0.048,
+            "avg_happiness": 0.994,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 7,
+            "single_count": 43,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 44.0,
+        "year": 0.12,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 50,
+            "seniors": 0
+        },
+        "avg_age_years": 37.26,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.004,
+            "avg_stress": 0.048,
+            "avg_happiness": 0.994,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 9,
+            "single_count": 41,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 45.0,
+        "year": 0.12,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 49,
+            "seniors": 1
+        },
+        "avg_age_years": 37.27,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.048,
+            "avg_happiness": 0.994,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 9,
+            "single_count": 41,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 46.0,
+        "year": 0.13,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 49,
+            "seniors": 1
+        },
+        "avg_age_years": 37.27,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.048,
+            "avg_happiness": 0.994,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 10,
+            "single_count": 40,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 47.0,
+        "year": 0.13,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 49,
+            "seniors": 1
+        },
+        "avg_age_years": 37.27,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.048,
+            "avg_happiness": 0.994,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 11,
+            "single_count": 39,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 48.0,
+        "year": 0.13,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 49,
+            "seniors": 1
+        },
+        "avg_age_years": 37.27,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.048,
+            "avg_happiness": 0.994,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 14,
+            "single_count": 36,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 49.0,
+        "year": 0.13,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 49,
+            "seniors": 1
+        },
+        "avg_age_years": 37.28,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.048,
+            "avg_happiness": 0.994,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 15,
+            "single_count": 35,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    },
+    {
+        "day": 50.0,
+        "year": 0.14,
+        "population": 50,
+        "births_this_tick": 0,
+        "deaths_this_tick": 0,
+        "population_delta": 0,
+        "growth_rate_percent": 0.0,
+        "age_structure": {
+            "children": 0,
+            "adults": 49,
+            "seniors": 1
+        },
+        "avg_age_years": 37.28,
+        "gene_averages": {
+            "aggressiveness": 0.4946,
+            "curiosity": 0.5089,
+            "fertility": 0.6762,
+            "immunity": 0.6444,
+            "impulsivity": 0.5091,
+            "longevity": 1.0008,
+            "obedience": 0.5108,
+            "sociability": 0.5115,
+            "temperament": 0.468
+        },
+        "genetic_diversity": {
+            "aggressiveness": 0.00295,
+            "curiosity": 0.002803,
+            "fertility": 0.012883,
+            "immunity": 0.010906,
+            "impulsivity": 0.003297,
+            "longevity": 0.002981,
+            "obedience": 0.00392,
+            "sociability": 0.05874,
+            "temperament": 0.054065
+        },
+        "epidemiology": {
+            "sick_count": 0,
+            "total_infections": 0,
+            "avg_pathogens_per_sick": 0.0,
+            "active_pathogen_families": {},
+            "total_viral_load": 0.0
+        },
+        "spatial": {
+            "avg_pressure": 0.0,
+            "max_pressure": 0.0,
+            "overcrowded_sectors": 0
+        },
+        "reproduction": {
+            "active_pregnancies": 0,
+            "avg_litter_size": 0.0,
+            "fertile_count": 38
+        },
+        "cognitive": {
+            "avg_cognitive_stress": 0.003,
+            "avg_stress": 0.048,
+            "avg_happiness": 0.994,
+            "avg_energy": 1.0
+        },
+        "genealogy": {
+            "active_lineages": 50,
+            "extinct_lineages": 0,
+            "max_generation": 0
+        },
+        "social": {
+            "married_count": 15,
+            "single_count": 35,
+            "divorced_count": 0,
+            "orphan_count": 50
+        }
+    }
+]

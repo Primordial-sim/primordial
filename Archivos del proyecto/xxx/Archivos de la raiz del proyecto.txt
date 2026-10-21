@@ -1,0 +1,1739 @@
+================================================================================
+ARCHIVO: .\.gitignore
+================================================================================
+
+# =============================================================================
+# Python
+# =============================================================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# =============================================================================
+# Entornos Virtuales (Venv)
+# =============================================================================
+# Es vital no subir el entorno virtual al repositorio
+venv/
+.venv/
+env/
+bin/
+include/
+lib/
+lib64/
+
+# =============================================================================
+# Testing / Profiling
+# =============================================================================
+
+# Coverage
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+
+# Profiling
+profile*.stats
+*.prof
+*.lprof
+
+# Pytest
+.pytest_cache/
+.cache/
+nosetests.xml
+
+# =============================================================================
+# IDEs y Editores
+# =============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# Visual Studio
+.vs/
+
+# =============================================================================
+# Archivos del Sistema Operativo
+# =============================================================================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# =============================================================================
+# Archivos Sensibles / Configuración
+# =============================================================================
+# Si usas variables de entorno o credenciales, nunca las subas
+.env
+.flaskenv
+secret_config.json
+
+# =============================================================================
+# Archivos generados por el simulador
+# =============================================================================
+# Estos son los archivos que el sistema exporta. 
+# Generalmente no queremos subir la "historia" de cada ejecución de prueba.
+simulation_metrics.json
+data_historica.json
+historico_evolucion.json
+logs/
+*.log
+simulacion.txt
+reporte_*.csv
+reporte_*.json
+*_simulacion_*.csv
+*_simulacion_*.json
+
+# Datos temporales (carpeta data/)
+data/*.json
+data/*.csv
+
+# Escenarios personalizados del usuario
+scenarios/custom_*.json
+
+# =============================================================================
+# Godot (frontend)
+# =============================================================================
+# Ignorar solo la cache de Godot, no el código fuente
+godot/simulador-vida/.godot/
+godot/.godot/
+
+# Export builds
+godot/export_presets.cfg
+godot/simulador-vida/export/
+*.pck
+*.zip
+
+================================================================================
+ARCHIVO: .\.nojekyll
+================================================================================
+
+
+
+================================================================================
+ARCHIVO: .\404.html
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Página no encontrada · Primordial</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌍</text></svg>">
+  <style>
+    :root {
+      --paper: #f5f0e6;
+      --ink: #26241f;
+      --muted: #6e6960;
+      --green: #5f7f35;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 24px;
+    }
+    main { max-width: 480px; }
+    h1 { font-size: 6rem; line-height: 1; color: var(--green); }
+    p { margin: 16px 0 32px; color: var(--muted); font-size: 1.1rem; }
+    a {
+      display: inline-block;
+      padding: 12px 28px;
+      background: var(--green);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    a:hover { opacity: .9; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>404</h1>
+    <p>Esta página se ha extinguido.<br>Puedes volver al ecosistema principal.</p>
+    <a href="/primordial/">Volver a Primordial</a>
+  </main>
+</body>
+</html>
+
+================================================================================
+ARCHIVO: .\CHANGELOG.md
+================================================================================
+
+# Changelog
+
+Todos los cambios notables de **Primordial** se documentarán en este archivo.
+
+El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/),
+y este proyecto adhiere al [Versionamiento Semántico](https://semver.org/lang/es/).
+
+## [Unreleased]
+
+### Añadido
+
+- `robots.txt`, `sitemap.xml` y `404.html` personalizada para GitHub Pages (SEO y experiencia de usuario)
+- `core/config/parameter_registry.py`: registry validado de parámetros con auto-descubrimiento, validación de tipos y rangos, historial de cambios y reseteo (20 tests)
+- `EcologyConfig` nueva en `SimulationConfig` con el primer parámetro migrado end-to-end al `ParameterRegistry`: el intervalo de procesamiento ecológico pasa a leerse en caliente desde `config.ecology.process_interval_days`, con 3 tests de integración que demuestran el circuito completo (registry → config → sistema en el tick siguiente)
+- `EnergyConfig` nueva en `SimulationConfig` con 5 parámetros de metabolismo energético (basal, inanición, fotosíntesis); el sistema los lee en caliente vía `ParameterRegistry` con 3 tests de integración que demuestran el efecto en vivo sobre el gasto energético (suite pasa de 437 a 440 tests)
+- `FeedbackConfig` nueva en `SimulationConfig` con el intervalo de procesamiento del sistema de retroalimentación organismos-entorno; migrado a lectura en caliente vía `ParameterRegistry` con 2 tests de integración (suite pasa de 440 a 442 tests)
+- `MigrationConfig` nueva en `SimulationConfig` con el umbral de llegada (`arrival_threshold`) del sistema de migraciones; migrado a lectura en caliente vía `ParameterRegistry` con 3 tests de integración (suite pasa de 442 a 445 tests)
+- `EnvironmentDynamicsConfig` nueva en `SimulationConfig` con los intervalos de escala media (15d) y lenta (180d) de la dinámica ambiental; migrados a lectura en caliente vía `ParameterRegistry` con 3 tests de integración (suite pasa de 445 a 448 tests)
+- `ExperienceConfig` nueva en `SimulationConfig` con el intervalo de logs (`log_interval`) del generador de experiencias relacionales; migrado a lectura en caliente vía `ParameterRegistry` con 3 tests de integración y protección robusta contra mocks (suite pasa de 448 a 451 tests)
+- Nuevo `ParentalInfluenceSystem` que modela la transmisión de rasgos de personalidad (temperamento, sociabilidad, estrés) de padres a hijos, con plasticidad decreciente por edad y clima emocional; integrado en `PhaseScheduler` con 7 tests unitarios (suite pasa de 451 a 458 tests)
+- Tests de integración real para `ParentalInfluenceSystem` que verifican el flujo extremo a extremo con objetos `Person` y `Genome` reales (suite pasa de 458 a 460 tests)
+- **Refactorización arquitectónica de la Interfaz Gráfica (Godot)**: Implementación de un marco de visualización fijo mediante `SubViewportContainer` (800x800px) con límites estrictos de cámara (`_clamp_camera_position`) para evitar el renderizado de espacio vacío. Integración del `PresetEngine` para el control bidireccional de parámetros de simulación en tiempo real vía WebSocket.
+
+## [0.4.0] - 2026-09-25
+
+### Añadido
+
+- **Mecanismos ecológicos con implementación específica** (antes placeholders en `MechanismFactory`):
+  - `AmbushMechanism`: emboscada sigilosa (camuflaje e instinto depredador vs visión, oído y olfato de la presa)
+  - `PackHuntingMechanism`: caza en manada; la coordinación (`pack_behavior`, `cooperation`) compensa presas mayores y el botín se reparte (70% individual)
+  - `TerritorialDisplayMechanism`: competencia ritualizada sin muertes; el perdedor paga retirada y estrés
+  - `ChemicalSuppressionMechanism`: alelopatía; la muerte del objetivo emerge por inanición, no se registra directamente
+  - `FilterFeedingMechanism`: filtrado pasivo de nutrientes; el recurso agotado muere como en el pastoreo
+- **Puente epidemiológico**: `InfectionMechanism` inocula ahora patógenos reales en el huésped vía `DiseaseSystem`, con familia `Parasite_{especie}` y sin reinfección de familias activas
+- 42 tests nuevos (mecanismos ecológicos y sistema de métricas); la suite pasa de 372 a 414 tests
+- `tests/unit/test_metrics_system.py`: primera suite dedicada al `MetricsSystem` (ecología, espacial, genética, exportación)
+- **Web oficial** desplegada en GitHub Pages: [primordial-sim.github.io/primordial](https://primordial-sim.github.io/primordial/)
+- Estructura profesional de sitio estático: HTML/CSS/JS separados, metadatos Open Graph
+
+### Cambiado
+
+- `MechanismFactory`: `AMBUSH`, `PACK_HUNTING`, `FILTER_FEEDING`, `TERRITORIAL_DISPLAY` y `CHEMICAL_SUPPRESSION` despachan ahora sus mecanismos específicos en lugar de placeholders
+- Documentación `20_ECOLOGIA.md` actualizada a la versión 3.0 con el catálogo de rasgos por mecanismo y el puente epidemiológico
+- README: visión del usuario como "arquitecto de mundos" (creación del mundo + control de parámetros en vivo), URLs del repositorio corregidas, badge de la web oficial y contadores de tests sincronizados
+
+### Eliminado
+
+- Tests obsoletos que codificaban los placeholders (`test_ambush_maps_to_hunt`, `test_pack_hunting_maps_to_hunt`)
+
+## [0.3.0] - 2026-09-21
+
+### Añadido
+
+- **Profesionalización del repositorio**:
+  - README.md completo con descripción del proyecto, características, instalación y roadmap
+  - Archivo `LICENSE` (MIT) para uso open source
+  - `pyproject.toml` con metadatos del proyecto y configuración de empaquetado
+  - `CONTRIBUTING.md` con guía para contribuidores
+  - `CODE_OF_CONDUCT.md` basado en Contributor Covenant v2.0
+  - Plantillas de GitHub Issues: Bug Report y Feature Request
+  - Plantilla de Pull Request con checklist de revisión
+- **Organización GitHub**: Migración del repositorio a `primordial-sim/primordial`
+- **Naming**: Renombrado del proyecto a "Primordial"
+
+### Cambiado
+
+- Movido `exportar_proyecto.py` a `tools/` para limpieza de estructura
+- Actualizado `.gitignore` para prevenir commits de reportes CSV temporales
+- Añadidas métricas de ecología al `MetricsSystem`:
+  - Total de encuentros ecológicos
+  - Total de relaciones ejecutadas (por tipo)
+  - Contadores de depredaciones, herbivoría, mutualismo y competencia
+  - Parejas de relaciones cacheadas
+
+### Eliminado
+
+- Reportes CSV temporales (`reporte_simulacion_*.csv`) del control de versiones
+
+## [0.2.0] - 2026-09-05
+
+### Añadido
+
+- **Sistema de ecología evolutiva**:
+  - 8 tipos de relaciones ecológicas: Depredación, Herbivoría, Mutualismo, Competencia, Parasitismo, Comensalismo, Amensalismo, Neutralismo
+  - Inferencia automática de relaciones desde perfiles biológicos
+  - Sistema de inferencia ecológica (`EcologicalRelationshipSystem`)
+- **Mecanismos de interacción ecológica**:
+  - `HuntMechanism` - Caza activa con persecución
+  - `PackHuntingMechanism` - Caza coordinada en manada
+  - `GrazingMechanism` - Pastoreo de vegetación
+  - `PollinationMechanism` - Polinización mutualista
+  - `SeedDispersalMechanism` - Dispersión de semillas
+  - `ScavengingMechanism` - Carroñeo
+  - `InfectionMechanism` - Infección parasitaria
+  - `ResourceConsumptionMechanism` - Competencia por recursos
+  - `MechanismFactory` - Despacho dinámico de mecanismos
+- **Sistema de energía**:
+  - Gestión de energía por organismo
+  - Fotosíntesis para productores
+  - Metabolismo y gasto energético
+  - Inanición y muerte por falta de energía
+- **Detección ecológica**:
+  - Detección de amenazas (presas detectan depredadores)
+  - Detección de presas (carnívoros buscan presas)
+  - Detección de vegetación (herbívoros buscan plantas)
+- **Optimización de rendimiento**:
+  - `SpatialGrid` para búsquedas espaciales O(1)
+  - Eliminación de relaciones bidireccionales duplicadas
+  - Caché de relaciones ecológicas inferidas
+
+### Cambiado
+
+- Refactorización de sistemas de movimiento para usar `SpatialGrid`
+- Mejora de rendimiento en fase de ecología (~19% más rápido)
+
+## [0.1.0] - 2026-06-12
+
+### Añadido
+
+- **Versión inicial del proyecto**:
+  - Motor de simulación multi-agente con arquitectura de fases
+  - Sistema genético universal con 20+ rasgos heredables
+  - Sistema de taxonomía y clasificación de especies
+  - Mundo con tiles y biomas dinámicos
+- **Sistemas de simulación**:
+  - Sistema temporal (envejecimiento, estaciones)
+  - Sistema ambiental (biomas, presión social)
+  - Sistema de movimiento y pathfinding
+  - Sistema de relaciones sociales (amistad, matrimonio, divorcio)
+  - Sistema de reproducción (concepción, gestación, nacimiento)
+  - Sistema de mortalidad (curvas de supervivencia Gompertz)
+  - Sistema de epidemiología (patógenos, contagios)
+  - Sistema de genealogía (linajes, generaciones)
+- **Métricas poblacionales**:
+  - Recolección de métricas multidimensionales
+  - Exportación a JSON para análisis
+- **Testing**:
+  - Suite inicial de tests unitarios
+  - Tests de integración básicos
+
+---
+
+## 📖 Convenciones de versionado
+
+Este proyecto sigue el [Versionamiento Semántico](https://semver.org/lang/es/):
+
+- **MAJOR** (X.0.0): Cambios incompatibles con versiones anteriores
+- **MINOR** (0.X.0): Nuevas funcionalidades compatibles
+- **PATCH** (0.0.X): Correcciones de bugs compatibles
+
+### Tipos de cambios documentados
+
+| Tipo | Descripción |
+|------|-------------|
+| **Añadido** | Nuevas funcionalidades |
+| **Cambiado** | Modificaciones en funcionalidades existentes |
+| **Obsoleto** | Funcionalidades que serán eliminadas pronto |
+| **Eliminado** | Funcionalidades removidas |
+| **Corregido** | Bugs corregidos |
+| **Seguridad** | Parches de seguridad |
+
+---
+
+## 🔗 Enlaces
+
+- [Comparar versiones](https://github.com/primordial-sim/primordial/compare)
+- [Ver todos los commits](https://github.com/primordial-sim/primordial/commits/main)
+
+[Unreleased]: https://github.com/primordial-sim/primordial/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/primordial-sim/primordial/compare/v0.3.0...v0.4.0
+[0.3.0]: https://github.com/primordial-sim/primordial/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/primordial-sim/primordial/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/primordial-sim/primordial/releases/tag/v0.1.0
+
+================================================================================
+ARCHIVO: .\CODE_OF_CONDUCT.md
+================================================================================
+
+# Código de Conducta convenido para Contribuyentes
+
+## Nuestro compromiso
+
+Nosotros, como miembros, contribuyentes y administradores de **Primordial**, nos comprometemos a hacer de la participación en nuestro proyecto y nuestra comunidad una experiencia libre de acoso para todas las personas, independientemente de su edad, tamaño corporal, discapacidad visible o invisible, etnicidad, características sexuales, identidad y expresión de género, nivel de experiencia, educación, estatus socioeconómico, nacionalidad, apariencia personal, raza, religión, identidad u orientación sexual.
+
+Nos comprometemos a actuar e interactuar de maneras que contribuyan a una comunidad abierta, acogedora, diversa, inclusiva y sana.
+
+## Nuestros estándares
+
+Ejemplos de comportamiento que contribuyen a crear un ambiente positivo para nuestra comunidad:
+
+* Demostrar empatía y amabilidad ante otras personas
+* Respeto a diferentes opiniones, puntos de vista y experiencias
+* Dar y aceptar adecuadamente retroalimentación constructiva
+* Aceptar la responsabilidad y disculparse ante quienes se vean afectados por nuestros errores, aprendiendo de la experiencia
+* Centrarse en lo que sea mejor no sólo para nosotros como individuos, sino para la comunidad en general
+
+Ejemplos de comportamiento inaceptable:
+
+* El uso de lenguaje o imágenes sexualizadas, y aproximaciones o atenciones sexuales de cualquier tipo
+* Comentarios despectivos (_trolling_), insultantes o derogatorios, y ataques personales o políticos
+* El acoso en público o privado
+* Publicar información privada de otras personas, tales como direcciones físicas o de correo electrónico, sin su permiso explícito
+* Otras conductas que puedan ser razonablemente consideradas como inapropiadas en un entorno profesional
+
+## Aplicación de las responsabilidades
+
+Los administradores de la comunidad son responsables de aclarar y hacer cumplir nuestros estándares de comportamiento aceptable y tomarán acciones apropiadas y correctivas de forma justa en respuesta al comportamiento que consideren inapropiado, amenazante, ofensivo o dañino.
+
+Los administradores de la comunidad tendrán el derecho y la responsabilidad de eliminar, editar o rechazar comentarios, _commits_, código, ediciones de páginas de wiki, _issues_ y otras contribuciones que no se alineen con este Código de Conducta, y comunicarán las razones para sus decisiones de moderación cuando sea apropiado.
+
+## Alcance
+
+Este código de conducta aplica tanto a espacios del proyecto como a espacios públicos donde un individuo esté en representación del proyecto o comunidad. Ejemplos de esto incluyen el uso de la cuenta oficial de correo electrónico, publicaciones a través de las redes sociales oficiales, o presentaciones con personas designadas en eventos en línea o no.
+
+## Aplicación
+
+Instancias de comportamiento abusivo, acosador o inaceptable de otro modo podrán ser reportadas a los administradores de la comunidad responsables del cumplimiento a través de [INSERTE MÉTODO DE CONTACTO]. Todas las quejas serán revisadas e investigadas de manera justa y puntual.
+
+Todos los administradores de la comunidad están obligados a respetar la privacidad y la seguridad de quienes reporten incidentes.
+
+## Directrices de Aplicación
+
+Los administradores de la comunidad seguirán estas Directrices de Impacto en la Comunidad para determinar las consecuencias de cualquier acción que juzguen como un incumplimiento de este Código de Conducta:
+
+### 1. Corrección
+
+**Impacto en la Comunidad**: El uso de lenguaje inapropiado u otro comportamiento considerado no profesional o no acogedor en la comunidad.
+
+**Consecuencia**: Un aviso escrito y privado por parte de los administradores de la comunidad, proporcionando claridad alrededor de la naturaleza de este incumplimiento y una explicación de por qué el comportamiento es inaceptable. Una disculpa pública podría ser solicitada.
+
+### 2. Aviso
+
+**Impacto en la Comunidad**: Un incumplimiento causado por un único incidente o por una cadena de acciones.
+
+**Consecuencia**: Un aviso con consecuencias por comportamiento prolongado. No se interactúa con las personas involucradas por un período de tiempo especificado, incluyendo interacciones no solicitadas con quienes se encuentran aplicando el Código de Conducta. Esto incluye evitar interacciones en espacios de la comunidad, así como canales externos como las redes sociales. Incumplir estos términos puede conducir a una expulsión temporal o permanente.
+
+### 3. Expulsión temporal
+
+**Impacto en la Comunidad**: Una serie de incumplimientos de los estándares de la comunidad, incluyendo comportamiento inapropiado continuo.
+
+**Consecuencia**: Una expulsión temporal de cualquier tipo de interacción o comunicación pública con la comunidad durante un intervalo de tiempo especificado. No se permite interactuar de manera pública o privada con las personas involucradas, incluyendo interacciones no solicitadas con quienes se encuentran aplicando el Código de Conducta, durante este período. Incumplir estos términos puede conducir a una expulsión permanente.
+
+### 4. Expulsión permanente
+
+**Impacto en la Comunidad**: Demostrar un patrón sistemático de incumplimientos de los estándares de la comunidad, incluyendo conductas inapropiadas prolongadas en el tiempo, acoso de individuos, agresiones o menosprecio a grupos de individuos.
+
+**Consecuencia**: Una expulsión permanente de cualquier tipo de interacción pública con la comunidad del proyecto.
+
+## Atribución
+
+Este Código de Conducta es una adaptación del [Contributor Covenant][homepage], versión 2.0, disponible en https://www.contributor-covenant.org/es/version/2/0/code_of_conduct.html
+
+Las Directrices de Impacto en la Comunidad están inspiradas en la [escalera de aplicación del código de conducta de Mozilla](https://github.com/mozilla/diversity).
+
+[homepage]: https://www.contributor-covenant.org
+
+Para respuestas a las preguntas frecuentes de este código de conducta, consulta las FAQ en https://www.contributor-covenant.org/faq. Hay traducciones disponibles en https://www.contributor-covenant.org/translations
+
+================================================================================
+ARCHIVO: .\CONTRIBUTING.md
+================================================================================
+
+# Contributing to Primordial
+
+¡Gracias por tu interés en contribuir a **Primordial**! Este proyecto es open source y agradecemos cualquier forma de contribución, desde reportes de bugs hasta nuevas funcionalidades.
+
+## 🤝 Formas de contribuir
+
+### 🐛 Reportar bugs
+
+Si encuentras un error:
+
+1. Busca en [Issues](https://github.com/primordial-sim/primordial/issues) para ver si ya fue reportado
+2. Si no existe, crea un nuevo issue usando la plantilla **"Bug Report"**
+3. Incluye:
+   - Descripción clara del problema
+   - Pasos para reproducirlo
+   - Comportamiento esperado vs actual
+   - Versión de Python y sistema operativo
+   - Logs o capturas si aplica
+
+### 💡 Proponer nuevas funcionalidades
+
+¿Tienes una idea para mejorar Primordial?
+
+1. Abre un issue usando la plantilla **"Feature Request"**
+2. Describe:
+   - El problema que resuelve
+   - Tu solución propuesta
+   - Alternativas consideradas
+   - Ejemplos de uso
+
+### 🔧 Enviar código (Pull Requests)
+
+#### Antes de empezar
+
+1. **Busca un issue existente** o crea uno nuevo para discutir la funcionalidad
+2. **Comenta en el issue** que vas a trabajar en ello (evita duplicación de esfuerzos)
+3. **Espera feedback** antes de implementar cambios grandes
+
+#### Proceso de desarrollo
+
+1. **Fork** el repositorio
+2. **Crea una rama** desde `main`:
+   ```bash
+   git checkout -b feature/nombre-descriptivo
+   git checkout -b fix/descripcion-del-bug
+   ```
+3. **Desarrolla** tu cambio:
+   - Sigue el estilo de código existente
+   - Añade tests si aplica
+   - Actualiza documentación si es necesario
+4. **Testea** localmente:
+   ```bash
+   python -m pytest tests/ --tb=short -q
+   ```
+5. **Commit** con mensajes descriptivos:
+   ```bash
+   git commit -m "Add grazing mechanism for herbivores"
+   git commit -m "Fix energy calculation in predation events"
+   ```
+6. **Push** a tu fork:
+   ```bash
+   git push origin feature/nombre-descriptivo
+   ```
+7. **Abre un Pull Request** en GitHub
+
+#### Requisitos del Pull Request
+
+- ✅ Todos los tests pasan (`pytest`)
+- ✅ Código sigue PEP 8
+- ✅ Documentación actualizada si aplica
+- ✅ Descripción clara de los cambios
+- ✅ Referencia al issue que resuelve (ej: "Fixes #42")
+
+#### Convenciones de código
+
+- **Python**: 3.13+
+- **Estilo**: PEP 8 (usamos type hints extensivamente)
+- **Testing**: pytest con cobertura mínima del 80% para código nuevo
+- **Documentación**: Docstrings en Google style
+- **Imports**: Agrupados y ordenados (stdlib, third-party, local)
+
+### 📚 Mejorar documentación
+
+La documentación es tan importante como el código:
+
+- Corrige errores tipográficos
+- Añade ejemplos
+- Mejora explicaciones confusas
+- Traduce a otros idiomas
+
+### 🧪 Añadir tests
+
+Los tests son críticos para mantener la calidad:
+
+- Tests unitarios para funciones nuevas
+- Tests de integración para interacciones entre sistemas
+- Tests de regresión para bugs corregidos
+
+---
+
+## 🏗️ Estructura del proyecto
+
+```
+primordial/
+├── core/                    # Núcleo del motor
+│   ├── engine/              # Motor de simulación
+│   ├── genetics/            # Sistema genético
+│   ├── taxonomy/            # Clasificación de especies
+│   ├── state/               # Estado del mundo
+│   └── config/              # Configuración
+│
+├── systems/                 # Sistemas de simulación
+│   ├── ecology/             # Relaciones ecológicas
+│   ├── energy/              # Sistema de energía
+│   ├── movement/            # Movimiento
+│   ├── relationships/       # Relaciones sociales
+│   ├── reproduction/        # Reproducción
+│   ├── mortality/           # Mortalidad
+│   ├── diseases/            # Epidemiología
+│   ├── environment/         # Biomas, estaciones
+│   └── metrics/             # Métricas
+│
+├── entities/                # Entidades del mundo
+├── tests/                   # Suite de tests
+├── docs/                    # Documentación técnica
+└── godot/                   # Frontend visual
+```
+
+---
+
+## 🔄 Proceso de review
+
+1. **Maintainers revisarán** tu PR en 1-7 días
+2. **Feedback constructivo**: Pueden pedir cambios
+3. **Aprobación**: Al menos 1 maintainer debe aprobar
+4. **Merge**: Se hará squash merge a `main`
+
+---
+
+## ❓ Preguntas frecuentes
+
+### ¿Puedo contribuir sin saber programar?
+
+¡Sí! Puedes:
+- Reportar bugs
+- Proponer ideas
+- Mejorar documentación
+- Traducir
+- Crear tutoriales
+- Hacer testing
+
+### ¿Qué pasa si mi PR no es aceptado?
+
+A veces una propuesta no encaja con la visión del proyecto. No te desanimes:
+- Pide feedback específico
+- Considera alternativas
+- Abre un issue para discutir antes de implementar
+
+### ¿Cómo puedo convertirme en maintainer?
+
+Los contributors activos y consistentes pueden ser invitados a ser maintainers. Esto incluye:
+- Múltiples PRs aceptados
+- Participación en reviews
+- Ayuda a otros contribuidores
+- Compromiso a largo plazo
+
+---
+
+## 📜 Licencia
+
+Al contribuir, aceptas que tus contribuciones se licencien bajo la [MIT License](LICENSE) del proyecto.
+
+---
+
+## 🙏 Agradecimientos
+
+Cada contribución, grande o pequeña, es valiosa. ¡Gracias por ayudar a hacer Primordial mejor!
+
+---
+
+<div align="center">
+
+**¿Dudas? Abre un issue o únete a la discusión en GitHub**
+
+</div>
+
+================================================================================
+ARCHIVO: .\index.html
+================================================================================
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Primordial — Simulador de vida open source</title>
+  <meta name="description" content="Motor de simulación multi-agente con genética emergente, relaciones ecológicas y evolución natural.">
+
+  <!-- Open Graph / tarjetas de redes sociales -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Primordial — Simulador de vida open source">
+  <meta property="og:description" content="Motor de simulación multi-agente con genética emergente, relaciones ecológicas y evolución natural.">
+  <meta property="og:url" content="https://primordial-sim.github.io/primordial/">
+  <meta property="og:image" content="https://raw.githubusercontent.com/primordial-sim/primordial/main/docs/assets/social_preview.png">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌍</text></svg>">
+
+  <!-- Presentación -->
+  <link rel="stylesheet" href="assets/web/css/style.css">
+</head>
+<body>
+
+  <header class="hero">
+    <div class="wrap">
+      <span class="kicker">Simulador de vida · Open source</span>
+      <img class="wordmark" src="docs/assets/social_preview.png" alt="Logotipo de Primordial">
+      <p class="tagline">Motor de simulación multi-agente con genética emergente, relaciones ecológicas y evolución natural.</p>
+
+      <div class="badges">
+        <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="Licencia MIT">
+        <img src="https://img.shields.io/badge/python-3.13+-blue.svg" alt="Python 3.13 o superior">
+        <img src="https://img.shields.io/badge/tests-414%20passed-brightgreen.svg" alt="414 tests pasando">
+      </div>
+
+      <nav class="cta" aria-label="Enlaces principales">
+        <a class="btn btn-primary" href="https://github.com/primordial-sim/primordial">Ver en GitHub</a>
+        <a class="btn btn-ghost" href="https://github.com/primordial-sim/primordial/blob/main/docs/00_INDICE.md">Documentación</a>
+      </nav>
+
+      <div class="biomes" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <section class="stats" aria-label="Cifras del proyecto">
+      <div class="stat"><b>12</b><span>mecanismos ecológicos</span></div>
+      <div class="stat"><b>414</b><span>tests pasando</span></div>
+      <div class="stat"><b>20+</b><span>rasgos genéticos</span></div>
+      <div class="stat"><b>8</b><span>tipos de relación</span></div>
+    </section>
+
+    <section aria-labelledby="features-title">
+      <h2 id="features-title">Qué simula</h2>
+      <p class="sub">Un ecosistema vivo donde las relaciones no están escritas: emergen.</p>
+      <div class="grid">
+        <div class="card"><h3>🧬 Genética emergente</h3><p>Genomas únicos con más de 20 rasgos heredables. Las poblaciones se adaptan solas, sin reglas fijas.</p></div>
+        <div class="card"><h3>🌿 Ecología real</h3><p>Ocho tipos de relación que emergen del perfil biológico, el genoma y el entorno de cada especie.</p></div>
+        <div class="card"><h3>🦠 Epidemiología</h3><p>Patógenos con variantes, contagio por carga viral, inmunidad cruzada y recuperación.</p></div>
+        <div class="card"><h3>👥 Vida social</h3><p>Matrimonios, familias, adopciones y genealogía completa con linajes a lo largo de generaciones.</p></div>
+        <div class="card"><h3>🎛️ Control en vivo</h3><p>Crea el mundo y modifica cualquier variable durante la simulación: fertilidad, longevidad, detección…</p></div>
+        <div class="card"><h3>📊 Métricas</h3><p>Instantáneas demográficas, genéticas, epidemiológicas, espaciales y cognitivas en cada tick.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="start-title">
+      <h2 id="start-title">Empieza en un minuto</h2>
+      <p class="sub">Clona, instala y lanza tu primer ecosistema.</p>
+<pre><code><span class="c"># clonar e instalar</span>
+git clone https://github.com/primordial-sim/primordial.git
+cd primordial
+python -m venv venv
+venv\Scripts\activate
+pip install -e .
+
+<span class="c"># lanzar simulación</span>
+python launcher.py -p 200 -t 500</code></pre>
+    </section>
+
+    <section class="quote" aria-label="Lema del proyecto">
+      <p>“Tú pones las reglas. La vida hace el resto.”</p>
+      <small>Primordial · arquitecto de mundos</small>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>Hecho con Python y curiosidad · <a href="https://github.com/primordial-sim/primordial/blob/main/LICENSE">Licencia MIT</a> · <a href="https://github.com/primordial-sim/primordial/issues">Reportar un bug</a></p>
+    <p class="copy">© <span id="year"></span> Primordial</p>
+  </footer>
+
+  <!-- Comportamiento -->
+  <script src="assets/web/js/main.js"></script>
+</body>
+</html>
+
+================================================================================
+ARCHIVO: .\launcher.py
+================================================================================
+
+"""Punto de entrada de la aplicación."""
+
+from __future__ import annotations
+
+import argparse
+import logging
+import re
+import random
+
+from core.engine.simulation_engine import SimulationEngine
+
+
+class RelevantEventsFilter(logging.Filter):
+    """Solo permite pasar logs que contengan eventos relevantes."""
+    
+    RELEVANT_PATTERNS = [
+        r"👶",           # Nacimientos
+        r"⚰️",           # Muertes
+        r"❤️",           # Matrimonios
+        r"💔",           # Divorcios
+        r"🚶",           # Migraciones
+        r"🎯",           # Motivaciones activas
+        r"🎓",           # Aprendizaje
+        r"🤒",           # Contagios
+        r"🚨",           # Brotes
+        r"🌍",           # Cambios de estación
+        r"👋",           # Encuentros entre agentes
+        r"🤝",           # Relaciones UNKNOWN → ACQUAINTANCE
+        r"👥",           # Amistades
+        r"💕",           # Interés romántico
+        r"🏠",           # Convivencia
+        r"💍",           # Relaciones consolidadas
+        r"📊",           # Diagnóstico de relaciones
+        r"🔍",           # Debug de relaciones
+        r"🧠",           # Experiencias relacionales 
+        r"✨",           # Experiencias generadas
+        r"INFORME EVOLUTIVO",
+        r"RESUMEN EJECUTIVO",
+        r"ERROR",
+        r"WARNING",
+        r"🔄",           # Reevaluaciones
+        r"🏁",           # Llegadas de migración
+        r"💑",           # Progresión de relaciones
+        r"🎂",           # Cumpleaños/madurez
+        r"👴",           # Senectud
+        r"⚠️",           # Abortos, mortalidad fetal
+        r"📜",           # Eventos históricos (linajes extintos)
+        r"🛑",           # Cuellos de botella
+        r"👑",           # Linajes dominantes
+    ]
+    
+    def filter(self, record: logging.LogRecord) -> bool:
+        message = record.getMessage()
+        return any(re.search(pattern, message) for pattern in self.RELEVANT_PATTERNS)
+
+
+def main() -> None:
+    """Crea el motor por defecto y arranca la simulación."""
+    
+    # =====================================================================
+    # PARSER DE ARGUMENTOS
+    # =====================================================================
+    parser = argparse.ArgumentParser(
+        description="Simulador de Vida Evolutiva",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Ejemplos:
+  # Ejecución básica con defaults
+  python launcher.py
+
+  # Prueba de integración mínima (Fase 2 de validación)
+  python launcher.py --population 50 --ticks 50 --seed 42 --verbose
+
+  # Prueba de emergencia (Fase 3 de validación)
+  python launcher.py --population 200 --ticks 500 --seed 123 --verbose
+
+  # Simulación larga con exportación de métricas
+  python launcher.py --population 500 --ticks 5000 --seed 7 --export results.json
+  
+  # Usar archivo de configuración externo
+  python launcher.py --config scenario_extreme.json --population 200 --ticks 1000
+        """
+    )
+    
+    # --- Parámetros de mundo ---
+    parser.add_argument(
+        "--config", "-c",
+        type=str,
+        default=None,
+        help="Ruta al archivo JSON de configuración (ej: scenario_extreme.json)"
+    )
+    parser.add_argument(
+        "--population", "-p",
+        type=int,
+        default=50,
+        help="Población inicial (default: 50)"
+    )
+    parser.add_argument(
+        "--width", "-w",
+        type=int,
+        default=100,
+        help="Anchura del mundo (default: 100)"
+    )
+    parser.add_argument(
+        "--height", "-H",
+        type=int,
+        default=100,
+        help="Altura del mundo (default: 100)"
+    )
+    
+    # --- NUEVO: Parámetros de ejecución ---
+    parser.add_argument(
+        "--ticks", "-t",
+        type=int,
+        default=None,
+        help="Número de ticks a ejecutar (default: según config o infinito hasta condición de parada)"
+    )
+    parser.add_argument(
+        "--seed", "-s",
+        type=int,
+        default=None,
+        help="Semilla aleatoria para reproducibilidad (default: None = aleatorio)"
+    )
+    
+    parser.add_argument(
+        "--export", "-e",
+        type=str,
+        default="simulation_metrics.json",
+        help="Ruta del archivo JSON de exportación de métricas (default: simulation_metrics.json)"
+    )
+    parser.add_argument(
+        "--no-export",
+        action="store_true",
+        help="Desactivar la exportación de métricas al finalizar"
+    )
+    parser.add_argument(
+        "--snapshot-interval",
+        type=int,
+        default=None,
+        help="Intervalo de snapshots de métricas en días (default: según config)"
+    )
+    
+    # --- Parámetros de logging ---
+    parser.add_argument(
+        "--verbose", "-v",
+        action="store_true",
+        help="Activar logging detallado (DEBUG)"
+    )
+    parser.add_argument(
+        "--quiet", "-q",
+        action="store_true",
+        help="Modo silencioso: solo errores críticos"
+    )
+    
+    args = parser.parse_args()
+    
+    # =====================================================================
+    # SEMILLA ALEATORIA (Reproducibilidad)
+    # =====================================================================
+    if args.seed is not None:
+        random.seed(args.seed)
+        # Si numpy está disponible, también fijar su semilla
+        try:
+            import numpy as np
+            np.random.seed(args.seed)
+        except ImportError:
+            pass
+    
+    # =====================================================================
+    # CONFIGURACIÓN DE LOGGING
+    # =====================================================================
+    if args.quiet:
+        log_level = logging.ERROR
+    elif args.verbose:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
+    
+    logger = logging.getLogger()
+    logger.setLevel(log_level)
+    
+    formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%H:%M:%S"
+    )
+    
+    # Handler para consola (filtrado según verbose)
+    console = logging.StreamHandler()
+    console.setLevel(log_level)
+    console.setFormatter(formatter)
+    if not args.verbose and not args.quiet:
+        console.addFilter(RelevantEventsFilter())
+    logger.addHandler(console)
+    
+    # Handler para archivo
+    file_handler = logging.FileHandler("simulacion.txt", mode="w", encoding="utf-8")
+    file_handler.setLevel(log_level)
+    file_handler.setFormatter(formatter)
+    if not args.verbose and not args.quiet:
+        file_handler.addFilter(RelevantEventsFilter())
+    logger.addHandler(file_handler)
+    
+    # =====================================================================
+    # LOG DE CONFIGURACIÓN
+    # =====================================================================
+    logger.info("=" * 65)
+    logger.info("🚀 INICIANDO SIMULADOR DE VIDA EVOLUTIVA")
+    logger.info("=" * 65)
+    logger.info("📋 Configuración:")
+    logger.info("   • Población inicial: %d agentes", args.population)
+    logger.info("   • Tamaño del mundo: %dx%d", args.width, args.height)
+    if args.ticks is not None:
+        logger.info("   • Ticks a ejecutar: %d", args.ticks)
+    else:
+        logger.info("   • Ticks a ejecutar: (según config / hasta condición de parada)")
+    if args.seed is not None:
+        logger.info("   • Semilla aleatoria: %d (reproducible)", args.seed)
+    else:
+        logger.info("   • Semilla aleatoria: (aleatorio)")
+    if args.config:
+        logger.info("   • Archivo de configuración: %s", args.config)
+    else:
+        logger.info("   • Archivo de configuración: (usando defaults)")
+    if not args.no_export:
+        logger.info("   • Exportación de métricas: %s", args.export)
+    else:
+        logger.info("   • Exportación de métricas: DESACTIVADA")
+    logger.info("   • Logging: %s", 
+                "DETALLADO" if args.verbose else ("SILENCIOSO" if args.quiet else "normal"))
+    logger.info("=" * 65)
+    
+    # =====================================================================
+    # CREAR MOTOR
+    # =====================================================================
+    engine = SimulationEngine.create_default(
+        config_path=args.config,
+        width=args.width,
+        height=args.height,
+        founding_population_size=args.population,
+        max_ticks=args.ticks,              # NUEVO
+        export_path=args.export if not args.no_export else None,  # NUEVO
+        snapshot_interval=args.snapshot_interval,  # NUEVO
+    )
+    
+    # =====================================================================
+    # EJECUTAR SIMULACIÓN
+    # =====================================================================
+    try:
+        engine.run()
+        logger.info("=" * 65)
+        logger.info("✅ SIMULACIÓN FINALIZADA CORRECTAMENTE")
+        logger.info("=" * 65)
+    except KeyboardInterrupt:
+        logger.warning("⚠️  Simulación interrumpida por el usuario (Ctrl+C)")
+        logger.info("Exportando estado final...")
+        if not args.no_export and hasattr(engine, 'export_metrics'):
+            engine.export_metrics(args.export)
+    except Exception as e:
+        logger.error("❌ ERROR CRÍTICO en la simulación: %s", str(e))
+        logger.exception("Traceback completo:")
+        raise
+
+
+if __name__ == "__main__":
+    main()
+
+================================================================================
+ARCHIVO: .\LICENSE
+================================================================================
+
+MIT License
+
+Copyright (c) 2026 primordial-sim
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+ARCHIVO: .\pyproject.toml
+================================================================================
+
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Primordial"
+version = "0.1.0"
+description = "Primordial: Motor de simulación multi-agente con genética emergente, relaciones ecológicas y evolución natural"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.13"
+authors = [
+    {name = "Tu Nombre", email = "tu@email.com"}
+]
+keywords = [
+    "simulacion",
+    "vida-artificial",
+    "ecologia",
+    "genetica",
+    "evolucion",
+    "multi-agente",
+    "ecosistema",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Life",
+    "Topic :: Games/Entertainment :: Simulation",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
+
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/tu-usuario/simulador-vida"
+"Bug Tracker" = "https://github.com/tu-usuario/simulador-vida/issues"
+"Documentation" = "https://github.com/tu-usuario/simulador-vida/tree/main/docs"
+
+[project.scripts]
+primordial = "launcher:main"
+
+================================================================================
+ARCHIVO: .\pytest.ini
+================================================================================
+
+[pytest]
+testpaths = tests
+python_files = test_*.py
+python_classes = Test*
+python_functions = test_*
+addopts = -v --tb=short
+markers =
+    unit: Tests unitarios de componentes deterministas
+    slow: Tests que requieren más tiempo
+
+================================================================================
+ARCHIVO: .\README.md
+================================================================================
+
+<div align="center">
+
+![Primordial - Open Source Life Simulator](docs/assets/social_preview.png)
+
+**Multi-agent simulation engine with emergent genetics, ecological relationships, and natural evolution**
+
+[![Website](https://img.shields.io/badge/website-live-brightgreen.svg)](https://primordial-sim.github.io/primordial/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![Status](https://img.shields.io/badge/status-in%20development-orange.svg)]()
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+</div>
+
+---
+
+# 🌍 Primordial
+
+**Primordial** es un motor de simulación multi-agente que modela ecosistemas complejos con genética emergente, relaciones ecológicas, comportamiento social y evolución natural. El objetivo final es crear una **aplicación completa con interfaz gráfica** que cualquier usuario pueda instalar y usar sin conocimientos de programación.
+
+🌐 **Web oficial**: [primordial-sim.github.io/primordial](https://primordial-sim.github.io/primordial/)
+
+<div align="center">
+
+![Python](https://img.shields.io/badge/Python-3.13+-blue.svg)
+![Tests](https://img.shields.io/badge/tests-458%20passed-brightgreen.svg)
+![Godot](https://img.shields.io/badge/Godot-4.x-478cbf.svg)
+![Status](https://img.shields.io/badge/status-active-orange.svg)
+
+</div>
+
+---
+
+## 📋 Descripción
+
+Este proyecto simula un mundo virtual donde organismos con genomas únicos interactúan, compiten, se reproducen y evolucionan de forma completamente autónoma. A diferencia de simulaciones con reglas fijas de "quién come a quién", aquí **las relaciones ecológicas emergen** de la combinación de perfil biológico, rasgos genéticos y condiciones ambientales.
+
+Cada organismo tiene un genoma único con más de 20 rasgos heredables que determinan su comportamiento, capacidades y relaciones con otras especies. El resultado es un ecosistema vivo que evoluciona de forma impredecible.
+
+### 🎯 Filosofía
+
+> *"Las relaciones ecológicas son OBJETOS, no reglas fijas. Emergen de la combinación de perfil + genoma + entorno."*
+
+### 🎮 Visión del proyecto
+
+El objetivo final es crear **Primordial** como una **aplicación de escritorio completa** con interfaz gráfica desarrollada en Godot donde el usuario pueda:
+
+- **Crear mundos a medida** desde la interfaz: mapa, biomas, especies y genomas iniciales
+- Observar la simulación en tiempo real con representación visual 2D
+- **Modificar cualquier variable del mundo en plena simulación**: probabilidad de embarazo, edad máxima, radios de detección, tasas de mutación...
+- Guardar y cargar estados del mundo
+- Exportar estadísticas y métricas
+- Instalar como aplicación independiente sin necesidad de Python
+
+Actualmente el **motor de simulación está completamente funcional** y la interfaz gráfica está en desarrollo activo.
+
+---
+
+## 👤 Tu rol: arquitecto de mundos
+
+En **Primordial** el usuario no es un espectador: es el **arquitecto del mundo**. La experiencia tiene dos momentos:
+
+### 🌍 1. Creación del mundo
+
+Antes de encender la simulación, tú defines las condiciones iniciales del universo que quieres observar:
+
+- **El escenario**: tamaño del mapa, biomas, clima y estaciones
+- **Los habitantes**: especies iniciales, poblaciones, perfiles biológicos y genomas
+- **Las reglas del juego**: fertilidad, longevidad, metabolismos, radios de detección, probabilidad de mutación...
+
+Puedes partir de un escenario predefinido o diseñar tu propio mundo desde cero.
+
+### 🎛️ 2. Intervención durante la simulación
+
+Con el mundo ya en marcha, puedes **modificar cualquier variable en tiempo real**, sin pausar ni reiniciar:
+
+| Variable ajustable (ejemplos) | Qué ocurre al tocarla |
+|-------------------------------|------------------------|
+| Probabilidad de embarazo | Explosión o colapso demográfico |
+| Edad máxima de una especie | Cambia el relevo generacional y el ritmo evolutivo |
+| Radio de detección de enemigos | Huidas más eficaces... o más estrés crónico |
+| Tasa de mutación | Evolución acelerada o estancamiento |
+| Metabolismo y coste energético | Ecosistemas más o menos exigentes |
+| Frecuencia de catástrofes | Pone a prueba la resiliencia del ecosistema |
+
+### 🔬 Experimentar → observar → comprender
+
+Cada cambio que haces se convierte en un **experimento vivo**: modificas un parámetro, observas cómo responde el ecosistema a lo largo de las generaciones y descubres qué equilibrios emergen. Primordial es a la vez **juguete, laboratorio y microscopio** de vida artificial.
+
+> *"Tú pones las reglas. La vida hace el resto."*
+
+---
+
+## ✨ ¿Qué puede hacer la simulación?
+
+### 🧬 Genética y Evolución
+
+| Característica | Descripción |
+|----------------|-------------|
+| **Genomas universales** | Cada organismo tiene 20+ rasgos heredables |
+| **Rasgos heredables** | Velocidad, fuerza, inteligencia, tamaño, metabolismo, sociabilidad, longevidad, fertilidad, inmunidad, instinto depredador, capacidad de defensa |
+| **Mutaciones** | Cada reproducción puede generar mutaciones genéticas |
+| **Evolución emergente** | Las poblaciones se adaptan naturalmente sin intervención |
+| **Herencia mendeliana** | Los rasgos se combinan de ambos padres |
+
+### 🌿 Ecología y Relaciones entre Especies
+
+La simulación modela **8 tipos de relaciones ecológicas** que emergen automáticamente:
+
+| Relación | Especie A | Especie B | Ejemplo |
+|----------|-----------|-----------|---------|
+| 🐺 **Depredación** | Se alimenta | Muere | Lobo → Ciervo |
+| 🌱 **Herbivoría** | Come plantas | Dañada | Conejo → Hierba |
+| 🤝 **Mutualismo** | Se beneficia | Se beneficia | Abeja + Flor |
+| ⚔️ **Competencia** | Pierde | Pierde | León vs Hiena |
+| 🦠 **Parasitismo** | Vive a expensas | Dañada | Pulga → Perro |
+| 🏠 **Comensalismo** | Se beneficia | No afectada | Cangrejo + Anémona |
+| 💀 **Amensalismo** | No afectada | Perjudicada | Elefante + Hormigas |
+| ➖ **Neutralismo** | Sin efecto | Sin efecto | Especies distantes |
+
+**12 mecanismos de interacción** ejecutan estas relaciones:
+
+| Mecanismo | Descripción | Estado |
+|-----------|-------------|--------|
+| 🎯 **Hunt** | Caza activa con persecución | ✅ |
+| 🐺 **Pack Hunting** | Caza coordinada en manada | ✅ |
+| 🌿 **Grazing** | Pastoreo de vegetación | ✅ |
+| 🌸 **Pollination** | Polinización mutualista | ✅ |
+| 🌰 **Seed Dispersal** | Dispersión de semillas | ✅ |
+| 🍖 **Scavenging** | Carroñeo | ✅ |
+| 🦠 **Infection** | Infección parasitaria | ✅ |
+| ⚔️ **Resource Consumption** | Competencia por recursos | ✅ |
+| 🏳️ **Territorial Display** | Exhibición territorial | ✅ |
+| 🕳️ **Ambush** | Emboscada sigilosa | ✅ |
+| 🧪 **Chemical Suppression** | Alelopatía | ✅ |
+| 🌊 **Filter Feeding** | Filtrado de agua | ✅ |
+
+### ⚡ Sistema de Energía
+
+Cada organismo gestiona su energía de forma realista:
+
+| Proceso | Descripción |
+|---------|-------------|
+| 🌞 **Fotosíntesis** | Las plantas generan energía del sol |
+| 🔥 **Metabolismo** | Consumo constante de energía por vivir |
+| 🏃 **Movimiento** | Gasto energético al desplazarse |
+| 💔 **Estrés** | El estrés consume energía |
+| 🤒 **Enfermedad** | Las enfermedades drenan energía |
+| 💀 **Inanición** | Muerte por falta de energía |
+
+### 🐾 Comportamiento Inteligente
+
+| Capacidad | Descripción |
+|-----------|-------------|
+| 👁️ **Detección de amenazas** | Las presas detectan depredadores cercanos y huyen |
+| 🎯 **Detección de presas** | Los carnívoros buscan presas activamente |
+| 🌿 **Detección de vegetación** | Los herbívoros buscan plantas para comer |
+| 🧠 **Toma de decisiones** | Los organismos evalúan opciones y eligen acciones |
+| 💾 **Memoria** | Recuerdan experiencias pasadas |
+| 🎓 **Aprendizaje** | Mejoran su comportamiento con la experiencia |
+
+### 🏃 Movimiento y Espacio
+
+| Característica | Descripción |
+|----------------|-------------|
+| 🗺️ **Mapa de tiles** | Mundo dividido en celdas con biomas |
+| 🏞️ **Biomas** | Bosques, praderas, desiertos, océanos, montañas |
+| 📍 **SpatialGrid** | Búsquedas espaciales optimizadas O(1) |
+| 🚶 **Pathfinding** | Movimiento inteligente hacia objetivos |
+| 🌍 **Migración** | Movimientos masivos estacionales |
+
+### 👥 Relaciones Sociales
+
+| Sistema | Descripción |
+|---------|-------------|
+| 🤝 **Relaciones interpersonales** | Amistad, enemistad, romance |
+| ❤️ **Matrimonio** | Formación de parejas |
+| 💔 **Divorcio** | Ruptura de relaciones |
+| 👶 **Familia** | Padres, hijos, hermanos |
+| 🏠 **Adopción** | Reestructuración familiar |
+| 📜 **Genealogía** | Árbol familiar completo con linajes |
+
+### 🌡️ Ambiente Dinámico
+
+| Característica | Descripción |
+|----------------|-------------|
+| 🍂 **Estaciones** | Primavera, verano, otoño, invierno |
+| 🌍 **Biomas dinámicos** | Los biomas afectan las relaciones ecológicas |
+| 🌪️ **Catástrofes** | Terremotos, incendios, inundaciones, sequías |
+| 🦠 **Epidemiología** | Enfermedades contagiosas con patógenos |
+| 💊 **Inmunología** | Sistema inmunológico con resistencia |
+
+### 📊 Métricas y Análisis
+
+La simulación recolecta métricas multidimensionales automáticamente:
+
+| Categoría | Métricas |
+|-----------|----------|
+| 👥 **Población** | Total, nacimientos, muertes, crecimiento |
+| 🎂 **Edad** | Estructura por edades, edad promedio |
+| 🧬 **Genética** | Promedios de rasgos, diversidad genética |
+| 🦠 **Epidemiología** | Infecciones activas, familias de patógenos |
+| 🌿 **Ecología** | Encuentros, depredaciones, herbivoría, mutualismo, competencia |
+| 👶 **Reproducción** | Embarazos activos, fertilidad |
+| 🧠 **Cognición** | Estrés, felicidad, energía promedio |
+| 👥 **Social** | Matrimonios, solteros, huérfanos |
+| 🗺️ **Espacial** | Presión por sectores, hacinamiento |
+| 📜 **Genealogía** | Linajes activos/extintos, generaciones |
+
+---
+
+## 🚀 Instalación y Uso (Modo Consola)
+
+> **Nota**: Actualmente la simulación se ejecuta por consola. La interfaz gráfica está en desarrollo.
+
+### Requisitos
+
+- Python 3.13 o superior
+- pip
+
+### Instalación
+
+```bash
+# Clonar el repositorio
+git clone https://github.com/primordial-sim/primordial.git
+cd primordial
+
+# Crear entorno virtual
+python -m venv venv
+
+# Activar entorno virtual (Windows)
+venv\Scripts\activate
+
+# Activar entorno virtual (Linux/Mac)
+source venv/bin/activate
+
+# Instalar dependencias
+pip install -e .
+```
+
+### Ejecución
+
+```bash
+# Ejecución básica
+python launcher.py
+
+# Con parámetros
+python launcher.py --population 100 --width 50 --height 50 --ticks 1000
+```
+
+### Parámetros disponibles
+
+| Parámetro | Alias | Descripción | Por defecto |
+|-----------|-------|-------------|-------------|
+| `--config` | `-c` | Ruta al archivo de configuración | `config.yaml` |
+| `--population` | `-p` | Población inicial | `50` |
+| `--width` | `-w` | Ancho del mundo en tiles | `30` |
+| `--height` | `-H` | Alto del mundo en tiles | `30` |
+| `--ticks` | `-t` | Número de ticks a simular | `100` |
+| `--seed` | `-s` | Semilla aleatoria (reproducibilidad) | Aleatorio |
+| `--export` | `-e` | Ruta para exportar métricas | `metrics.json` |
+| `--no-export` | — | Desactivar exportación | — |
+| `--snapshot-interval` | — | Intervalo de snapshots en días | `1` |
+| `--verbose` | `-v` | Logging detallado | — |
+| `--quiet` | `-q` | Solo eventos relevantes | — |
+
+### Ejemplos
+
+```bash
+# Simulación rápida con 200 organismos
+python launcher.py -p 200 -t 500
+
+# Simulación reproducible con semilla
+python launcher.py -s 12345 -p 100
+
+# Simulación grande (500 organismos, mundo 100x100)
+python launcher.py -p 500 -w 100 -H 100 -t 2000
+
+# Modo silencioso (solo nacimientos, muertes, matrimonios)
+python launcher.py -q
+
+# Exportar métricas a archivo específico
+python launcher.py -p 150 -e resultados/mi_simulacion.json
+```
+
+---
+
+## 🧪 Testing
+
+El proyecto cuenta con **460 tests** organizados en tres niveles:
+
+| Tipo | Descripción | Cantidad |
+|------|-------------|----------|
+| 🟢 **Unitarios** | Tests de componentes individuales | ~350 |
+| 🟡 **Integración** | Tests de interacción entre sistemas | ~15 |
+| 🔵 **Benchmarks** | Tests de rendimiento | ~7 |
+
+```bash
+# Ejecutar todos los tests
+python -m pytest tests/ --tb=short -q
+
+# Ejecutar solo tests unitarios
+python -m pytest tests/unit/ -v
+
+# Ejecutar con cobertura
+python -m pytest tests/ --cov=systems --cov-report=html
+
+# Ejecutar tests específicos de ecología
+python -m pytest tests/unit/test_ecological_mechanisms.py -v
+```
+
+---
+
+## 📁 Estructura del proyecto
+
+```
+primordial/
+├── launcher.py              # Punto de entrada (modo consola)
+├── pyproject.toml           # Configuración del proyecto
+├── pytest.ini               # Configuración de tests
+│
+├── core/                    # Núcleo del motor
+│   ├── engine/              # Motor de simulación, fases, scheduler
+│   ├── genetics/            # Sistema genético universal
+│   ├── taxonomy/            # Clasificación de especies
+│   ├── state/               # Estado del mundo y buffer transaccional
+│   └── config/              # Configuración y parámetros
+│
+├── systems/                 # Sistemas de simulación (16 módulos)
+│   ├── ecology/             # Relaciones ecológicas y mecanismos
+│   ├── energy/              # Sistema de energía
+│   ├── movement/            # Movimiento, migración, pathfinding
+│   ├── relationships/       # Relaciones sociales, matrimonio
+│   ├── reproduction/        # Reproducción, gestación, huevos
+│   ├── mortality/           # Mortalidad, envejecimiento
+│   ├── diseases/            # Epidemiología, patógenos
+│   ├── environment/         # Biomas, estaciones, catástrofes
+│   ├── metrics/             # Recolección de métricas
+│   ├── evolution/           # Motor evolutivo
+│   ├── genealogy/           # Genealogía y linajes
+│   └── ...                  # Más sistemas
+│
+├── entities/                # Entidades del mundo
+│   └── person/              # Organismos (clase Person)
+│
+├── tests/                   # Suite de tests (460 tests)
+│   ├── unit/                # Tests unitarios
+│   ├── integration/         # Tests de integración
+│   └── benchmarks/          # Tests de rendimiento
+│
+├── docs/                    # Documentación técnica
+│   ├── 00_INDICE.md         # Índice de documentación
+│   ├── systems/             # Documentación por sistema
+│   ├── planning/            # Planificación y roadmap
+│   ├── specs/               # Especificaciones
+│   └── assets/              # Imágenes y recursos del README
+│
+├── godot/                   # Frontend visual (Godot) - En desarrollo
+├── scenarios/               # Escenarios predefinidos
+├── data/                    # Datos generados (no versionado)
+└── tools/                   # Utilidades y scripts
+```
+
+---
+
+## 🏗️ Arquitectura del Motor
+
+El motor opera en un **ciclo de fases secuenciales** que se ejecutan en cada tick:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    CICLO DE SIMULACIÓN                      │
+└─────────────────────────────────────────────────────────────┘
+
+1. ⏰ Temporal      → Relojes internos, envejecimiento
+2. 🌍 Ambiental     → Biomas, estaciones, presión social
+3. 🌿 Ecológica     → Relaciones entre especies, energía
+4. 👥 Social        → Relaciones, matrimonios, adopciones
+5. 🚶 Movimiento    → Migración, desplazamiento
+6. 💊 Salud         → Enfermedades, inmunología
+7. 👶 Reproducción  → Concepción, gestación, nacimiento
+8. 💀 Mortalidad    → Curvas de supervivencia, muerte
+9. 📊 Observadores  → Métricas, genealogía, evolución
+```
+
+### Flujo de datos
+
+```
+┌──────────────┐     ┌─────────────────┐     ┌──────────────┐
+│  WorldState  │────▶│  PendingChanges │────▶│   Commit     │
+│  (Estado)    │     │  (Buffer)       │     │  (Aplicar)   │
+└──────────────┘     └─────────────────┘     └──────────────┘
+      │                     │                     │
+      ▼                     ▼                     ▼
+ Lectura de             Modificaciones       Estado final
+ estado actual          pendientes           consolidado
+```
+
+---
+
+## 🛣️ Roadmap
+
+### ✅ Completado
+
+- [x] Sistema genético universal con 20+ rasgos
+- [x] Inferencia automática de relaciones ecológicas
+- [x] 8 tipos de relaciones ecológicas
+- [x] 8 mecanismos de interacción implementados
+- [x] Sistema de energía completo
+- [x] Detección ecológica de amenazas/presas/vegetación
+- [x] Optimización espacial con SpatialGrid O(1)
+- [x] Métricas multidimensionales (incluyendo ecología)
+- [x] Genealogía completa con linajes
+- [x] Sistema de matrimonios y adopciones
+- [x] Epidemiología con patógenos
+- [x] Catástrofes naturales
+- [x] 460 tests pasando
+- [x] Profesionalización del repositorio (licencia, guías de comunidad, plantillas)
+
+### 🚧 En progreso
+
+- [ ] Interfaz gráfica en Godot
+- [ ] Editor de mundos y panel de control de parámetros en vivo
+- [ ] Empaquetado como aplicación instalable
+
+### 🔮 Futuro
+
+- [ ] Especiación por aislamiento ecológico
+- [ ] Coevolución depredador-presa
+- [ ] Extinciones y eventos cascada
+- [ ] API web para visualización remota
+- [ ] Editor de escenarios visual avanzado
+- [ ] Modo sandbox con control directo de organismos
+
+---
+
+## 🖥️ Interfaz Gráfica (En Desarrollo Activo)
+
+La aplicación incluye una interfaz gráfica desarrollada en **Godot 4.x**, diseñada no solo como un visor, sino como una herramienta de observación y experimentación científica:
+
+**Arquitectura y características actuales**:
+
+- **Desacoplamiento total**: El motor de simulación (Python) envía datos puros vía WebSocket. Godot se encarga exclusivamente de la visualización y captura de inputs, permitiendo escalar la simulación a alta velocidad sin afectar el framerate de la interfaz.
+- **Marco de visualización fijo**: El mundo se renderiza dentro de un `SubViewportContainer` centrado (800x800 px), actuando como una ventana estable que no se deforma ni se desplaza con el zoom o el paneo.
+- **Cámara con límites estrictos**: El movimiento de la cámara está acotado dinámicamente (`_clamp_camera_position`) para impedir que el usuario vea espacio vacío más allá de los bordes de la rejilla del mundo.
+- **Panel de control en vivo (Preset Engine)**: Modificación bidireccional de parámetros macro (fertilidad, mortalidad, migración, mutación, etc.) en tiempo real a través de sliders, sin necesidad de pausar o reiniciar.
+- **Inspección y análisis**: Selección de individuos, visualización de su genoma, estado, relaciones y estadísticas agregadas.
+- **Controles de simulación**: Play, pausa, avance paso a paso y multiplicadores de velocidad (1x, 2x, 5x, 10x).
+
+**Próximos pasos en la UI**:
+
+- [ ] Editor visual de mundos y carga de escenarios predefinidos (JSON/YAML).
+- [ ] Sistema de capas visuales superponibles (enfermedades, linajes, densidad de población).
+- [ ] Gráficos de evolución temporal y explorador genealógico interactivo.
+- [ ] Empaquetado final como aplicación de escritorio independiente.
+
+---
+
+## 📚 Documentación
+
+La documentación técnica completa está en [`docs/`](docs/):
+
+| Documento | Descripción |
+|-----------|-------------|
+| [`00_INDICE.md`](docs/00_INDICE.md) | Índice maestro de documentación |
+| [`01_FUNDAMENTOS.md`](docs/01_FUNDAMENTOS.md) | Arquitectura del motor |
+| [`20_ECOLOGIA.md`](docs/systems/20_ECOLOGIA.md) | Sistema de relaciones ecológicas |
+| [`21_ENERGIA.md`](docs/systems/21_ENERGIA.md) | Sistema de energía |
+
+---
+
+## 🤝 Contribuir
+
+Las contribuciones son bienvenidas. Por favor, lee [`CONTRIBUTING.md`](CONTRIBUTING.md) para conocer el proceso completo y nuestras directrices.
+
+Resumen rápido:
+
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+Por favor, sigue nuestro [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) en todas tus interacciones.
+
+---
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver el archivo [LICENSE](LICENSE) para más detalles.
+
+---
+
+## 🤖 Desarrollo con IA
+
+Este proyecto ha sido desarrollado en colaboración con asistentes de inteligencia artificial. La IA ha participado activamente en:
+
+- **Diseño de arquitectura**: Estructura de sistemas, patrones de diseño y organización de módulos
+- **Implementación de código**: Escritura de clases, métodos y lógica de simulación
+- **Testing**: Creación de suites de tests unitarios, de integración y benchmarks
+- **Documentación**: Redacción de documentación técnica y README
+- **Refactorización**: Optimización de rendimiento y mejora de código existente
+- **Resolución de problemas**: Depuración y análisis de errores
+
+El desarrollo ha seguido una metodología colaborativa humano-IA donde las decisiones arquitectónicas y la visión del proyecto son dirigidas por el desarrollador humano, mientras que la IA asiste en la implementación y aceleración del proceso.
+
+---
+
+## 🙏 Agradecimientos
+
+- Inspirado en simulaciones de vida artificial y ecología teórica
+- Comunidad Python y Godot
+- Modelos ecológicos de interacción entre especies
+- Asistentes de IA por la colaboración en el desarrollo
+
+---
+
+<div align="center">
+
+**Hecho con ❤️, 🐍 Python y 🤖 IA**
+
+[Reportar Bug](https://github.com/primordial-sim/primordial/issues) · [Sugerir Feature](https://github.com/primordial-sim/primordial/issues) · [Documentación](docs/00_INDICE.md)
+
+</div>
+
+
+================================================================================
+ARCHIVO: .\robots.txt
+================================================================================
+
+User-agent: *
+Allow: /
+Sitemap: https://primordial-sim.github.io/primordial/sitemap.xml
+
+
+================================================================================
+ARCHIVO: .\SECURITY.md
+================================================================================
+
+# Política de Seguridad
+
+## Versiones soportadas
+
+| Versión | Soporte          |
+|---------|------------------|
+| 0.3.x   | ✅ Soportado      |
+| 0.2.x   | ⚠️ Solo bugs críticos |
+| < 0.2   | ❌ Sin soporte    |
+
+## Reportar una vulnerabilidad
+
+Si descubres una vulnerabilidad de seguridad en **Primordial**, agradecemos tu ayuda para divulgarla de manera responsable.
+
+### ⚠️ NO abras un issue público
+
+Las vulnerabilidades de seguridad deben reportarse de forma privada para evitar que actores malintencionados las exploten antes de que podamos corregirlas.
+
+### 📧 Método de reporte
+
+**Opción 1: GitHub Security Advisories (recomendado)**
+
+1. Ve a la pestaña **"Security"** del repositorio
+2. Haz clic en **"Report a vulnerability"**
+3. Rellena el formulario con los detalles
+4. Se creará un advisory privado
+
+### 📝 Información a incluir
+
+- Descripción clara de la vulnerabilidad
+- Pasos para reproducirla
+- Impacto potencial
+- Versión del software afectada
+- Posibles soluciones (si las tienes)
+- Prueba de concepto (opcional pero útil)
+
+## Proceso de respuesta
+
+| Plazo | Acción |
+|-------|--------|
+| **24-48 horas** | Confirmación de recepción |
+| **7 días** | Evaluación inicial y clasificación |
+| **30 días** | Corrección y parche (vulnerabilidades críticas) |
+| **90 días** | Corrección y parche (vulnerabilidades moderadas) |
+
+## Alcance
+
+Esta política aplica a:
+- Código fuente del motor de simulación
+- Dependencias directas del proyecto
+- Archivos de configuración críticos
+
+No aplica a:
+- Problemas de rendimiento
+- Bugs funcionales (usar la plantilla de Bug Report)
+- Problemas de usabilidad
+
+## Reconocimientos
+
+Agradecemos públicamente a quienes reporten vulnerabilidades de forma responsable. Los nombres de los reportantes serán incluidos en las notas de la versión donde se corrigió el problema (salvo que prefieran permanecer anónimos).
+
+## Divulgación coordinada
+
+Siguiendo las mejores prácticas de la industria:
+1. Evaluamos y confirmamos la vulnerabilidad
+2. Desarrollamos y testeamos un parche
+3. Publicamos la corrección en todas las versiones soportadas
+4. Divulgamos públicamente después de un período razonable
+
+---
+
+*Última actualización: 2026-09-21*
+
+================================================================================
+ARCHIVO: .\sitemap.xml
+================================================================================
+
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://primordial-sim.github.io/primordial/</loc>
+    <lastmod>2026-09-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

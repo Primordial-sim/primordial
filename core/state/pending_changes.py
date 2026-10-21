@@ -62,9 +62,9 @@ class PendingChanges:
     # ==========================================
     # ESPACIO Y TIEMPO
     # ==========================================
-    def register_movement(self, entity_id: int, x: int, y: int) -> None:
-        """Registra una intención de desplazamiento espacial validada."""
-        self.movements[entity_id] = (x, y)
+    def register_movement(self, entity_id: int, q: int, r: int) -> None:
+        """Registra una intención de desplazamiento espacial validada (coordenadas hexagonales)."""
+        self.movements[entity_id] = (q, r)
 
     def register_time_pass(self, days: float) -> None:
         """Suma tiempo al reloj biológico global (si aplica)."""
@@ -88,16 +88,16 @@ class PendingChanges:
         self,
         mother_id: int,
         father_id: Optional[int],
-        x: int,
-        y: int,
+        q: int,
+        r: int,
         genome: Any,
     ) -> None:
         """Registra un nacimiento pendiente con el ADN recombinado multiespecie."""
         self.births.append({
             "mother_id": mother_id,
             "father_id": father_id,
-            "x": x,
-            "y": y,
+            "q": q,
+            "r": r,
             "genome": genome,
         })
 
@@ -117,7 +117,7 @@ class PendingChanges:
             "litter_size": int(litter_size),
         }
 
-        # ==========================================
+    # ==========================================
     # MIGRACIONES (Fase de Corrección)
     # ==========================================
     def set_migration_target(self, entity_id: int, target: Tuple[float, float]) -> None:
@@ -225,7 +225,7 @@ class PendingChanges:
         """Obtiene todos los deltas pendientes de motivaciones para una entidad."""
         return self.motivation_updates.get(entity_id, {})
 
-        # ==========================================
+    # ==========================================
     # CICLO DE VIDA DEL BÚFER
     # ==========================================
     def clear(self) -> None:

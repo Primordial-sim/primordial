@@ -14,6 +14,7 @@ CORRECCIONES APLICADAS (Auditoría):
 - Coste por temperamento documentado (hiperactividad metabólica)
 - Hitos biológicos con efectos emocionales reales
 - Uso de pending.register_time_pass() para coherencia transaccional
+- MIGRACIÓN HEXAGONAL: person.x/y → person.q/r
 """
 
 from __future__ import annotations
@@ -43,15 +44,15 @@ class TemporalSystem:
     ) -> None:
         """Procesa el avance temporal y el metabolismo basal de todos los agentes."""
         time_cfg = self.config.time
-        
+
         # CORRECCIÓN: Usar pending para el reloj global (coherencia transaccional)
         pending.register_time_pass(delta_days)
-        
+
         # CORRECCIÓN: Valores de configuración con fallback seguro
-        immune_cost_per_point = getattr(time_cfg, 'immune_energy_cost', 0.01)
-        temperament_cost_per_point = getattr(time_cfg, 'temperament_energy_cost', 0.005)
-        base_recovery_rate = getattr(time_cfg, 'base_energy_recovery', 0.3)
-        
+        immune_cost_per_point = getattr(time_cfg, "immune_energy_cost", 0.01)
+        temperament_cost_per_point = getattr(time_cfg, "temperament_energy_cost", 0.005)
+        base_recovery_rate = getattr(time_cfg, "base_energy_recovery", 0.3)
+
         for person in state.get_all_persons():
             if person.entity_id in pending.deaths:
                 continue
@@ -59,19 +60,18 @@ class TemporalSystem:
             # =================================================================
             # CÁLCULO DE COSTES ENERGÉTICOS
             # =================================================================
-            
+
             # 1. COSTE INMUNOLÓGICO (trade-off evolutivo)
             # GENÉTICA UNIVERSAL: API genérica agnóstica a especie
             immunity = person.genome.get_trait_value("immunity")
             immune_cost = immunity * immune_cost_per_point
-            
+
             # CORRECCIÓN: El coste inmunológico se dispara cuando hay infección activa
-            if getattr(person, 'is_sick', False):
+            if getattr(person, "is_sick", False):
                 total_virulence = 0.0
-                if hasattr(person, 'active_pathogens') and person.active_pathogens:
+                if hasattr(person, "active_pathogens") and person.active_pathogens:
                     for pathogen in person.active_pathogens.values():
                         total_virulence += pathogen.virulence
-                
                 sickness_multiplier = min(5.0, 2.0 + total_virulence)
                 immune_cost *= sickness_multiplier
 
@@ -81,7 +81,7 @@ class TemporalSystem:
             temperament_cost = temperament * temperament_cost_per_point
 
             # 3. COSTE POR EDAD (metabolismo basal variable)
-            age = getattr(person, 'age', 0.0)
+            age = getattr(person, "age", 0.0)
             age_factor = 1.0
             if age > time_cfg.senior_age_days:
                 age_factor = 1.2
@@ -90,77 +90,84 @@ class TemporalSystem:
 
             # 4. COSTE TOTAL DE CONSUMO
             total_consumption = (immune_cost + temperament_cost) * age_factor * delta_days
-            
+
             # La enfermedad aumenta el consumo energético adicional
-            if getattr(person, 'is_sick', False):
+            if getattr(person, "is_sick", False):
                 sickness_consumption = 0.05 * delta_days
                 total_consumption += sickness_consumption
 
             # =================================================================
             # CÁLCULO DE RECUPERACIÓN ENERGÉTICA
             # =================================================================
-            
+
             # Factor de recursos del entorno
-            local_resources = getattr(context, 'get_resources_at', lambda x, y: 0.5)(
-                int(person.x), int(person.y)
+            # HEX: Usar person.q, person.r en lugar de person.x, person.y
+            local_resources = getattr(context, "get_resources_at", lambda q, r: 0.5)(
+                int(person.q), int(person.r)
             )
             resource_factor = 0.5 + (local_resources * 0.5)
-            
+
             # Factor de edad
             recovery_age_factor = 1.0
             if age > time_cfg.senior_age_days:
                 recovery_age_factor = 0.7
             elif age < time_cfg.adult_age_days:
                 recovery_age_factor = 1.1
-            
+
             # La enfermedad reduce la recuperación
             sickness_recovery_factor = 1.0
-            if getattr(person, 'is_sick', False):
+            if getattr(person, "is_sick", False):
                 sickness_recovery_factor = 0.5
-            
+
             # Recuperación final
             total_recovery = (
-                base_recovery_rate * 
-                resource_factor * 
-                recovery_age_factor * 
-                sickness_recovery_factor * 
-                delta_days
+                base_recovery_rate
+                * resource_factor
+                * recovery_age_factor
+                * sickness_recovery_factor
+                * delta_days
             )
-            
+
             net_energy_change = total_recovery - total_consumption
 
             # Aplicar cambio de energía
             if abs(net_energy_change) > 0.001:
-                pending.register_emotion_update(person.entity_id, "energy", net_energy_change)
+                pending.register_emotion_update(
+                    person.entity_id, "energy", net_energy_change
+                )
 
             # =================================================================
             # HITOS BIOLÓGICOS CON EFECTOS REALES
             # =================================================================
             self._check_milestones(person, pending, time_cfg)
 
-    def _check_milestones(self, person: Any, pending: PendingChanges, time_cfg: Any) -> None:
+    def _check_milestones(
+        self, person: Any, pending: PendingChanges, time_cfg: Any
+    ) -> None:
         """Verifica hitos biológicos y aplica efectos emocionales.
-        
+
         CORRECCIÓN: Los hitos ahora generan efectos reales, no solo logs.
         """
-        age = getattr(person, 'age', 0.0)
-        
+        age = getattr(person, "age", 0.0)
+
         # Transición a adulto
-        if not getattr(person, 'is_adult', False) and age >= time_cfg.adult_age_days:
+        if not getattr(person, "is_adult", False) and age >= time_cfg.adult_age_days:
             # La madurez genera un pequeño boost de felicidad y reduce estrés
             pending.register_emotion_update(person.entity_id, "happiness", 0.1)
             pending.register_emotion_update(person.entity_id, "stress", -0.05)
             self.logger.debug(
                 "🎂 Agente %s alcanzó la madurez (edad: %.0f días)",
-                person.entity_id, age,
+                person.entity_id,
+                age,
             )
-        
+
         # Transición a anciano
-        if not getattr(person, 'is_senior', False) and age >= time_cfg.senior_age_days:
+        if not getattr(person, "is_senior", False) and age >= time_cfg.senior_age_days:
             # La senectud aumenta estrés y reduce felicidad ligeramente
             pending.register_emotion_update(person.entity_id, "stress", 0.1)
             pending.register_emotion_update(person.entity_id, "happiness", -0.05)
             self.logger.debug(
                 "👴 Agente %s entró en senectud (edad: %.0f días)",
-                person.entity_id, age,
+                person.entity_id,
+                age,
             )

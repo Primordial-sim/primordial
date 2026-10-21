@@ -28,7 +28,6 @@ from core.genetics.species_definition import SpeciesRegistry
 from core.engine.scenario_loader import Scenario, SpeciesConfig
 
 
-
 class SimulationEngine:
     """Controla el ciclo temporal completo, el registro analítico y la persistencia."""
 
@@ -314,8 +313,8 @@ class SimulationEngine:
         for person in persons:
             persons_data.append({
                 "id": int(person.entity_id),
-                "x": float(person.x),
-                "y": float(person.y),
+                "q": float(person.q),  # HEX: Cambiado de x a q
+                "r": float(person.r),  # HEX: Cambiado de y a r
                 "age": float(person.age),
                 "gender": str(person.gender),
                 "species": str(getattr(person, 'species', 'human')),
@@ -559,6 +558,10 @@ class SimulationEngine:
 
         min_age = config.time.adult_age_days
         max_age = config.time.senior_age_days
+        
+        # HEX: Usar las dimensiones reales del estado para generar coordenadas válidas
+        width = state.width
+        height = state.height
 
         for entity_id in range(1, size + 1):
             genome = Genome.create_founder(species)
@@ -566,8 +569,8 @@ class SimulationEngine:
             person = Person(
                 config=config,
                 entity_id=entity_id,
-                x=random.randint(10, 90),
-                y=random.randint(10, 90),
+                q=random.randint(5, max(6, width - 5)),   # HEX: q en lugar de x
+                r=random.randint(5, max(6, height - 5)),  # HEX: r en lugar de y
                 age=random.uniform(min_age, max_age),
                 genome=genome,
             )
@@ -609,11 +612,12 @@ class SimulationEngine:
             for _ in range(sc.count):
                 genome = Genome.create_founder(species)
                 
+                # HEX: Cambiado x, y por q, r
                 person = Person(
                     config=config,
                     entity_id=entity_id,
-                    x=random.randint(5, max(6, width - 5)),
-                    y=random.randint(5, max(6, height - 5)),
+                    q=random.randint(5, max(6, width - 5)),
+                    r=random.randint(5, max(6, height - 5)),
                     age=random.uniform(min_age, max_age),
                     genome=genome,
                     species=species.species_id,

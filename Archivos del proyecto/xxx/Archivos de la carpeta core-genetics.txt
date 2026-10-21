@@ -1,0 +1,2283 @@
+================================================================================
+ARCHIVO: .\core\genetics\biological_validator.py
+================================================================================
+
+"""Sistema de Validación Biológica.
+
+FILOSOFÍA: El Validador Biológico es el ÚNICO lugar donde existe
+el conocimiento biológico del sistema.
+
+Los rasgos son completamente neutros (no saben qué es un mamífero).
+Las plantillas son declarativas (solo dicen qué rasgos activar).
+El Validador conoce las reglas de coherencia biológica.
+
+IMPORTANTE: Este sistema NO impide configuraciones. Solo informa.
+El usuario decide si continúa con una configuración advertida.
+
+El validador utiliza un sistema de reglas declarativas:
+- Incompatibilidades: rasgos que no suelen coexistir
+- Dependencias: rasgos que requieren otros rasgos
+- Coherencias: combinaciones que refuerzan realismo
+- Contradicciones: combinaciones biológicamente imposibles
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional
+from enum import Enum, auto
+import logging
+
+from core.genetics.trait import TraitCategory
+from core.genetics.trait_library import TraitLibrary
+from core.genetics.species_definition import SpeciesDefinition
+
+
+class ValidationSeverity(Enum):
+    """Nivel de severidad de una advertencia."""
+    INFO = auto()       # Información: combinación interesante o curiosa
+    WARNING = auto()    # Advertencia: combinación inusual pero posible
+    ERROR = auto()      # Error: combinación biológicamente contradictoria
+
+
+@dataclass
+class ValidationMessage:
+    """Un mensaje de validación individual."""
+    severity: ValidationSeverity
+    message: str
+    trait_ids: List[str] = field(default_factory=list)
+    rule_id: str = ""
+
+
+# =============================================================================
+# DEFINICIONES DE REGLAS BIOLÓGICAS
+# =============================================================================
+
+@dataclass(frozen=True)
+class IncompatibilityRule:
+    """Dos rasgos que raramente coexisten en la naturaleza."""
+    trait_a: str
+    trait_b: str
+    severity: ValidationSeverity
+    message: str
+
+
+@dataclass(frozen=True)
+class DependencyRule:
+    """Un rasgo que requiere otro rasgo para ser coherente."""
+    trait: str
+    requires: str
+    severity: ValidationSeverity
+    message: str
+
+
+@dataclass(frozen=True)
+class CategoryRule:
+    """Una regla sobre la coherencia de categorías de rasgos."""
+    required_category: TraitCategory
+    forbidden_category: Optional[TraitCategory]
+    min_traits: int
+    severity: ValidationSeverity
+    message: str
+
+
+# =============================================================================
+# BASE DE DATOS DE REGLAS BIOLÓGICAS
+# =============================================================================
+# Aquí es donde vive todo el conocimiento biológico del sistema.
+# Para añadir una nueva regla, solo añade una línea aquí.
+
+INCOMPATIBILITY_RULES: List[IncompatibilityRule] = [
+    # Vuelo y natación son posibles (patos, cormoranes) pero inusuales
+    IncompatibilityRule(
+        trait_a="flight",
+        trait_b="swimming",
+        severity=ValidationSeverity.WARNING,
+        message="Vuelo y natación avanzada son inusuales juntos. Existen casos (patos, cormoranes) pero requieren adaptaciones especiales.",
+    ),
+    
+    # Fotosíntesis y heterotrofía son contradictorios
+    IncompatibilityRule(
+        trait_a="photosynthesis",
+        trait_b="heterotrophy",
+        severity=ValidationSeverity.ERROR,
+        message="Fotosíntesis y heterotrofía son estrategias energéticas contradictorias. Los organismos suelen tener una u otra.",
+    ),
+    
+    # Veneno alto y empatía alta son contradictorios
+    IncompatibilityRule(
+        trait_a="venom",
+        trait_b="empathy",
+        severity=ValidationSeverity.WARNING,
+        message="Veneno y empatía alta son inusuales. Los organismos venenosos suelen ser solitarios.",
+    ),
+    
+    # Visión nocturna y ecolocalización son redundantes
+    IncompatibilityRule(
+        trait_a="night_vision",
+        trait_b="echolocation",
+        severity=ValidationSeverity.INFO,
+        message="Visión nocturna y ecolocalización son sistemas sensoriales redundantes. Es raro que un organismo use ambos al máximo.",
+    ),
+    
+    # Longevidad extrema y fertilidad alta son inversamente proporcionales
+    IncompatibilityRule(
+        trait_a="longevity",
+        trait_b="fertility",
+        severity=ValidationSeverity.INFO,
+        message="Longevidad y alta fertilidad suelen ser inversamente proporcionales en la naturaleza (trade-off biológico).",
+    ),
+    
+    # Velocidad extrema y metabolismo bajo son contradictorios
+    IncompatibilityRule(
+        trait_a="speed",
+        trait_b="metabolism",
+        severity=ValidationSeverity.WARNING,
+        message="Alta velocidad requiere metabolismo alto. Un metabolismo bajo no puede sostener movimientos rápidos.",
+    ),
+]
+
+
+DEPENDENCY_RULES: List[DependencyRule] = [
+    # Empatía requiere sistema nervioso complejo
+    DependencyRule(
+        trait="empathy",
+        requires="nervous_system",
+        severity=ValidationSeverity.ERROR,
+        message="La empatía requiere un sistema nervioso complejo. No puede existir sin él.",
+    ),
+    
+    # Inteligencia requiere sistema nervioso
+    DependencyRule(
+        trait="intelligence",
+        requires="nervous_system",
+        severity=ValidationSeverity.ERROR,
+        message="La inteligencia requiere un sistema nervioso. No puede existir sin él.",
+    ),
+    
+    # Ecolocalización requiere audición
+    DependencyRule(
+        trait="echolocation",
+        requires="hearing",
+        severity=ValidationSeverity.ERROR,
+        message="La ecolocalización requiere audición. No puede existir sin un sistema auditivo.",
+    ),
+    
+    # Cooperación alta requiere sociabilidad
+    DependencyRule(
+        trait="cooperation",
+        requires="sociability",
+        severity=ValidationSeverity.WARNING,
+        message="Alta cooperación suele requerir sociabilidad. Es inusual cooperar sin ser social.",
+    ),
+    
+    # Obediencia alta requiere cierto nivel de inteligencia
+    DependencyRule(
+        trait="obedience",
+        requires="intelligence",
+        severity=ValidationSeverity.WARNING,
+        message="La obediencia requiere cierta capacidad cognitiva para comprender normas.",
+    ),
+    
+    # Vuelo requiere cierto nivel de metabolismo
+    DependencyRule(
+        trait="flight",
+        requires="metabolism",
+        severity=ValidationSeverity.WARNING,
+        message="El vuelo requiere un metabolismo alto. Es energéticamente muy costoso.",
+    ),
+    
+    # Veneno requiere metabolismo
+    DependencyRule(
+        trait="venom",
+        requires="metabolism",
+        severity=ValidationSeverity.INFO,
+        message="Producir veneno requiere energía metabólica.",
+    ),
+]
+
+
+# Reglas de categorías (qué categorías suelen ir juntas)
+CATEGORY_RULES: List[CategoryRule] = [
+    # Si tiene rasgos especiales, debería tener biología básica
+    CategoryRule(
+        required_category=TraitCategory.BIOLOGY,
+        forbidden_category=None,
+        min_traits=1,
+        severity=ValidationSeverity.INFO,
+        message="La especie tiene rasgos especiales pero carece de rasgos biológicos fundamentales.",
+    ),
+]
+
+
+# =============================================================================
+# CLASE PRINCIPAL: VALIDADOR BIOLÓGICO
+# =============================================================================
+
+class BiologicalValidator:
+    """Valida la coherencia biológica de una definición de especie.
+    
+    IMPORTANTE: Este sistema NO impide configuraciones. Solo informa.
+    El usuario decide si continúa con una configuración advertida.
+    
+    Uso:
+        validator = BiologicalValidator()
+        result = validator.validate_species(species)
+        
+        for msg in result.messages:
+            print(f"[{msg.severity.name}] {msg.message}")
+    """
+    
+    _logger = logging.getLogger("BiologicalValidator")
+    
+    def __init__(self, library: Optional[TraitLibrary] = None) -> None:
+        self._library = library or TraitLibrary.get_default()
+    
+    def validate_species(self, species: SpeciesDefinition) -> ValidationResult:
+        """Valida la coherencia biológica de una especie.
+        
+        Args:
+            species: La especie a validar.
+            
+        Returns:
+            ValidationResult con todas las advertencias y errores encontrados.
+        """
+        result = ValidationResult(species_id=species.species_id)
+        
+        # Aplicar todas las reglas
+        self._check_incompatibilities(species, result)
+        self._check_dependencies(species, result)
+        self._check_categories(species, result)
+        self._check_trait_values(species, result)
+        self._check_minimum_traits(species, result)
+        
+        return result
+    
+    def _check_incompatibilities(
+        self, species: SpeciesDefinition, result: ValidationResult
+    ) -> None:
+        """Verifica incompatibilidades entre rasgos.
+        
+        EXCEPCIÓN: Organismos con symbiosis alto (>1.5) quedan excluidos
+        de la regla longevity-fertility, porque en hongos, líquenes y
+        organismos simbióticos no aplica el trade-off biológico clásico.
+        """
+        trait_ids = species.get_all_trait_ids()
+        
+        # Detectar si el organismo tiene symbiosis alto
+        has_high_symbiosis = False
+        if "symbiosis" in trait_ids:
+            symbiosis_config = species.get_trait_config("symbiosis")
+            if symbiosis_config and symbiosis_config.default_value > 1.5:
+                has_high_symbiosis = True
+        
+        for rule in INCOMPATIBILITY_RULES:
+            # Excluir organismos simbióticos de la regla longevity-fertility
+            if has_high_symbiosis and rule.trait_a == "longevity" and rule.trait_b == "fertility":
+                continue
+            
+            if rule.trait_a in trait_ids and rule.trait_b in trait_ids:
+                config_a = species.get_trait_config(rule.trait_a)
+                config_b = species.get_trait_config(rule.trait_b)
+                
+                value_a = config_a.default_value if config_a else 0.0
+                value_b = config_b.default_value if config_b else 0.0
+                
+                # LÓGICA ESPECIAL para la regla speed + metabolism:
+                # Solo se dispara si speed es ALTO y metabolism es BAJO
+                if rule.trait_a == "speed" and rule.trait_b == "metabolism":
+                    if value_a > 1.0 and value_b < 0.5:  # Speed alto, metabolism bajo
+                        result.messages.append(ValidationMessage(
+                            severity=rule.severity,
+                            message=rule.message,
+                            trait_ids=[rule.trait_a, rule.trait_b],
+                            rule_id=f"incompat_{rule.trait_a}_{rule.trait_b}",
+                        ))
+                    continue
+                
+                # Lógica estándar para otras reglas
+                if value_a > 0.3 and value_b > 0.3:
+                    result.messages.append(ValidationMessage(
+                        severity=rule.severity,
+                        message=rule.message,
+                        trait_ids=[rule.trait_a, rule.trait_b],
+                        rule_id=f"incompat_{rule.trait_a}_{rule.trait_b}",
+                    ))
+    
+    def _check_dependencies(
+        self, species: SpeciesDefinition, result: ValidationResult
+    ) -> None:
+        """Verifica que los rasgos dependientes tengan sus prerrequisitos."""
+        trait_ids = species.get_all_trait_ids()
+        
+        for rule in DEPENDENCY_RULES:
+            if rule.trait in trait_ids and rule.requires not in trait_ids:
+                config = species.get_trait_config(rule.trait)
+                value = config.default_value if config else 0.0
+                
+                # Solo reportar si el rasgo tiene valor significativo
+                if value > 0.3:
+                    result.messages.append(ValidationMessage(
+                        severity=rule.severity,
+                        message=rule.message,
+                        trait_ids=[rule.trait],
+                        rule_id=f"dep_{rule.trait}_needs_{rule.requires}",
+                    ))
+    
+    def _check_categories(
+        self, species: SpeciesDefinition, result: ValidationResult
+    ) -> None:
+        """Verifica coherencia entre categorías de rasgos."""
+        trait_ids = species.get_all_trait_ids()
+        categories: Dict[TraitCategory, int] = {}
+        
+        for trait_id in trait_ids:
+            trait = self._library.get_trait(trait_id)
+            if trait:
+                categories[trait.category] = categories.get(trait.category, 0) + 1
+        
+        # Si tiene rasgos especiales, verificar que tenga biología
+        if TraitCategory.SPECIAL in categories:
+            if TraitCategory.BIOLOGY not in categories:
+                result.messages.append(ValidationMessage(
+                    severity=ValidationSeverity.INFO,
+                    message="La especie tiene rasgos especiales pero carece de rasgos biológicos fundamentales.",
+                    rule_id="special_without_biology",
+                ))
+    
+    def _check_trait_values(
+        self, species: SpeciesDefinition, result: ValidationResult
+    ) -> None:
+        """Verifica que los valores de los rasgos estén en rangos razonables."""
+        for trait_id in species.get_all_trait_ids():
+            config = species.get_trait_config(trait_id)
+            trait = self._library.get_trait(trait_id)
+            
+            if config is None or trait is None:
+                continue
+            
+            # Verificar rango
+            if config.default_value < trait.min_value or config.default_value > trait.max_value:
+                result.messages.append(ValidationMessage(
+                    severity=ValidationSeverity.WARNING,
+                    message=f"El valor por defecto de '{trait.name}' ({config.default_value}) "
+                            f"está fuera del rango [{trait.min_value}, {trait.max_value}].",
+                    trait_ids=[trait_id],
+                    rule_id=f"range_{trait_id}",
+                ))
+    
+    def _check_minimum_traits(
+        self, species: SpeciesDefinition, result: ValidationResult
+    ) -> None:
+        """Verifica que la especie tenga al menos algunos rasgos básicos."""
+        trait_count = species.get_trait_count()
+        
+        if trait_count == 0:
+            result.messages.append(ValidationMessage(
+                severity=ValidationSeverity.WARNING,
+                message="La especie no tiene ningún rasgo. Puede ser válido para pruebas "
+                        "pero no para simulación real.",
+                rule_id="no_traits",
+            ))
+        elif trait_count < 3:
+            result.messages.append(ValidationMessage(
+                severity=ValidationSeverity.INFO,
+                message=f"La especie tiene muy pocos rasgos ({trait_count}). "
+                        "Puede que el comportamiento sea muy limitado.",
+                rule_id="few_traits",
+            ))
+
+
+# =============================================================================
+# RESULTADO DE LA VALIDACIÓN
+# =============================================================================
+
+@dataclass
+class ValidationResult:
+    """Resultado completo de la validación de una especie."""
+    species_id: str
+    messages: List[ValidationMessage] = field(default_factory=list)
+    
+    @property
+    def is_valid(self) -> bool:
+        """Verifica si no hay errores (las advertencias no invalidan)."""
+        return not any(m.severity == ValidationSeverity.ERROR for m in self.messages)
+    
+    @property
+    def warnings(self) -> List[ValidationMessage]:
+        """Retorna solo las advertencias."""
+        return [m for m in self.messages if m.severity == ValidationSeverity.WARNING]
+    
+    @property
+    def errors(self) -> List[ValidationMessage]:
+        """Retorna solo los errores."""
+        return [m for m in self.messages if m.severity == ValidationSeverity.ERROR]
+    
+    @property
+    def info(self) -> List[ValidationMessage]:
+        """Retorna solo la información."""
+        return [m for m in self.messages if m.severity == ValidationSeverity.INFO]
+    
+    @property
+    def score(self) -> float:
+        """Calcula un score de coherencia (0.0 a 1.0)."""
+        if not self.messages:
+            return 1.0
+        
+        penalty = 0.0
+        for msg in self.messages:
+            if msg.severity == ValidationSeverity.ERROR:
+                penalty += 0.25
+            elif msg.severity == ValidationSeverity.WARNING:
+                penalty += 0.10
+            else:
+                penalty += 0.02
+        
+        return max(0.0, 1.0 - penalty)
+    
+    def format_report(self) -> str:
+        """Genera un reporte legible de la validación."""
+        lines = []
+        lines.append(f"Validación de especie: {self.species_id}")
+        lines.append("=" * 60)
+        
+        if not self.messages:
+            lines.append("✅ Sin advertencias. Especie biológicamente coherente.")
+        else:
+            for msg in self.messages:
+                severity_symbol = {
+                    ValidationSeverity.INFO: "ℹ️",
+                    ValidationSeverity.WARNING: "⚠️",
+                    ValidationSeverity.ERROR: "❌",
+                }[msg.severity]
+                
+                lines.append(f"{severity_symbol} [{msg.severity.name}] {msg.message}")
+        
+        lines.append("")
+        lines.append(f"Score de coherencia: {self.score:.0%}")
+        
+        return "\n".join(lines)
+    
+    def __repr__(self) -> str:
+        return (
+            f"ValidationResult(species={self.species_id}, "
+            f"errors={len(self.errors)}, "
+            f"warnings={len(self.warnings)}, "
+            f"score={self.score:.0%})"
+        )
+
+================================================================================
+ARCHIVO: .\core\genetics\realism_index.py
+================================================================================
+
+"""Índice de Realismo.
+
+Calcula un nivel de realismo (0-100%) según la combinación de rasgos.
+Este índice NO modifica la simulación; solo informa al usuario.
+
+Se basa en el score del Validador Biológico, que evalúa la coherencia
+de la combinación de rasgos.
+"""
+
+from __future__ import annotations
+
+from typing import Optional
+import logging
+
+from core.genetics.trait import TraitCategory
+from core.genetics.trait_library import TraitLibrary
+from core.genetics.species_definition import SpeciesDefinition
+from core.genetics.biological_validator import BiologicalValidator, ValidationResult
+
+
+class RealismIndex:
+    """Calcula el índice de realismo de una especie.
+    
+    El índice es un valor entre 0.0 y 1.0 (0% a 100%).
+    NO afecta la simulación; es puramente informativo.
+    
+    Se basa en:
+    - Score del Validador Biológico (coherencia de rasgos)
+    - Presencia de rasgos fundamentales
+    - Ausencia de contradicciones
+    """
+    
+    _logger = logging.getLogger("RealismIndex")
+    
+    def __init__(
+        self,
+        library: Optional[TraitLibrary] = None,
+        validator: Optional[BiologicalValidator] = None,
+    ) -> None:
+        self._library = library or TraitLibrary.get_default()
+        self._validator = validator or BiologicalValidator(self._library)
+    
+    def calculate(self, species: SpeciesDefinition) -> float:
+        """Calcula el índice de realismo de una especie.
+        
+        Args:
+            species: La especie a evaluar.
+            
+        Returns:
+            Valor entre 0.0 (completamente fantástico) y 1.0 (completamente realista).
+        """
+        # El score principal viene del validador
+        result = self._validator.validate_species(species)
+        base_score = result.score
+        
+        # Ajustes adicionales
+        adjustment = 0.0
+        
+        # Bonus por tener rasgos biológicos fundamentales
+        biology_count = self._count_traits_in_category(species, TraitCategory.BIOLOGY)
+        if biology_count >= 3:
+            adjustment += 0.05
+        
+        # Penalización por muchos rasgos fantásticos
+        special_count = self._count_traits_in_category(species, TraitCategory.SPECIAL)
+        adjustment -= special_count * 0.05
+        
+        # Bonus por diversidad de categorías
+        categories = self._count_categories(species)
+        if categories >= 3:
+            adjustment += 0.03
+        
+        final_score = max(0.0, min(1.0, base_score + adjustment))
+        return final_score
+    
+    def calculate_with_result(
+        self, species: SpeciesDefinition, result: ValidationResult
+    ) -> float:
+        """Calcula el índice usando un resultado de validación existente."""
+        base_score = result.score
+        
+        adjustment = 0.0
+        biology_count = self._count_traits_in_category(species, TraitCategory.BIOLOGY)
+        if biology_count >= 3:
+            adjustment += 0.05
+        
+        special_count = self._count_traits_in_category(species, TraitCategory.SPECIAL)
+        adjustment -= special_count * 0.05
+        
+        categories = self._count_categories(species)
+        if categories >= 3:
+            adjustment += 0.03
+        
+        return max(0.0, min(1.0, base_score + adjustment))
+    
+    def _count_traits_in_category(
+        self, species: SpeciesDefinition, category: TraitCategory
+    ) -> int:
+        """Cuenta los rasgos de una categoría en la especie."""
+        count = 0
+        for trait_id in species.get_all_trait_ids():
+            trait = self._library.get_trait(trait_id)
+            if trait and trait.category == category:
+                count += 1
+        return count
+    
+    def _count_categories(self, species: SpeciesDefinition) -> int:
+        """Cuenta cuántas categorías diferentes tiene la especie."""
+        categories = set()
+        for trait_id in species.get_all_trait_ids():
+            trait = self._library.get_trait(trait_id)
+            if trait:
+                categories.add(trait.category)
+        return len(categories)
+    
+    def get_description(self, score: float) -> str:
+        """Retorna una descripción textual del índice de realismo."""
+        percentage = int(score * 100)
+        
+        if percentage >= 90:
+            return f"Realismo: {percentage}% - Especie biológicamente coherente."
+        elif percentage >= 70:
+            return f"Realismo: {percentage}% - Especie mayormente realista con algunas peculiaridades."
+        elif percentage >= 50:
+            return f"Realismo: {percentage}% - Especie con características mixtas."
+        elif percentage >= 30:
+            return f"Realismo: {percentage}% - Especie con características fantásticas."
+        else:
+            return f"Realismo: {percentage}% - Especie completamente fantástica."
+
+================================================================================
+ARCHIVO: .\core\genetics\species_definition.py
+================================================================================
+
+"""Definición de una especie con soporte para herencia entre plantillas.
+
+FILOSOFÍA:
+- Las plantillas son puntos de partida, NO categorías cerradas.
+- Una especie puede heredar rasgos de otra plantilla.
+- La plantilla "empty" permite crear especies completamente desde cero.
+- El usuario siempre tiene libertad absoluta para modificar.
+- Las especies pueden definir preferencias de hábitat (condiciones ambientales).
+
+Jerarquía por defecto:
+    empty
+    animal
+    ├── vertebrate
+    │   ├── mammal → human
+    │   ├── bird
+    │   ├── reptile
+    │   ├── amphibian
+    │   └── fish
+    └── invertebrate → insect
+    plant
+    fungus
+    bacteria
+    fantasy
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Set
+import logging
+
+from core.genetics.trait_library import TraitLibrary
+from systems.environment.habitat_preference import HabitatPreference
+
+
+@dataclass
+class TraitConfig:
+    """Configuración de un rasgo para una especie específica.
+    
+    Attributes:
+        default_value: Valor por defecto para esta especie.
+        min_value: Valor mínimo permitido.
+        max_value: Valor máximo permitido.
+        weight: Importancia del rasgo para esta especie.
+        is_heritable: Si este rasgo se hereda en esta especie.
+    """
+    default_value: float = 0.5
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    weight: float = 1.0
+    is_heritable: bool = True
+
+
+class SpeciesDefinition:
+    """Define una especie mediante los rasgos que utiliza.
+    
+    Soporta herencia: una especie puede tener un parent_template del que
+    hereda rasgos. Los rasgos locales sobrescriben los heredados.
+    
+    Attributes:
+        species_id: Identificador único de la especie.
+        name: Nombre legible de la especie.
+        description: Descripción de la especie.
+        archetype: Categoría biológica base.
+        parent_template: ID de la plantilla de la que hereda (None si no hereda).
+        trait_configs: Diccionario de trait_id -> TraitConfig (solo rasgos locales).
+        habitat_preference: Preferencias ambientales de la especie.
+    """
+    
+    _logger = logging.getLogger("SpeciesDefinition")
+    
+    def __init__(
+        self,
+        species_id: str,
+        name: str,
+        description: str = "",
+        trait_configs: Optional[Dict[str, TraitConfig]] = None,
+        archetype: str = "custom",
+        parent_template: Optional[str] = None,
+        habitat_preference: Optional[HabitatPreference] = None,
+    ) -> None:
+        self.species_id = species_id
+        self.name = name
+        self.description = description
+        self.archetype = archetype
+        self.parent_template = parent_template
+        self._trait_configs: Dict[str, TraitConfig] = trait_configs or {}
+        self._habitat_preference: Optional[HabitatPreference] = habitat_preference
+    
+    # =================================================================
+    # CONSTRUCTORES ALTERNATIVOS (FACTORIES)
+    # =================================================================
+    
+    @classmethod
+    def from_template(
+        cls,
+        species_id: str,
+        name: str,
+        base_template: str,
+        description: str = "",
+        archetype: str = "custom",
+        habitat_preference: Optional[HabitatPreference] = None,
+    ) -> 'SpeciesDefinition':
+        """Crea una especie heredando de una plantilla existente.
+        
+        Args:
+            species_id: ID único de la nueva especie.
+            name: Nombre legible.
+            base_template: ID de la plantilla de la que hereda.
+            description: Descripción.
+            archetype: Categoría biológica.
+            habitat_preference: Preferencias de hábitat opcionales.
+            
+        Returns:
+            Nueva SpeciesDefinition con parent_template establecido.
+        """
+        return cls(
+            species_id=species_id,
+            name=name,
+            description=description,
+            archetype=archetype,
+            parent_template=base_template,
+            habitat_preference=habitat_preference,
+        )
+    
+    @classmethod
+    def empty(
+        cls,
+        species_id: str,
+        name: str,
+        description: str = "Especie creada desde cero",
+    ) -> 'SpeciesDefinition':
+        """Crea una especie vacía sin rasgos iniciales.
+        
+        Punto de partida para especies completamente personalizadas.
+        """
+        return cls(
+            species_id=species_id,
+            name=name,
+            description=description,
+            archetype="empty",
+            parent_template=None,
+        )
+    
+    # =================================================================
+    # GESTIÓN DE RASGOS
+    # =================================================================
+    
+    def add_trait(
+        self,
+        trait_id: str,
+        default_value: float = 0.5,
+        min_value: Optional[float] = None,
+        max_value: Optional[float] = None,
+        weight: float = 1.0,
+        is_heritable: bool = True,
+    ) -> 'SpeciesDefinition':
+        """Añade o sobrescribe un rasgo. Retorna self para encadenamiento."""
+        self._trait_configs[trait_id] = TraitConfig(
+            default_value=default_value,
+            min_value=min_value,
+            max_value=max_value,
+            weight=weight,
+            is_heritable=is_heritable,
+        )
+        return self
+    
+    def remove_trait(self, trait_id: str) -> 'SpeciesDefinition':
+        """Elimina un rasgo local (no afecta al heredado). Retorna self."""
+        if trait_id in self._trait_configs:
+            del self._trait_configs[trait_id]
+        return self
+    
+    def has_local_trait(self, trait_id: str) -> bool:
+        """Verifica si la especie define LOCALMENTE un rasgo (sin contar herencia)."""
+        return trait_id in self._trait_configs
+    
+    def has_trait(self, trait_id: str) -> bool:
+        """Verifica si la especie tiene un rasgo (local o heredado)."""
+        return trait_id in self.get_all_trait_ids()
+    
+    def get_trait_config(self, trait_id: str) -> Optional[TraitConfig]:
+        """Obtiene la configuración efectiva de un rasgo (local o heredado)."""
+        # Primero buscar en los rasgos locales
+        if trait_id in self._trait_configs:
+            return self._trait_configs[trait_id]
+        
+        # Si hay padre, buscar en la cadena de herencia
+        parent = self._get_parent()
+        if parent is not None:
+            return parent.get_trait_config(trait_id)
+        
+        return None
+    
+    def get_local_trait_ids(self) -> Set[str]:
+        """Retorna solo los IDs de rasgos definidos localmente."""
+        return set(self._trait_configs.keys())
+    
+    def get_all_trait_ids(self) -> Set[str]:
+        """Retorna todos los IDs de rasgos (locales + heredados)."""
+        local = set(self._trait_configs.keys())
+        
+        parent = self._get_parent()
+        if parent is not None:
+            inherited = parent.get_all_trait_ids()
+            return local | inherited
+        
+        return local
+    
+    def get_trait_count(self) -> int:
+        """Retorna el número total de rasgos (locales + heredados)."""
+        return len(self.get_all_trait_ids())
+    
+    def get_local_trait_count(self) -> int:
+        """Retorna el número de rasgos definidos localmente."""
+        return len(self._trait_configs)
+    
+    def get_default_value(self, trait_id: str, library: TraitLibrary) -> float:
+        """Obtiene el valor por defecto efectivo de un rasgo."""
+        config = self.get_trait_config(trait_id)
+        if config is not None:
+            return config.default_value
+        
+        trait = library.get_trait(trait_id)
+        if trait is not None:
+            return trait.default_value
+        
+        return 0.5
+    
+    def get_effective_range(self, trait_id: str, library: TraitLibrary) -> tuple:
+        """Obtiene el rango efectivo (min, max) de un rasgo."""
+        config = self.get_trait_config(trait_id)
+        trait = library.get_trait(trait_id)
+        
+        if trait is None:
+            return (0.0, 1.0)
+        
+        min_val = config.min_value if config and config.min_value is not None else trait.min_value
+        max_val = config.max_value if config and config.max_value is not None else trait.max_value
+        
+        return (min_val, max_val)
+    
+    # =================================================================
+    # PREFERENCIAS DE HÁBITAT (NUEVO)
+    # =================================================================
+    
+    def set_habitat_preference(self, preference: HabitatPreference) -> 'SpeciesDefinition':
+        """Establece las preferencias de hábitat para esta especie.
+        
+        Args:
+            preference: Las preferencias de hábitat.
+            
+        Returns:
+            self para encadenamiento.
+        """
+        self._habitat_preference = preference
+        return self
+    
+    def get_habitat_preference(self) -> Optional[HabitatPreference]:
+        """Obtiene las preferencias de hábitat de esta especie.
+        
+        Si la especie no tiene preferencias propias, hereda del padre.
+        """
+        # Primero verificar si tiene preferencias propias
+        if self._habitat_preference is not None:
+            return self._habitat_preference
+        
+        # Si hay padre, heredar preferencias
+        parent = self._get_parent()
+        if parent is not None:
+            return parent.get_habitat_preference()
+        
+        return None
+    
+    def has_habitat_preference(self) -> bool:
+        """Verifica si la especie tiene preferencias de hábitat (propia o heredada)."""
+        return self.get_habitat_preference() is not None
+    
+    # =================================================================
+    # HERENCIA
+    # =================================================================
+    
+    def _get_parent(self) -> Optional['SpeciesDefinition']:
+        """Obtiene la plantilla padre del registro (si existe)."""
+        if self.parent_template is None:
+            return None
+        
+        # Evitar acceso circular al registro durante la inicialización
+        if not SpeciesRegistry.has(self.parent_template):
+            return None
+        
+        return SpeciesRegistry.get(self.parent_template)
+    
+    def get_inheritance_chain(self) -> List[str]:
+        """Retorna la cadena completa de herencia (de más específica a más general)."""
+        chain = [self.species_id]
+        current = self
+        visited = {self.species_id}
+        
+        while current.parent_template is not None:
+            if current.parent_template in visited:
+                break  # Evitar bucles infinitos
+            chain.append(current.parent_template)
+            visited.add(current.parent_template)
+            
+            parent = SpeciesRegistry.get(current.parent_template)
+            if parent is None:
+                break
+            current = parent
+        
+        return chain
+    
+    def __repr__(self) -> str:
+        parent_str = f" <- {self.parent_template}" if self.parent_template else ""
+        habitat_str = " [habitat]" if self.has_habitat_preference() else ""
+        return (
+            f"SpeciesDefinition({self.species_id}: {self.name} "
+            f"[{self.archetype}]{parent_str}{habitat_str}, "
+            f"{self.get_trait_count()} traits)"
+        )
+
+
+# =============================================================================
+# PLANTILLAS BIOLÓGICAS (CON HERENCIA)
+# =============================================================================
+
+def create_empty_template() -> SpeciesDefinition:
+    """Plantilla vacía: punto de partida para especies completamente personalizadas."""
+    return SpeciesDefinition(
+        species_id="empty",
+        name="Vacía",
+        description="Plantilla vacía. Punto de partida para crear especies desde cero.",
+        archetype="empty",
+        parent_template=None,
+    )
+
+
+def create_animal_template() -> SpeciesDefinition:
+    """Plantilla base para todos los animales.
+    
+    Contiene los rasgos mínimos comunes a cualquier animal:
+    metabolismo, inmunidad, longevidad, reproducción, movimiento.
+    """
+    from systems.environment.habitat_preference import create_human_habitat
+    
+    return SpeciesDefinition(
+        species_id="animal",
+        name="Animal",
+        description="Plantilla base para todos los animales.",
+        archetype="animal",
+        parent_template="empty",
+    ).add_trait("fertility", default_value=1.0, weight=1.0) \
+     .add_trait("immunity", default_value=1.0, weight=1.0) \
+     .add_trait("longevity", default_value=1.0, weight=1.0) \
+     .add_trait("metabolism", default_value=1.0, weight=1.0) \
+     .add_trait("growth_rate", default_value=1.0, weight=0.8) \
+     .add_trait("healing", default_value=0.7, weight=0.7) \
+     .add_trait("speed", default_value=1.0, weight=0.8) \
+     .add_trait("vision", default_value=0.8, weight=0.7) \
+     .add_trait("heterotrophy", default_value=1.0, weight=1.0) \
+     .add_trait("diet", default_value=1.0, weight=0.8) \
+     .add_trait("predatory_instinct", default_value=0.3, weight=0.5) \
+     .add_trait("defense_capability", default_value=0.5, weight=0.6) \
+     .set_habitat_preference(create_human_habitat())
+
+
+def create_vertebrate_template() -> SpeciesDefinition:
+    """Plantilla base para vertebrados.
+    
+    Hereda de animal y añade sistema nervioso y percepción avanzada.
+    """
+    return SpeciesDefinition(
+        species_id="vertebrate",
+        name="Vertebrado",
+        description="Plantilla base para vertebrados.",
+        archetype="vertebrate",
+        parent_template="animal",
+    ).add_trait("nervous_system", default_value=1.0, weight=1.0) \
+     .add_trait("hearing", default_value=0.7, weight=0.6) \
+     .add_trait("smell", default_value=0.8, weight=0.7) \
+     .add_trait("intelligence", default_value=0.5, weight=0.6)
+
+
+def create_invertebrate_template() -> SpeciesDefinition:
+    """Plantilla base para invertebrados.
+    
+    Hereda de animal pero con sistema nervioso mínimo.
+    """
+    return SpeciesDefinition(
+        species_id="invertebrate",
+        name="Invertebrado",
+        description="Plantilla base para invertebrados.",
+        archetype="invertebrate",
+        parent_template="animal",
+    ).add_trait("nervous_system", default_value=0.3, weight=0.8) \
+     .add_trait("smell", default_value=1.2, weight=0.8) \
+     .add_trait("intelligence", default_value=0.1, weight=0.4) \
+     .add_trait("predatory_instinct", default_value=0.2, weight=0.4) \
+     .add_trait("defense_capability", default_value=0.3, weight=0.4)
+
+
+def create_mammal_template() -> SpeciesDefinition:
+    """Plantilla base para mamíferos.
+    
+    Hereda de vertebrado y añade sociabilidad, cuidado parental.
+    """
+    return SpeciesDefinition(
+        species_id="mammal",
+        name="Mamífero",
+        description="Plantilla base para mamíferos: vivíparos, sangre caliente.",
+        archetype="mammal",
+        parent_template="vertebrate",
+    ).add_trait("sociability", default_value=1.0, weight=0.9) \
+     .add_trait("temperament", default_value=1.0, weight=0.8) \
+     .add_trait("aggressiveness", default_value=0.7, weight=0.7) \
+     .add_trait("territoriality", default_value=1.0, weight=0.8) \
+     .add_trait("cooperation", default_value=0.8, weight=0.7) \
+     .add_trait("curiosity", default_value=0.7, weight=0.6) \
+     .add_trait("empathy", default_value=0.6, weight=0.6) \
+     .add_trait("nervous_system", default_value=1.3, weight=1.0) \
+     .add_trait("metabolism", default_value=1.2, weight=0.9) \
+     .add_trait("diet", default_value=1.0, weight=0.9) \
+     .add_trait("predatory_instinct", default_value=0.5, weight=0.7) \
+     .add_trait("defense_capability", default_value=0.7, weight=0.7)
+
+
+def create_human_species() -> SpeciesDefinition:
+    """Humano: mamífero con inteligencia y sociabilidad extremas."""
+    from systems.environment.habitat_preference import create_human_habitat
+    
+    return SpeciesDefinition(
+        species_id="human",
+        name="Humano",
+        description="Mamífero altamente inteligente con comportamiento social complejo.",
+        archetype="mammal",
+        parent_template="mammal",
+    ).add_trait("fertility", default_value=1.0, weight=1.0) \
+     .add_trait("sociability", default_value=1.5, weight=1.0) \
+     .add_trait("curiosity", default_value=1.3, weight=0.9) \
+     .add_trait("impulsivity", default_value=0.5, weight=0.7) \
+     .add_trait("obedience", default_value=0.7, weight=0.7) \
+     .add_trait("aggressiveness", default_value=0.5, weight=0.7) \
+     .add_trait("intelligence", default_value=1.8, weight=1.0) \
+     .add_trait("empathy", default_value=1.0, weight=0.9) \
+     .add_trait("cooperation", default_value=1.3, weight=0.9) \
+     .add_trait("nervous_system", default_value=1.8, weight=1.0) \
+     .add_trait("diet", default_value=1.0, weight=1.0) \
+     .add_trait("predatory_instinct", default_value=0.5, weight=0.7) \
+     .add_trait("defense_capability", default_value=1.2, weight=0.8) \
+     .set_habitat_preference(create_human_habitat())
+
+
+def create_bird_species() -> SpeciesDefinition:
+    """Ave: vertebrado volador con visión excelente."""
+    from systems.environment.habitat_preference import create_bird_habitat
+    
+    return SpeciesDefinition(
+        species_id="bird",
+        name="Ave",
+        description="Vertebrado volador con excelente visión y metabolismo alto.",
+        archetype="bird",
+        parent_template="vertebrate",
+    ).add_trait("fertility", default_value=0.5, weight=1.0) \
+     .add_trait("metabolism", default_value=1.6, weight=1.0) \
+     .add_trait("flight", default_value=1.8, weight=1.0) \
+     .add_trait("vision", default_value=1.8, weight=1.0) \
+     .add_trait("speed", default_value=1.5, weight=0.9) \
+     .add_trait("territoriality", default_value=1.5, weight=0.9) \
+     .add_trait("aggressiveness", default_value=1.0, weight=0.7) \
+     .add_trait("cooperation", default_value=0.6, weight=0.5) \
+     .add_trait("diet", default_value=1.5, weight=1.0) \
+     .add_trait("predatory_instinct", default_value=1.2, weight=0.9) \
+     .add_trait("defense_capability", default_value=0.5, weight=0.6) \
+     .set_habitat_preference(create_bird_habitat())
+
+
+def create_reptile_species() -> SpeciesDefinition:
+    """Reptil: vertebrado de sangre fría, longevo."""
+    return SpeciesDefinition(
+        species_id="reptile",
+        name="Reptil",
+        description="Vertebrado de sangre fría, longevo, metabolismo lento.",
+        archetype="reptile",
+        parent_template="vertebrate",
+    ).add_trait("fertility", default_value=0.6, weight=1.0) \
+     .add_trait("longevity", default_value=1.6, weight=1.0) \
+     .add_trait("metabolism", default_value=0.5, weight=1.0) \
+     .add_trait("territoriality", default_value=1.6, weight=0.9) \
+     .add_trait("aggressiveness", default_value=1.2, weight=0.8) \
+     .add_trait("sociability", default_value=0.3, weight=0.5) \
+     .add_trait("venom", default_value=0.2, weight=0.3) \
+     .add_trait("diet", default_value=1.5, weight=1.0) \
+     .add_trait("predatory_instinct", default_value=1.5, weight=1.0) \
+     .add_trait("defense_capability", default_value=0.8, weight=0.7)
+
+
+def create_fish_species() -> SpeciesDefinition:
+    """Pez: vertebrado acuático."""
+    from systems.environment.habitat_preference import create_fish_habitat
+    
+    return SpeciesDefinition(
+        species_id="fish",
+        name="Pez",
+        description="Vertebrado acuático con alta fertilidad.",
+        archetype="fish",
+        parent_template="vertebrate",
+    ).add_trait("fertility", default_value=1.8, weight=1.0) \
+     .add_trait("longevity", default_value=0.7, weight=0.9) \
+     .add_trait("metabolism", default_value=0.8, weight=0.8) \
+     .add_trait("swimming", default_value=1.8, weight=1.0) \
+     .add_trait("smell", default_value=1.3, weight=0.9) \
+     .add_trait("territoriality", default_value=0.5, weight=0.5) \
+     .add_trait("cooperation", default_value=0.4, weight=0.4) \
+     .add_trait("intelligence", default_value=0.3, weight=0.5) \
+     .add_trait("diet", default_value=1.2, weight=0.9) \
+     .add_trait("predatory_instinct", default_value=0.8, weight=0.7) \
+     .add_trait("defense_capability", default_value=0.4, weight=0.5) \
+     .set_habitat_preference(create_fish_habitat())
+
+
+def create_amphibian_species() -> SpeciesDefinition:
+    """Anfibio: vertebrado de vida dual."""
+    from systems.environment.habitat_preference import create_aquatic_plant_habitat
+    
+    return SpeciesDefinition(
+        species_id="amphibian",
+        name="Anfibio",
+        description="Vertebrado de vida dual (agua/tierra), regenerador.",
+        archetype="amphibian",
+        parent_template="vertebrate",
+    ).add_trait("fertility", default_value=1.5, weight=1.0) \
+     .add_trait("immunity", default_value=0.6, weight=1.0) \
+     .add_trait("longevity", default_value=0.8, weight=0.9) \
+     .add_trait("metabolism", default_value=0.7, weight=0.8) \
+     .add_trait("swimming", default_value=1.5, weight=1.0) \
+     .add_trait("healing", default_value=1.3, weight=0.9) \
+     .add_trait("venom", default_value=0.3, weight=0.4) \
+     .add_trait("intelligence", default_value=0.3, weight=0.4) \
+     .add_trait("diet", default_value=1.0, weight=0.8) \
+     .add_trait("predatory_instinct", default_value=0.6, weight=0.6) \
+     .add_trait("defense_capability", default_value=0.3, weight=0.5) \
+     .set_habitat_preference(create_aquatic_plant_habitat())
+
+
+def create_insect_species() -> SpeciesDefinition:
+    """Insecto: invertebrado con fertilidad extrema."""
+    from systems.environment.habitat_preference import create_bacteria_habitat
+    
+    return SpeciesDefinition(
+        species_id="insect",
+        name="Insecto",
+        description="Invertebrado con fertilidad extrema, vida breve.",
+        archetype="insect",
+        parent_template="invertebrate",
+    ).add_trait("fertility", default_value=2.0, weight=1.0) \
+     .add_trait("longevity", default_value=0.1, weight=1.0) \
+     .add_trait("metabolism", default_value=1.8, weight=1.0) \
+     .add_trait("growth_rate", default_value=2.0, weight=1.0) \
+     .add_trait("flight", default_value=1.0, weight=0.7) \
+     .add_trait("mobility", default_value=1.5, weight=0.9) \
+     .add_trait("venom", default_value=0.2, weight=0.3) \
+     .add_trait("diet", default_value=0.3, weight=1.0) \
+     .add_trait("predatory_instinct", default_value=0.1, weight=0.3) \
+     .add_trait("defense_capability", default_value=0.2, weight=0.4) \
+     .set_habitat_preference(create_bacteria_habitat())
+
+
+def create_plant_template() -> SpeciesDefinition:
+    """Plantilla base para plantas: fotosintéticas, sésiles."""
+    return SpeciesDefinition(
+        species_id="plant",
+        name="Planta",
+        description="Plantilla base para plantas: fotosintéticas, sésiles.",
+        archetype="plant",
+        parent_template="empty",
+    ).add_trait("photosynthesis", default_value=1.8, weight=1.0) \
+     .add_trait("growth_rate", default_value=0.6, weight=1.0) \
+     .add_trait("longevity", default_value=2.0, weight=1.0) \
+     .add_trait("immunity", default_value=0.8, weight=0.9) \
+     .add_trait("healing", default_value=0.9, weight=0.8) \
+     .add_trait("metabolism", default_value=0.5, weight=0.7) \
+     .add_trait("fertility", default_value=1.0, weight=1.0) \
+     .add_trait("defense_capability", default_value=0.2, weight=0.5)
+
+
+def create_plant_species() -> SpeciesDefinition:
+    """Planta concreta: productor primario (ejemplo: hierba común)."""
+    from systems.environment.habitat_preference import create_human_habitat
+    
+    return SpeciesDefinition(
+        species_id="grass",                    # ← ID diferente de "plant"
+        name="Hierba",
+        description="Productor primario fotosintético.",
+        archetype="plant",
+        parent_template="plant",               # ← Hereda de la plantilla "plant"
+    ).add_trait("photosynthesis", default_value=1.8, weight=1.0) \
+     .add_trait("growth_rate", default_value=0.8, weight=1.0) \
+     .add_trait("longevity", default_value=1.0, weight=0.8) \
+     .add_trait("immunity", default_value=0.8, weight=0.9) \
+     .add_trait("healing", default_value=0.9, weight=0.8) \
+     .add_trait("metabolism", default_value=0.5, weight=0.7) \
+     .add_trait("fertility", default_value=1.5, weight=1.0) \
+     .add_trait("defense_capability", default_value=0.2, weight=0.5) \
+     .add_trait("symbiosis", default_value=0.8, weight=0.6) \
+     .set_habitat_preference(create_human_habitat())
+
+
+def create_fungus_template() -> SpeciesDefinition:
+    """Plantilla base para hongos: descomponedores."""
+    from systems.environment.habitat_preference import create_fungus_habitat
+    
+    return SpeciesDefinition(
+        species_id="fungus",
+        name="Hongo",
+        description="Plantilla base para hongos: descomponedores, simbióticos.",
+        archetype="fungus",
+        parent_template="empty",
+    ).add_trait("heterotrophy", default_value=1.5, weight=1.0) \
+     .add_trait("symbiosis", default_value=1.8, weight=1.0) \
+     .add_trait("growth_rate", default_value=1.3, weight=1.0) \
+     .add_trait("metabolism", default_value=1.0, weight=1.0) \
+     .add_trait("immunity", default_value=1.2, weight=1.0) \
+     .add_trait("longevity", default_value=1.5, weight=1.0) \
+     .add_trait("healing", default_value=1.0, weight=0.8) \
+     .add_trait("fertility", default_value=1.5, weight=1.0) \
+     .add_trait("defense_capability", default_value=0.1, weight=0.3) \
+     .set_habitat_preference(create_fungus_habitat())
+
+
+def create_bacteria_template() -> SpeciesDefinition:
+    """Plantilla base para bacterias: unicelulares, asexuales."""
+    from systems.environment.habitat_preference import create_bacteria_habitat
+    
+    return SpeciesDefinition(
+        species_id="bacteria",
+        name="Bacteria",
+        description="Plantilla base para bacterias: unicelulares, asexuales.",
+        archetype="bacteria",
+        parent_template="empty",
+    ).add_trait("division_speed", default_value=1.8, weight=1.0) \
+     .add_trait("metabolism", default_value=1.3, weight=1.0) \
+     .add_trait("antibiotic_resistance", default_value=0.2, weight=1.0) \
+     .add_trait("mobility", default_value=0.6, weight=0.7) \
+     .add_trait("immunity", default_value=0.3, weight=0.5) \
+     .add_trait("growth_rate", default_value=2.0, weight=1.0) \
+     .add_trait("defense_capability", default_value=0.1, weight=0.3) \
+     .set_habitat_preference(create_bacteria_habitat())
+
+
+def create_fantasy_template() -> SpeciesDefinition:
+    """Plantilla para criaturas fantásticas: combinación especulativa."""
+    return SpeciesDefinition(
+        species_id="fantasy_creature",
+        name="Criatura Fantástica",
+        description="Plantilla para especies especulativas con combinaciones no naturales.",
+        archetype="fantasy",
+        parent_template="empty",
+    ).add_trait("photosynthesis", default_value=1.0, weight=0.8) \
+     .add_trait("venom", default_value=0.8, weight=0.8) \
+     .add_trait("empathy", default_value=1.2, weight=0.7) \
+     .add_trait("flight", default_value=1.5, weight=0.9) \
+     .add_trait("regeneration", default_value=1.8, weight=1.0) \
+     .add_trait("bioluminescence", default_value=1.0, weight=0.6) \
+     .add_trait("nervous_system", default_value=1.0, weight=0.8) \
+     .add_trait("heterotrophy", default_value=0.5, weight=0.5) \
+     .add_trait("diet", default_value=1.0, weight=0.7) \
+     .add_trait("predatory_instinct", default_value=0.8, weight=0.7) \
+     .add_trait("defense_capability", default_value=0.8, weight=0.7)
+
+
+# =============================================================================
+# REGISTRO DE ESPECIES
+# =============================================================================
+
+class SpeciesRegistry:
+    """Registro global de especies y plantillas definidas."""
+    
+    _registry: Dict[str, SpeciesDefinition] = {}
+    _logger = logging.getLogger("SpeciesRegistry")
+    
+    @classmethod
+    def register(cls, species: SpeciesDefinition) -> None:
+        """Registra una nueva especie o plantilla."""
+        cls._registry[species.species_id] = species
+        cls._logger.debug(
+            "Especie registrada: %s [%s] (%d rasgos)",
+            species.species_id, species.archetype, species.get_trait_count(),
+        )
+    
+    @classmethod
+    def get(cls, species_id: str) -> Optional[SpeciesDefinition]:
+        """Obtiene una especie por su ID."""
+        return cls._registry.get(species_id)
+    
+    @classmethod
+    def has(cls, species_id: str) -> bool:
+        """Verifica si una especie está registrada."""
+        return species_id in cls._registry
+    
+    @classmethod
+    def get_all(cls) -> Dict[str, SpeciesDefinition]:
+        """Retorna todas las especies registradas."""
+        return dict(cls._registry)
+    
+    @classmethod
+    def get_by_archetype(cls, archetype: str) -> List[SpeciesDefinition]:
+        """Retorna todas las especies de un arquetipo determinado."""
+        return [s for s in cls._registry.values() if s.archetype == archetype]
+    
+    @classmethod
+    def get_templates(cls) -> List[SpeciesDefinition]:
+        """Retorna solo las plantillas base (no especies concretas)."""
+        templates = ["empty", "animal", "vertebrate", "invertebrate",
+                    "mammal", "plant", "fungus", "bacteria", "fantasy_creature"]
+        return [cls._registry[t] for t in templates if t in cls._registry]
+    
+    @classmethod
+    def list_archetypes(cls) -> List[str]:
+        """Retorna los arquetipos únicos presentes en el registro."""
+        return sorted(set(s.archetype for s in cls._registry.values()))
+    
+    @classmethod
+    def initialize_defaults(cls) -> None:
+        """Registra todas las plantillas y especies por defecto.
+        
+        ORDEN IMPORTANTE: Las plantillas deben registrarse antes que las
+        especies que heredan de ellas, porque los hijos consultan a los padres.
+        """
+        if cls._registry:
+            return
+        
+        # 1. Plantillas base (en orden de dependencia)
+        cls.register(create_empty_template())
+        cls.register(create_animal_template())
+        cls.register(create_vertebrate_template())
+        cls.register(create_invertebrate_template())
+        cls.register(create_mammal_template())
+        cls.register(create_plant_template())
+        cls.register(create_fungus_template())
+        cls.register(create_bacteria_template())
+        cls.register(create_fantasy_template())
+        
+        # 2. Especies concretas (heredan de las plantillas)
+        cls.register(create_human_species())
+        cls.register(create_bird_species())
+        cls.register(create_fish_species())
+        cls.register(create_insect_species())
+        cls.register(create_reptile_species())
+        cls.register(create_amphibian_species())
+        cls.register(create_plant_species())
+
+================================================================================
+ARCHIVO: .\core\genetics\trait.py
+================================================================================
+
+"""Definición de un rasgo hereditario individual.
+
+FILOSOFÍA: Un rasgo es completamente NEUTRO.
+- No conoce especies.
+- No conoce biología.
+- No conoce incompatibilidades.
+- No conoce requisitos.
+
+Toda la biología pertenece a:
+- Las Plantillas de Especie (qué rasgos activan)
+- El Validador Biológico (qué combinaciones son coherentes)
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import Enum, auto
+from typing import Optional
+
+
+class TraitCategory(Enum):
+    """Categorías de rasgos para organización."""
+    BIOLOGY = auto()         # Rasgos biológicos fundamentales
+    BEHAVIOR = auto()        # Rasgos de comportamiento
+    PERCEPTION = auto()      # Rasgos de percepción sensorial
+    MOVEMENT = auto()        # Rasgos de movimiento y locomoción
+    SPECIAL = auto()         # Rasgos especiales o fantásticos
+
+
+class ExpressionModel(Enum):
+    """Modelo de expresión genética: cómo se combinan los dos alelos.
+    
+    Cada rasgo puede definir cómo se expresa su fenotipo.
+    Esto permite simular diferentes tipos de herencia:
+    
+    - DOMINANT: Gana el alelo con mayor dominancia (herencia mendeliana clásica)
+    - RECESSIVE: Gana el alelo con menor dominancia
+    - CODOMINANT: Ambos alelos se expresan (promedio simple)
+    - WEIGHTED_AVERAGE: Promedio ponderado por dominancia
+    - ADDITIVE: Suma de ambos alelos (efecto aditivo)
+    - MAX_VALUE: Se expresa el valor máximo
+    - MIN_VALUE: Se expresa el valor mínimo
+    """
+    DOMINANT = auto()
+    RECESSIVE = auto()
+    CODOMINANT = auto()
+    WEIGHTED_AVERAGE = auto()
+    ADDITIVE = auto()
+    MAX_VALUE = auto()
+    MIN_VALUE = auto()
+
+
+class Distribution(Enum):
+    """Tipo de distribución inicial para la población fundadora.
+    
+    Determina cómo se generan los valores iniciales de los alelos
+    cuando se crea una población fundadora.
+    """
+    NORMAL = auto()            # Distribución normal (campana de Gauss)
+    UNIFORM = auto()           # Distribución uniforme
+    FIXED = auto()             # Valor fijo sin variación
+
+
+@dataclass(frozen=True)
+class Trait:
+    """Definición inmutable de un rasgo hereditario.
+    
+    Un rasgo es completamente NEUTRO. Solo describe:
+    - Qué es el rasgo (id, nombre, categoría)
+    - Cómo se expresa (modelo de expresión)
+    - Qué rango de valores tiene (min, max)
+    - Cómo se distribuye inicialmente (distribución, media, desviación)
+    - Su peso evolutivo (impacto en selección natural)
+    - Su heredabilidad (0.0 = adquirido, 1.0 = completamente genético)
+    
+    NO describe:
+    - Con qué rasgos es incompatible (eso va en el Validador)
+    - Qué rasgos requiere (eso va en el Validador)
+    - Qué especies lo usan (eso va en las Plantillas)
+    
+    Attributes:
+        trait_id: Identificador único del rasgo (ej: "fertility", "flight").
+        name: Nombre legible del rasgo (ej: "Fertilidad", "Vuelo").
+        category: Categoría del rasgo.
+        min_value: Valor mínimo posible.
+        max_value: Valor máximo posible.
+        default_value: Valor por defecto para la especie.
+        expression_model: Cómo se combinan los dos alelos.
+        evolutionary_weight: Peso evolutivo (impacto en selección natural).
+        heritability: Grado de heredabilidad (0.0 = adquirido, 1.0 = genético).
+        initial_distribution: Tipo de distribución inicial.
+        initial_mean: Media de la distribución inicial (None = usar default_value).
+        initial_std: Desviación típica de la distribución inicial.
+        description: Descripción del rasgo para documentación.
+    """
+    trait_id: str
+    name: str
+    category: TraitCategory
+    min_value: float = 0.0
+    max_value: float = 1.0
+    default_value: float = 0.5
+    expression_model: ExpressionModel = ExpressionModel.DOMINANT
+    evolutionary_weight: float = 1.0
+    heritability: float = 1.0
+    initial_distribution: Distribution = Distribution.NORMAL
+    initial_mean: Optional[float] = None
+    initial_std: float = 0.1
+    description: str = ""
+    
+    def clamp_value(self, value: float) -> float:
+        """Limita un valor al rango válido del rasgo."""
+        return max(self.min_value, min(self.max_value, value))
+    
+    def get_initial_mean(self) -> float:
+        """Retorna la media para la distribución inicial."""
+        return self.initial_mean if self.initial_mean is not None else self.default_value
+    
+    def __repr__(self) -> str:
+        return f"Trait({self.trait_id}: {self.name} [{self.category.name}])"
+
+================================================================================
+ARCHIVO: .\core\genetics\trait_library.py
+================================================================================
+
+"""Biblioteca Universal de Rasgos.
+
+Catálogo global de todos los rasgos hereditarios disponibles.
+Se puede ampliar indefinidamente sin modificar el Genome.
+
+FILOSOFÍA: Los rasgos son completamente NEUTROS.
+- No conocen incompatibilidades (eso va en el Validador)
+- No conocen requisitos (eso va en el Validador)
+- No conocen biología (eso va en las Plantillas)
+
+Cada rasgo define:
+- Identidad: id, nombre, categoría
+- Rango: min, max, default
+- Expresión: modelo de expresión genética
+- Evolución: peso evolutivo, heredabilidad
+- Distribución: cómo se genera la población fundadora
+"""
+
+from __future__ import annotations
+
+from typing import Dict, List, Optional
+import logging
+
+from core.genetics.trait import Trait, TraitCategory, ExpressionModel, Distribution
+
+
+class TraitLibrary:
+    """Biblioteca global de rasgos hereditarios.
+    
+    Esta clase es un registro estático de todos los rasgos disponibles.
+    Se puede extender en tiempo de ejecución mediante register_trait().
+    
+    Uso:
+        library = TraitLibrary.get_default()
+        fertility_trait = library.get_trait("fertility")
+    """
+    
+    _default_library: Optional['TraitLibrary'] = None
+    _logger = logging.getLogger("TraitLibrary")
+    
+    def __init__(self) -> None:
+        self._traits: Dict[str, Trait] = {}
+    
+    @classmethod
+    def get_default(cls) -> 'TraitLibrary':
+        """Retorna la biblioteca por defecto con todos los rasgos predefinidos."""
+        if cls._default_library is None:
+            cls._default_library = cls._create_default_library()
+        return cls._default_library
+    
+    @classmethod
+    def _create_default_library(cls) -> 'TraitLibrary':
+        """Crea la biblioteca con todos los rasgos predefinidos."""
+        library = cls()
+        
+        # =================================================================
+        # RASGOS BIOLÓGICOS FUNDAMENTALES
+        # =================================================================
+        
+        library.register_trait(Trait(
+            trait_id="fertility",
+            name="Fertilidad",
+            category=TraitCategory.BIOLOGY,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=1.0,
+            heritability=0.9,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.15,
+            description="Capacidad reproductiva del individuo.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="immunity",
+            name="Inmunidad",
+            category=TraitCategory.BIOLOGY,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=1.0,
+            heritability=0.8,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.2,
+            description="Resistencia general a enfermedades.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="longevity",
+            name="Longevidad",
+            category=TraitCategory.BIOLOGY,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.9,
+            heritability=0.7,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.15,
+            description="Esperanza de vida genética.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="metabolism",
+            name="Metabolismo",
+            category=TraitCategory.BIOLOGY,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.8,
+            heritability=0.85,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.2,
+            description="Eficiencia metabólica.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="growth_rate",
+            name="Crecimiento",
+            category=TraitCategory.BIOLOGY,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.7,
+            heritability=0.9,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.15,
+            description="Velocidad de desarrollo físico.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="healing",
+            name="Regeneración",
+            category=TraitCategory.BIOLOGY,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.7,
+            heritability=0.8,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.2,
+            description="Capacidad de recuperación de heridas.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="nervous_system",
+            name="Sistema Nervioso",
+            category=TraitCategory.BIOLOGY,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.9,
+            heritability=0.9,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.2,
+            description="Complejidad del sistema nervioso.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="heterotrophy",
+            name="Heterotrofía",
+            category=TraitCategory.BIOLOGY,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.DOMINANT,
+            evolutionary_weight=1.0,
+            heritability=1.0,
+            initial_distribution=Distribution.FIXED,
+            description="Capacidad de obtener energía consumiendo otros organismos.",
+        ))
+        
+        # =================================================================
+        # RASGOS DE COMPORTAMIENTO
+        # =================================================================
+        
+        library.register_trait(Trait(
+            trait_id="sociability",
+            name="Sociabilidad",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.8,
+            heritability=0.6,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.25,
+            description="Tendencia a buscar interacción social.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="aggressiveness",
+            name="Agresividad",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.7,
+            heritability=0.65,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.25,
+            description="Tendencia al conflicto y la confrontación.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="territoriality",
+            name="Territorialidad",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.6,
+            heritability=0.7,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.25,
+            description="Tendencia a defender un territorio.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="empathy",
+            name="Empatía",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.6,
+            heritability=0.5,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.25,
+            description="Capacidad de comprender las emociones de otros.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="cooperation",
+            name="Cooperación",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.7,
+            heritability=0.6,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.25,
+            description="Tendencia a cooperar con otros individuos.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="curiosity",
+            name="Curiosidad",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.6,
+            heritability=0.55,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.25,
+            description="Deseo de explorar lo desconocido.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="impulsivity",
+            name="Impulsividad",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.5,
+            heritability=0.6,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.25,
+            description="Tendencia a actuar sin pensar.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="obedience",
+            name="Obediencia",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.5,
+            heritability=0.5,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.25,
+            description="Tendencia a seguir normas sociales.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="temperament",
+            name="Temperamento",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.7,
+            heritability=0.7,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.2,
+            description="Estabilidad emocional.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="intelligence",
+            name="Inteligencia",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.9,
+            heritability=0.7,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.25,
+            description="Capacidad cognitiva.",
+        ))
+        
+        # =================================================================
+        # RASGOS ECOLÓGICOS
+        # =================================================================
+        
+        library.register_trait(Trait(
+            trait_id="diet",
+            name="Dieta",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.9,
+            heritability=0.8,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.3,
+            description="Tipo de dieta: 0=herbívoro, 1=omnívoro, 2=carnívoro.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="predatory_instinct",
+            name="Instinto Depredador",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.8,
+            heritability=0.7,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.3,
+            description="Instinto de caza y capacidad depredadora.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="defense_capability",
+            name="Capacidad Defensiva",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.7,
+            heritability=0.7,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.3,
+            description="Capacidad de defenderse de depredadores.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="body_size",
+            name="Tamaño Corporal",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.8,
+            heritability=0.85,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.3,
+            description="Tamaño corporal relativo de la especie.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="pack_behavior",
+            name="Comportamiento en Manada",
+            category=TraitCategory.BEHAVIOR,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.6,
+            heritability=0.6,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.3,
+            initial_std=0.3,
+            description="Tendencia a cazar y vivir en grupo.",
+        ))
+        
+        # =================================================================
+        # RASGOS DE PERCEPCIÓN SENSORIAL
+        # =================================================================
+        
+        library.register_trait(Trait(
+            trait_id="vision",
+            name="Vista",
+            category=TraitCategory.PERCEPTION,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.7,
+            heritability=0.8,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.2,
+            description="Agudeza visual.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="smell",
+            name="Olfato",
+            category=TraitCategory.PERCEPTION,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.6,
+            heritability=0.8,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.25,
+            description="Agudeza olfativa.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="hearing",
+            name="Audición",
+            category=TraitCategory.PERCEPTION,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.6,
+            heritability=0.8,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.25,
+            description="Agudeza auditiva.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="night_vision",
+            name="Visión Nocturna",
+            category=TraitCategory.PERCEPTION,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.0,
+            expression_model=ExpressionModel.DOMINANT,
+            evolutionary_weight=0.5,
+            heritability=0.9,
+            initial_distribution=Distribution.FIXED,
+            description="Capacidad de ver en la oscuridad.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="echolocation",
+            name="Ecolocalización",
+            category=TraitCategory.PERCEPTION,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.0,
+            expression_model=ExpressionModel.DOMINANT,
+            evolutionary_weight=0.5,
+            heritability=0.9,
+            initial_distribution=Distribution.FIXED,
+            description="Capacidad de navegar mediante sonido.",
+        ))
+        
+        # =================================================================
+        # RASGOS DE MOVIMIENTO
+        # =================================================================
+        
+        library.register_trait(Trait(
+            trait_id="speed",
+            name="Velocidad",
+            category=TraitCategory.MOVEMENT,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.8,
+            heritability=0.85,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.2,
+            description="Velocidad de movimiento.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="flight",
+            name="Vuelo",
+            category=TraitCategory.MOVEMENT,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.0,
+            expression_model=ExpressionModel.DOMINANT,
+            evolutionary_weight=0.9,
+            heritability=1.0,
+            initial_distribution=Distribution.FIXED,
+            description="Capacidad de volar.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="swimming",
+            name="Natación",
+            category=TraitCategory.MOVEMENT,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.0,
+            expression_model=ExpressionModel.DOMINANT,
+            evolutionary_weight=0.8,
+            heritability=1.0,
+            initial_distribution=Distribution.FIXED,
+            description="Capacidad de nadar.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="climbing",
+            name="Escalada",
+            category=TraitCategory.MOVEMENT,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.0,
+            expression_model=ExpressionModel.DOMINANT,
+            evolutionary_weight=0.6,
+            heritability=0.9,
+            initial_distribution=Distribution.FIXED,
+            description="Capacidad de escalar superficies.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="burrowing",
+            name="Excavación",
+            category=TraitCategory.MOVEMENT,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.0,
+            expression_model=ExpressionModel.DOMINANT,
+            evolutionary_weight=0.5,
+            heritability=0.9,
+            initial_distribution=Distribution.FIXED,
+            description="Capacidad de excavar y moverse bajo tierra.",
+        ))
+        
+        # =================================================================
+        # RASGOS ESPECIALES
+        # =================================================================
+        
+        library.register_trait(Trait(
+            trait_id="venom",
+            name="Veneno",
+            category=TraitCategory.SPECIAL,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.0,
+            expression_model=ExpressionModel.DOMINANT,
+            evolutionary_weight=0.7,
+            heritability=1.0,
+            initial_distribution=Distribution.FIXED,
+            description="Capacidad de producir veneno.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="photosynthesis",
+            name="Fotosíntesis",
+            category=TraitCategory.SPECIAL,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.0,
+            expression_model=ExpressionModel.DOMINANT,
+            evolutionary_weight=1.0,
+            heritability=1.0,
+            initial_distribution=Distribution.FIXED,
+            description="Capacidad de obtener energía de la luz solar.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="camouflage",
+            name="Camuflaje",
+            category=TraitCategory.SPECIAL,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.0,
+            expression_model=ExpressionModel.DOMINANT,
+            evolutionary_weight=0.6,
+            heritability=0.9,
+            initial_distribution=Distribution.FIXED,
+            description="Capacidad de mimetizarse con el entorno.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="regeneration",
+            name="Regeneración Avanzada",
+            category=TraitCategory.SPECIAL,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.0,
+            expression_model=ExpressionModel.DOMINANT,
+            evolutionary_weight=0.7,
+            heritability=0.9,
+            initial_distribution=Distribution.FIXED,
+            description="Capacidad de regenerar miembros o tejidos.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="bioluminescence",
+            name="Bioluminiscencia",
+            category=TraitCategory.SPECIAL,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.0,
+            expression_model=ExpressionModel.DOMINANT,
+            evolutionary_weight=0.4,
+            heritability=1.0,
+            initial_distribution=Distribution.FIXED,
+            description="Capacidad de emitir luz propia.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="division_speed",
+            name="Velocidad de División",
+            category=TraitCategory.SPECIAL,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=1.0,
+            heritability=1.0,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.2,
+            description="Velocidad de reproducción asexual.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="antibiotic_resistance",
+            name="Resistencia a Antibióticos",
+            category=TraitCategory.SPECIAL,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.0,
+            expression_model=ExpressionModel.DOMINANT,
+            evolutionary_weight=0.9,
+            heritability=1.0,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.1,
+            initial_std=0.1,
+            description="Resistencia a tratamientos antimicrobianos.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="mobility",
+            name="Movilidad",
+            category=TraitCategory.SPECIAL,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=1.0,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.7,
+            heritability=0.9,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=1.0,
+            initial_std=0.2,
+            description="Capacidad de movimiento autónomo.",
+        ))
+        
+        library.register_trait(Trait(
+            trait_id="symbiosis",
+            name="Simbiosis",
+            category=TraitCategory.SPECIAL,
+            min_value=0.0,
+            max_value=2.0,
+            default_value=0.5,
+            expression_model=ExpressionModel.WEIGHTED_AVERAGE,
+            evolutionary_weight=0.6,
+            heritability=0.7,
+            initial_distribution=Distribution.NORMAL,
+            initial_mean=0.5,
+            initial_std=0.2,
+            description="Capacidad de formar asociaciones simbióticas con otros organismos.",
+        ))
+        
+        return library
+    
+    def register_trait(self, trait: Trait) -> None:
+        """Registra un nuevo rasgo en la biblioteca.
+        
+        Args:
+            trait: El rasgo a registrar.
+            
+        Raises:
+            ValueError: Si el trait_id ya existe.
+        """
+        if trait.trait_id in self._traits:
+            raise ValueError(f"El rasgo '{trait.trait_id}' ya está registrado.")
+        self._traits[trait.trait_id] = trait
+        self._logger.debug("Rasgo registrado: %s", trait.trait_id)
+    
+    def get_trait(self, trait_id: str) -> Optional[Trait]:
+        """Obtiene un rasgo por su ID."""
+        return self._traits.get(trait_id)
+    
+    def has_trait(self, trait_id: str) -> bool:
+        """Verifica si un rasgo existe en la biblioteca."""
+        return trait_id in self._traits
+    
+    def get_all_traits(self) -> List[Trait]:
+        """Retorna todos los rasgos registrados."""
+        return list(self._traits.values())
+    
+    def get_traits_by_category(self, category: TraitCategory) -> List[Trait]:
+        """Retorna todos los rasgos de una categoría."""
+        return [t for t in self._traits.values() if t.category == category]
+    
+    def get_trait_ids(self) -> List[str]:
+        """Retorna todos los IDs de rasgos registrados."""
+        return list(self._traits.keys())
+    
+    def __len__(self) -> int:
+        return len(self._traits)
+    
+    def __contains__(self, trait_id: str) -> bool:
+        return trait_id in self._traits
+
+================================================================================
+ARCHIVO: .\core\genetics\__init__.py
+================================================================================
+
+"""Sistema de Genética Universal.
+
+Proporciona una arquitectura genética completamente desacoplada de especies:
+- Biblioteca Universal de Rasgos: catálogo global de rasgos hereditarios.
+- Definición de Especie: cada especie elige qué rasgos utiliza.
+- Genome genérico: almacena solo los rasgos activos de la especie.
+- Validación Biológica: advierte sobre combinaciones incoherentes.
+- Índice de Realismo: informa el nivel de realismo de una especie.
+"""
+
+from core.genetics.trait import Trait, TraitCategory
+from core.genetics.trait_library import TraitLibrary
+from core.genetics.species_definition import SpeciesDefinition
+from core.genetics.biological_validator import BiologicalValidator, ValidationResult
+from core.genetics.realism_index import RealismIndex
+
+__all__ = [
+    "Trait",
+    "TraitCategory",
+    "TraitLibrary",
+    "SpeciesDefinition",
+    "BiologicalValidator",
+    "ValidationResult",
+    "RealismIndex",
+]

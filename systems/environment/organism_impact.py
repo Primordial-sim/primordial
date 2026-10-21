@@ -5,6 +5,10 @@ rasgos genéticos. Este es el primer paso del ciclo de retroalimentación:
 organismos → entorno.
 
 Principio: "Los organismos no solo se adaptan al entorno, lo transforman."
+
+MIGRACIÓN HEXAGONAL:
+- person.x/y → person.q/r
+- Coordenadas hexagonales axiales (q, r)
 """
 
 from __future__ import annotations
@@ -21,10 +25,10 @@ if TYPE_CHECKING:
 @dataclass
 class TileImpact:
     """Representa las modificaciones que un organismo aplica a un tile.
-    
+
     Todos los valores son deltas (cambios) que se suman a las variables
     actuales del tile. Valores positivos aumentan, negativos reducen.
-    
+
     Attributes:
         vegetation_delta: Cambio en vegetación [-0.1, 0.1]
         organic_matter_delta: Cambio en materia orgánica [-0.1, 0.1]
@@ -36,7 +40,7 @@ class TileImpact:
         temperature_delta: Cambio en temperatura [-0.1, 0.1]
         urbanization_delta: Cambio en urbanización [-0.1, 0.1]
     """
-    
+
     vegetation_delta: float = 0.0
     organic_matter_delta: float = 0.0
     fertility_delta: float = 0.0
@@ -46,53 +50,90 @@ class TileImpact:
     slope_delta: float = 0.0
     temperature_delta: float = 0.0
     urbanization_delta: float = 0.0
-    
+
     def is_empty(self) -> bool:
         """Verifica si el impacto es nulo."""
         return (
-            self.vegetation_delta == 0.0 and
-            self.organic_matter_delta == 0.0 and
-            self.fertility_delta == 0.0 and
-            self.water_delta == 0.0 and
-            self.humidity_delta == 0.0 and
-            self.height_delta == 0.0 and
-            self.slope_delta == 0.0 and
-            self.temperature_delta == 0.0 and
-            self.urbanization_delta == 0.0
+            self.vegetation_delta == 0.0
+            and self.organic_matter_delta == 0.0
+            and self.fertility_delta == 0.0
+            and self.water_delta == 0.0
+            and self.humidity_delta == 0.0
+            and self.height_delta == 0.0
+            and self.slope_delta == 0.0
+            and self.temperature_delta == 0.0
+            and self.urbanization_delta == 0.0
         )
 
 
 class OrganismImpactCalculator:
     """Calcula el impacto de un organismo en su tile actual."""
-    
+
     def __init__(self) -> None:
+        """Inicializa la calculadora de impacto."""
         self.logger = logging.getLogger(self.__class__.__name__)
-    
-    def calculate(self, person: 'Person', tile: 'Tile') -> TileImpact:
+
+    def calculate(self, person: "Person", tile: "Tile") -> TileImpact:
         """Calcula el impacto de un organismo en un tile.
-        
+
         Args:
             person: El organismo que está en el tile.
             tile: El tile donde está el organismo.
-            
+
         Returns:
             TileImpact con las modificaciones a aplicar.
         """
         genome = person.genome
-        
+
         # Obtener rasgos relevantes
-        photosynthesis = genome.get_trait_value("photosynthesis") if genome.has_trait("photosynthesis") else 0.0
-        heterotrophy = genome.get_trait_value("heterotrophy") if genome.has_trait("heterotrophy") else 0.0
-        intelligence = genome.get_trait_value("intelligence") if genome.has_trait("intelligence") else 0.0
-        sociability = genome.get_trait_value("sociability") if genome.has_trait("sociability") else 0.0
-        metabolism = genome.get_trait_value("metabolism") if genome.has_trait("metabolism") else 0.5
-        growth_rate = genome.get_trait_value("growth_rate") if genome.has_trait("growth_rate") else 0.5
-        flight = genome.get_trait_value("flight") if genome.has_trait("flight") else 0.0
-        swimming = genome.get_trait_value("swimming") if genome.has_trait("swimming") else 0.0
-        symbiosis = genome.get_trait_value("symbiosis") if genome.has_trait("symbiosis") else 0.0
-        
+        photosynthesis = (
+            genome.get_trait_value("photosynthesis")
+            if genome.has_trait("photosynthesis")
+            else 0.0
+        )
+        heterotrophy = (
+            genome.get_trait_value("heterotrophy")
+            if genome.has_trait("heterotrophy")
+            else 0.0
+        )
+        intelligence = (
+            genome.get_trait_value("intelligence")
+            if genome.has_trait("intelligence")
+            else 0.0
+        )
+        sociability = (
+            genome.get_trait_value("sociability")
+            if genome.has_trait("sociability")
+            else 0.0
+        )
+        metabolism = (
+            genome.get_trait_value("metabolism")
+            if genome.has_trait("metabolism")
+            else 0.5
+        )
+        growth_rate = (
+            genome.get_trait_value("growth_rate")
+            if genome.has_trait("growth_rate")
+            else 0.5
+        )
+        flight = (
+            genome.get_trait_value("flight")
+            if genome.has_trait("flight")
+            else 0.0
+        )
+        swimming = (
+            genome.get_trait_value("swimming")
+            if genome.has_trait("swimming")
+            else 0.0
+        )
+        symbiosis = (
+            genome.get_trait_value("symbiosis")
+            if genome.has_trait("symbiosis")
+            else 0.0
+        )
+
         impact = TileImpact()
-        
+
         # =====================================================================
         # PLANTAS Y ORGANISMOS FOTOSINTÉTICOS
         # =====================================================================
@@ -101,10 +142,10 @@ class OrganismImpactCalculator:
             impact.vegetation_delta += 0.02 * photosynthesis
             impact.organic_matter_delta += 0.01 * photosynthesis
             impact.fertility_delta += 0.005 * photosynthesis
-            
+
             # Absorben agua y CO2 (reducen ligeramente el agua)
             impact.water_delta -= 0.005 * photosynthesis
-        
+
         # =====================================================================
         # HERBÍVOROS Y CONSUMIDORES
         # =====================================================================
@@ -112,16 +153,20 @@ class OrganismImpactCalculator:
             # Consumen vegetación
             consumption_rate = 0.015 * heterotrophy * metabolism
             impact.vegetation_delta -= consumption_rate
-            
+
             # Producen materia orgánica (excrementos, cuerpos)
             impact.organic_matter_delta += 0.008 * heterotrophy
-            
+
             # Erosión por pisoteo (si son grandes/móviles)
-            speed = genome.get_trait_value("speed") if genome.has_trait("speed") else 0.5
+            speed = (
+                genome.get_trait_value("speed")
+                if genome.has_trait("speed")
+                else 0.5
+            )
             if speed > 0.7:
                 impact.slope_delta += 0.002 * speed
                 impact.height_delta -= 0.1 * speed
-        
+
         # =====================================================================
         # HUMANOS Y ORGANISMOS INTELIGENTES
         # =====================================================================
@@ -129,16 +174,16 @@ class OrganismImpactCalculator:
             # Agricultura: aumenta fertilidad pero reduce vegetación natural
             impact.fertility_delta += 0.01 * intelligence
             impact.vegetation_delta -= 0.01 * intelligence
-            
+
             # Urbanización: reduce vegetación y aumenta temperatura (isla de calor)
             if sociability > 1.2:
                 impact.urbanization_delta += 0.02 * sociability
                 impact.temperature_delta += 0.005 * sociability
                 impact.vegetation_delta -= 0.01 * sociability
-            
+
             # Modificación del terreno
             impact.height_delta += 0.5 * intelligence  # Construcciones
-        
+
         # =====================================================================
         # HONGOS Y DESCOMPONEDORES
         # =====================================================================
@@ -146,7 +191,7 @@ class OrganismImpactCalculator:
             # Descomponen materia orgánica y la convierten en fertilidad
             impact.organic_matter_delta -= 0.01 * growth_rate
             impact.fertility_delta += 0.015 * growth_rate
-        
+
         # =====================================================================
         # ORGANISMOS SIMBIÓTICOS (hongos, líquenes, bacterias simbióticas)
         # =====================================================================
@@ -155,18 +200,18 @@ class OrganismImpactCalculator:
             # más de lo que lo harían solo por descomposición.
             # Las redes de micelio aportan nutrientes a las plantas cercanas.
             impact.fertility_delta += 0.01 * symbiosis
-            
+
             # Retienen más agua (el micelio actúa como esponja)
             impact.water_delta += 0.005 * symbiosis
-            
+
             # Producen materia orgánica (biomasa simbiótica)
             impact.organic_matter_delta += 0.005 * symbiosis
-            
+
             # Si el tile tiene vegetación, el symbiosis la potencia
             # (las micorrizas mejoran el crecimiento de plantas)
             if tile.vegetation > 0.3:
                 impact.vegetation_delta += 0.008 * symbiosis
-        
+
         # =====================================================================
         # ORGANISMOS ACUÁTICOS
         # =====================================================================
@@ -174,7 +219,7 @@ class OrganismImpactCalculator:
             # Movimiento en agua: redistribuyen sedimentos
             impact.water_delta += 0.005 * swimming
             impact.height_delta -= 0.05 * swimming  # Erosión acuática
-        
+
         # =====================================================================
         # AVES Y DISPERSORES DE SEMILLAS
         # =====================================================================
@@ -182,48 +227,47 @@ class OrganismImpactCalculator:
             # Dispersan semillas: aumentan vegetación en áreas nuevas
             if tile.vegetation < 0.5:
                 impact.vegetation_delta += 0.01 * flight
-        
+
         return impact
-    
+
     def calculate_accumulated(
         self,
         persons: list,
         tile_map: dict,
     ) -> dict:
         """Calcula el impacto acumulado de todos los organismos.
-        
+
         Incluye el efecto simbiótico de redes de micelio que conectan
         tiles adyacentes con vegetación.
-        
+
         Args:
             persons: Lista de todos los organismos.
             tile_map: Diccionario de tiles del mundo.
-            
+
         Returns:
-            Diccionario de (x, y) -> TileImpact acumulado.
+            Diccionario de (q, r) -> TileImpact acumulado.
         """
         accumulated: dict = {}
-        
+
         # =====================================================================
         # PASO 1: Acumular impactos individuales
         # =====================================================================
         for person in persons:
-            x, y = int(person.x), int(person.y)
-            tile = tile_map.get((x, y))
-            
+            # HEX: Usar coordenadas hexagonales q, r
+            q, r = int(person.q), int(person.r)
+            tile = tile_map.get((q, r))
             if tile is None:
                 continue
-            
+
             impact = self.calculate(person, tile)
-            
             if impact.is_empty():
                 continue
-            
+
             # Acumular impacto
-            if (x, y) not in accumulated:
-                accumulated[(x, y)] = TileImpact()
-            
-            acc = accumulated[(x, y)]
+            if (q, r) not in accumulated:
+                accumulated[(q, r)] = TileImpact()
+
+            acc = accumulated[(q, r)]
             acc.vegetation_delta += impact.vegetation_delta
             acc.organic_matter_delta += impact.organic_matter_delta
             acc.fertility_delta += impact.fertility_delta
@@ -233,44 +277,51 @@ class OrganismImpactCalculator:
             acc.slope_delta += impact.slope_delta
             acc.temperature_delta += impact.temperature_delta
             acc.urbanization_delta += impact.urbanization_delta
-        
+
         # =====================================================================
         # PASO 2: Efecto simbiótico de red (hongos conectan tiles vecinos)
         # =====================================================================
         # Identificar tiles con alta presencia simbiótica
         symbiosis_by_tile: dict = {}
         for person in persons:
-            symbiosis = person.genome.get_trait_value("symbiosis") if person.genome.has_trait("symbiosis") else 0.0
+            symbiosis = (
+                person.genome.get_trait_value("symbiosis")
+                if person.genome.has_trait("symbiosis")
+                else 0.0
+            )
             if symbiosis > 0.5:
-                x, y = int(person.x), int(person.y)
-                symbiosis_by_tile[(x, y)] = symbiosis_by_tile.get((x, y), 0.0) + symbiosis
-        
+                # HEX: Usar coordenadas hexagonales q, r
+                q, r = int(person.q), int(person.r)
+                symbiosis_by_tile[(q, r)] = (
+                    symbiosis_by_tile.get((q, r), 0.0) + symbiosis
+                )
+
         # Aplicar efecto a tiles adyacentes con vegetación
         # Esto representa las redes de micelio que conectan plantas cercanas
-        for (x, y), total_symbiosis in symbiosis_by_tile.items():
-            # Buscar tiles adyacentes (8 direcciones)
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    if dx == 0 and dy == 0:
-                        continue  # Saltar el tile central
-                    
-                    neighbor_key = (x + dx, y + dy)
-                    neighbor_tile = tile_map.get(neighbor_key)
-                    
-                    if neighbor_tile is None:
-                        continue
-                    
-                    # Solo aplicar efecto si el tile vecino tiene vegetación
-                    if neighbor_tile.vegetation > 0.3:
-                        # El hongo mejora la fertilidad del tile vecino
-                        symbiosis_boost = 0.003 * total_symbiosis
-                        
-                        if neighbor_key not in accumulated:
-                            accumulated[neighbor_key] = TileImpact()
-                        
-                        accumulated[neighbor_key].fertility_delta += symbiosis_boost
-                        
-                        # También mejora ligeramente la retención de agua
-                        accumulated[neighbor_key].water_delta += symbiosis_boost * 0.5
-        
+        for (q, r), total_symbiosis in symbiosis_by_tile.items():
+            # HEX: Buscar vecinos hexagonales (6 direcciones)
+            hex_directions = [
+                (1, 0), (1, -1), (0, -1),
+                (-1, 0), (-1, 1), (0, 1)
+            ]
+
+            for dq, dr in hex_directions:
+                neighbor_key = (q + dq, r + dr)
+                neighbor_tile = tile_map.get(neighbor_key)
+                if neighbor_tile is None:
+                    continue
+
+                # Solo aplicar efecto si el tile vecino tiene vegetación
+                if neighbor_tile.vegetation > 0.3:
+                    # El hongo mejora la fertilidad del tile vecino
+                    symbiosis_boost = 0.003 * total_symbiosis
+
+                    if neighbor_key not in accumulated:
+                        accumulated[neighbor_key] = TileImpact()
+
+                    accumulated[neighbor_key].fertility_delta += symbiosis_boost
+
+                    # También mejora ligeramente la retención de agua
+                    accumulated[neighbor_key].water_delta += symbiosis_boost * 0.5
+
         return accumulated

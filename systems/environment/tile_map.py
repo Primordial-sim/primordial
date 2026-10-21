@@ -1,25 +1,23 @@
 """Mapa de tiles del mundo.
 
-Almacena el grid completo de tiles y proporciona acceso eficiente.
-El mapa se genera proceduralmente en la Sesión 3, pero esta clase
-define la estructura de almacenamiento.
+Almacena el grid completo de tiles hexagonales y proporciona acceso eficiente.
 """
 
 from __future__ import annotations
 
-from typing import Dict, Tuple, Optional, TYPE_CHECKING
+from typing import Dict, Optional, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from systems.environment.tile import Tile
 
 
 class TileMap:
-    """Grid de tiles del mundo con acceso por coordenadas.
+    """Grid de tiles del mundo con acceso por coordenadas hexagonales.
     
     Attributes:
-        width: Ancho del mapa en tiles
-        height: Alto del mapa en tiles
-        tiles: Diccionario de (x, y) -> Tile
+        width: Ancho del mapa en tiles (q).
+        height: Alto del mapa en tiles (r).
+        tiles: Diccionario de (q, r) -> Tile.
     """
     
     def __init__(self, width: int, height: int) -> None:
@@ -27,18 +25,18 @@ class TileMap:
         self.height = height
         self.tiles: Dict[Tuple[int, int], Tile] = {}
     
-    def set_tile(self, x: int, y: int, tile: Tile) -> None:
+    def set_tile(self, q: int, r: int, tile: Tile) -> None:
         """Establece un tile en la posición dada."""
-        if 0 <= x < self.width and 0 <= y < self.height:
-            self.tiles[(x, y)] = tile
+        if 0 <= q < self.width and 0 <= r < self.height:
+            self.tiles[(q, r)] = tile
     
-    def get_tile(self, x: int, y: int) -> Optional[Tile]:
+    def get_tile(self, q: int, r: int) -> Optional[Tile]:
         """Retorna el tile en la posición dada, o None si no existe."""
-        return self.tiles.get((int(x), int(y)))
+        return self.tiles.get((int(q), int(r)))
     
-    def has_tile(self, x: int, y: int) -> bool:
+    def has_tile(self, q: int, r: int) -> bool:
         """Verifica si existe un tile en la posición dada."""
-        return (int(x), int(y)) in self.tiles
+        return (int(q), int(r)) in self.tiles
     
     def get_all_tiles(self) -> list[Tile]:
         """Retorna todos los tiles del mapa."""

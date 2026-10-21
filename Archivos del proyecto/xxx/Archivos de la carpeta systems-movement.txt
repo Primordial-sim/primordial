@@ -1,0 +1,1261 @@
+================================================================================
+ARCHIVO: .\systems\movement\migration_system.py
+================================================================================
+
+"""Módulo responsable de gestionar las migraciones masivas a larga distancia.
+
+Identifica factores de expulsión (push factors: hambre, epidemias, clima hostil,
+superpoblación, TRAUMA EMOCIONAL) y factores de atracción (pull factors: oportunidades de recursos).
+Asigna vectores de migración que anulan el comportamiento sedentario normal.
+
+CORRECCIONES APLICADAS (Auditoría):
+- Reevaluación periódica del destino migratorio (cada 30 días)
+- Invalidación si el destino se vuelve peligroso
+- Número de muestras configurable (default 20 en lugar de 5)
+- Establecimiento al llegar (memoria positiva + reducción de motivación)
+- Integración con trauma_abandonment y trauma_adoption
+
+BLOQUE 3: Trauma Global Sistémico
+- El trauma de abandono y adopción actúan como potentes factores de expulsión.
+"""
+
+import math
+import random
+import logging
+from typing import Any, Dict, List, Tuple, Optional
+
+from core.state.world_state import WorldState
+from core.state.pending_changes import PendingChanges
+from systems.behavior.cognitive_memory_system import CognitiveMemorySystem
+from systems.environment.environment_context import EnvironmentContext
+from core.config.simulation_config import SimulationConfig
+from systems.movement.movement_capabilities import MovementCapabilities
+
+
+class MigrationSystem:
+    """Sistema que evalúa la necesidad de emigrar y calcula rutas de escape lejanas."""
+
+    def __init__(self, config: SimulationConfig) -> None:
+        """Inicializa el gestor de migraciones."""
+        self.config = config
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.arrival_threshold: float = 5.0
+        
+        # CORRECCIÓN: Intervalo de reevaluación del destino (en días simulados)
+        self.reevaluation_interval: float = getattr(
+            config.free_will, 'migration_reevaluation_days', 30.0
+        )
+        
+        # Los cooldowns se mantienen aquí porque son estado interno del sistema
+        self._cooldowns: Dict[int, float] = {}
+        
+        # CORRECCIÓN: Rastrear cuándo se estableció el destino actual para reevaluación
+        self._target_set_day: Dict[int, float] = {}
+
+    def _get_param(self, name: str, default: float) -> float:
+        """Lee un parámetro de migración desde la config en caliente."""
+        if self.config is not None:
+            migration_cfg = getattr(self.config, 'migration', None)
+            if migration_cfg is not None:
+                return getattr(migration_cfg, name, default)
+        return default
+
+    
+    def process(
+        self,
+        state: WorldState,
+        pending: PendingChanges,
+        delta_days: float,
+        context: EnvironmentContext,
+    ) -> None:
+        """Evalúa las condiciones locales de cada agente y asigna destinos de migración."""
+        max_x = state.width - 1
+        max_y = state.height - 1
+
+        current_day = getattr(state, 'world_days_elapsed', 0.0)
+        
+        fw_cfg = self.config.free_will
+        migration_cooldown = getattr(fw_cfg, 'migration_cooldown_days', 90.0)
+        
+        # CORRECCIÓN: Número de muestras configurable (antes era 5 fijo)
+        migration_samples = getattr(fw_cfg, 'migration_samples', 20)
+
+        for person in state.get_all_persons():
+            eid = person.entity_id
+            
+            # 1. INTEGRIDAD DE ESTADO
+            if eid in pending.deaths:
+                self._cooldowns.pop(eid, None)
+                self._target_set_day.pop(eid, None)
+                continue
+
+            # GENÉTICA UNIVERSAL: Consultar capacidades de movimiento del genoma
+            # Si no puede moverse o no puede migrar, saltar
+            capabilities = MovementCapabilities.from_genome(person.genome)
+            if not capabilities.can_move or not capabilities.can_migrate:
+                continue
+
+            # 2. VERIFICAR COOLDOWN
+            last_migration = self._cooldowns.get(eid, 0.0)
+            if (current_day - last_migration) < migration_cooldown:
+                continue
+
+            # 3. SEGUIMIENTO DE MIGRACIÓN ACTIVA
+            target = pending.get_migration_target(eid)
+            if target is not None:
+                tx, ty = target
+                
+                # CORRECCIÓN: Reevaluar destino periódicamente
+                target_day = self._target_set_day.get(eid, 0.0)
+                if (current_day - target_day) >= self.reevaluation_interval:
+                    # Verificar si el destino sigue siendo viable
+                    if not self._is_target_still_valid(tx, ty, context, state):
+                        # Destino ya no es viable: invalidar y buscar nuevo destino
+                        pending.clear_migration_target(eid)
+                        self._target_set_day.pop(eid, None)
+                        self.logger.debug(
+                            "🔄 Agente %s: destino migratorio invalidado, buscando nuevo destino",
+                            eid,
+                        )
+                        # Continuar para buscar un nuevo destino en este tick
+                    else:
+                        # Destino sigue válido: continuar hacia él
+                        dist = math.hypot(person.x - tx, person.y - ty)
+                
+                        # GENÉTICA UNIVERSAL: Umbral de llegada ajustado por speed (lectura en caliente)
+                        arrival_threshold = self._get_param('arrival_threshold', self.arrival_threshold) * capabilities.movement_speed
+                
+                        if dist <= arrival_threshold:
+                            # CORRECCIÓN: Establecimiento al llegar
+                            self._handle_arrival(person, tx, ty, current_day, pending, fw_cfg)
+                            pending.clear_migration_target(eid)
+                            self._target_set_day.pop(eid, None)
+                        continue
+                else:
+                    # Aún no toca reevaluar: continuar hacia el destino
+                    dist = math.hypot(person.x - tx, person.y - ty)
+                
+                    # GENÉTICA UNIVERSAL: Umbral de llegada ajustado por speed (lectura en caliente)
+                    arrival_threshold = self._get_param('arrival_threshold', self.arrival_threshold) * capabilities.movement_speed
+                
+                    if dist <= arrival_threshold:
+                        self._handle_arrival(person, tx, ty, current_day, pending, fw_cfg)
+                        pending.clear_migration_target(eid)
+                        self._target_set_day.pop(eid, None)
+                    continue
+
+            # 4. EVALUACIÓN DE DETONANTES (Push Factors)
+            mem = person.memory if isinstance(getattr(person, 'memory', None), dict) else {}
+            needs_to_migrate = False
+            migration_reasons: List[Tuple[str, float]] = []
+            
+            # A. Superpoblación
+            local_pressure = context.get_local_pressure(int(person.x), int(person.y))
+            if local_pressure > 1.8:
+                needs_to_migrate = True
+                migration_reasons.append(("superpoblación", local_pressure))
+            
+            # B. Hambre
+            energy = person.emotions.get("energy", 1.0)
+            local_resources = getattr(context, 'get_resources_at', lambda x, y: 0.5)(int(person.x), int(person.y))
+            if energy < 0.3 and local_resources < 0.2:
+                needs_to_migrate = True
+                hunger_intensity = (1.0 - energy) + (1.0 - local_resources)
+                migration_reasons.append(("hambre", hunger_intensity))
+
+            # C. Epidemias
+            trauma_sickness = mem.get("trauma_sickness", 0.0)
+            viral_load = self._get_viral_load(state, person.x, person.y)
+            if trauma_sickness > 0.7 or viral_load > 2.0:
+                needs_to_migrate = True
+                epidemic_intensity = max(trauma_sickness, viral_load / 5.0)
+                migration_reasons.append(("epidemia", epidemic_intensity))
+
+            # D. Clima y Entorno Hostil
+            env_system = getattr(state, 'environment_system', None)
+            if env_system and hasattr(env_system, 'get_danger_level'):
+                danger = env_system.get_danger_level(int(person.x), int(person.y))
+                if danger > 0.5:
+                    needs_to_migrate = True
+                    migration_reasons.append(("clima_hostil", danger))
+
+            # ==========================================
+            # BLOQUE 3: TRAUMA GLOBAL SISTÉMICO (HUIDA EMOCIONAL)
+            # GENÉTICA UNIVERSAL: Estos traumas son específicos de humanos
+            # y especies sociales complejas. Solo aplicar si existen.
+            # ==========================================
+            # E. Trauma por Abandono (solo si existe)
+            abandonment_trauma = mem.get("trauma_abandonment", 0.0)
+            if abandonment_trauma > 0.6:
+                needs_to_migrate = True
+                migration_reasons.append(("trauma_abandono_huida", abandonment_trauma * 1.5))
+
+            # F. Trauma por Adopción (solo si existe)
+            adoption_trauma = mem.get("trauma_adoption", 0.0)
+            if adoption_trauma > 0.7:
+                needs_to_migrate = True
+                migration_reasons.append(("trauma_adopcion_huida", adoption_trauma * 1.2))
+
+            # G. Determinación Psicológica
+            if getattr(person, 'current_goal', None) == "EMIGRATE":
+                needs_to_migrate = True
+                migration_reasons.append(("objetivo_psicologico", 1.0))
+            
+            # H. MOTIVACIÓN INTERNA 'migration'
+            # GENÉTICA UNIVERSAL: Solo aplicar si el organismo tiene este concepto
+            if hasattr(person, 'get_motivation') and hasattr(person, '_motivations'):
+                if "migration" in person._motivations:
+                    migration_motivation = person.get_motivation("migration")
+                    migration_threshold = getattr(fw_cfg, 'migration_action_threshold', 0.85)
+                    
+                    if migration_motivation >= migration_threshold:
+                        needs_to_migrate = True
+                        migration_reasons.append(("impulso_interno", migration_motivation))
+
+            # 5. BÚSQUEDA DE OPORTUNIDADES (Pull Factors)
+            if needs_to_migrate:
+                best_target = self._find_opportunity(
+                    current_x=person.x, current_y=person.y,
+                    max_x=max_x, max_y=max_y,
+                    context=context, env_system=env_system,
+                    num_samples=migration_samples,  # CORRECCIÓN: configurable
+                )
+                if best_target:
+                    pending.set_migration_target(eid, best_target)
+                    self._cooldowns[eid] = current_day
+                    self._target_set_day[eid] = current_day  # CORRECCIÓN: registrar cuándo se estableció
+                    
+                    reason = self._determine_migration_reason(migration_reasons)
+                    
+                    self.logger.debug(
+                        "🚶 Agente %s inicia migración hacia (%.1f, %.1f) [motivo: %s, cooldown: %d días]",
+                        eid, best_target[0], best_target[1], reason, int(migration_cooldown),
+                    )
+
+    def _is_target_still_valid(
+        self,
+        target_x: float,
+        target_y: float,
+        context: EnvironmentContext,
+        state: WorldState,
+    ) -> bool:
+        """CORRECCIÓN: Verifica si el destino migratorio sigue siendo viable.
+        
+        Un destino se invalida si:
+        - Los recursos han caído por debajo de un umbral
+        - La presión local es excesiva
+        - Hay carga viral alta
+        """
+        coord_x = int(target_x)
+        coord_y = int(target_y)
+        
+        # Verificar recursos
+        resources = getattr(context, 'get_resources_at', lambda x, y: 0.5)(coord_x, coord_y)
+        if resources < 0.15:  # Umbral mínimo de recursos
+            return False
+        
+        # Verificar presión
+        pressure = context.get_local_pressure(coord_x, coord_y)
+        if pressure > 2.5:  # Presión excesiva
+            return False
+        
+        # Verificar carga viral
+        viral_load = self._get_viral_load(state, target_x, target_y)
+        if viral_load > 3.0:  # Epidemia activa en el destino
+            return False
+        
+        return True
+
+    def _handle_arrival(
+        self,
+        person: Any,
+        target_x: float,
+        target_y: float,
+        current_day: float,
+        pending: PendingChanges,
+        fw_cfg: Any,
+    ) -> None:
+        """CORRECCIÓN: Gestiona la llegada al destino migratorio.
+        
+        Genera:
+        - Memoria positiva de migración exitosa
+        - Reducción de la motivación migratoria (establecimiento)
+        - Actualización de preferred_sector
+        """
+        distance_traveled = math.hypot(person.x - target_x, person.y - target_y)
+        
+        if distance_traveled < 50:
+            intensity = 0.3
+        elif distance_traveled < 150:
+            intensity = 0.6
+        else:
+            intensity = 0.9
+        
+        target_id = f"{int(target_x)}_{int(target_y)}"
+        
+        # Registrar memoria de migración exitosa
+        CognitiveMemorySystem.add_memory(
+            person=person,
+            mem_type=CognitiveMemorySystem.TYPE_MIGRATION,
+            target_id=target_id,
+            intensity=intensity,
+            valence=1,
+            context="migracion_exitosa",
+            current_day=current_day,
+            pending=pending,
+        )
+        
+        # CORRECCIÓN: Reducir motivación migratoria (establecimiento)
+        if hasattr(person, 'get_motivation'):
+            pending.register_motivation_update(
+                person.entity_id, "migration", fw_cfg.success_reinforcement_rate
+            )
+        
+        # CORRECCIÓN: Actualizar preferred_sector para arraigo territorial
+        sector_size = self.config.environment.sector_size
+        preferred_sector = (int(target_x) // sector_size, int(target_y) // sector_size)
+        pending.register_memory_update(person.entity_id, "preferred_sector", preferred_sector)
+        
+        self.logger.debug(
+            "🏁 Agente %s completó migración a (%d, %d) - establecido",
+            person.entity_id, int(target_x), int(target_y),
+        )
+
+    def _determine_migration_reason(self, reasons: List[Tuple[str, float]]) -> str:
+        """Determina el motivo principal de la migración."""
+        if not reasons:
+            return "desconocido"
+        
+        reasons_sorted = sorted(reasons, key=lambda x: x[1], reverse=True)
+        return reasons_sorted[0][0]
+
+    def _find_opportunity(
+        self,
+        current_x: float,
+        current_y: float,
+        max_x: int,
+        max_y: int,
+        context: EnvironmentContext,
+        env_system: Any,
+        num_samples: int = 20,  # CORRECCIÓN: configurable (antes era 5)
+    ) -> Optional[Tuple[float, float]]:
+        """Muestrea el mapa global para encontrar un sector prometedor.
+        
+        CORRECCIÓN: Número de muestras configurable para mapas grandes.
+        """
+        best_score = -float('inf')
+        best_coord = None
+        
+        for _ in range(num_samples):
+            tx = random.uniform(0, max_x)
+            ty = random.uniform(0, max_y)
+            
+            # Evitar destinos demasiado cercanos
+            if math.hypot(current_x - tx, current_y - ty) < 25.0:
+                continue
+
+            coord_x = int(tx)
+            coord_y = int(ty)
+
+            resources = getattr(context, 'get_resources_at', lambda x, y: 0.5)(coord_x, coord_y)
+            pressure = context.get_local_pressure(coord_x, coord_y)
+            
+            danger = 0.0
+            if env_system and hasattr(env_system, 'get_danger_level'):
+                danger = env_system.get_danger_level(coord_x, coord_y)
+
+            score = (resources * 15.0) - (pressure * 8.0) - (danger * 25.0)
+            
+            if score > best_score:
+                best_score = score
+                best_coord = (tx, ty)
+                
+        return best_coord
+
+    @staticmethod
+    def _get_viral_load(state: WorldState, x: float, y: float) -> float:
+        """Método compartido para obtener carga viral de una celda."""
+        ep_map = getattr(state, 'epidemiological_map', None)
+        if not ep_map:
+            return 0.0
+            
+        try:
+            raw_val = None
+            if hasattr(ep_map, 'get_load_at'):
+                raw_val = ep_map.get_load_at(x, y)
+            elif hasattr(ep_map, '_cells') and isinstance(ep_map._cells, dict):
+                raw_val = ep_map._cells.get((int(x), int(y)), 0)
+                
+            if isinstance(raw_val, (int, float)):
+                return float(raw_val)
+                
+        except Exception:
+            pass
+            
+        return 0.0
+
+================================================================================
+ARCHIVO: .\systems\movement\movement_capabilities.py
+================================================================================
+
+"""Capacidades de movimiento derivadas del genoma.
+
+Este módulo consulta el genoma de un organismo y determina qué puede hacer
+en términos de movimiento: si puede moverse, cómo se mueve, qué tan lejos ve,
+si es social o territorial, etc.
+
+Es la capa de abstracción entre el núcleo genético (agnóstico a especie)
+y los sistemas de movimiento (que necesitan saber capacidades concretas).
+
+Diseño:
+- INMUTABLE: Se crea una vez consultando el genoma, no se modifica
+- AGNÓSTICO: No conoce especies, solo consulta rasgos
+- EXTENSIBLE: Se pueden añadir nuevas capacidades sin romper existentes
+"""
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from entities.person.genome import Genome
+
+
+@dataclass
+class MovementCapabilities:
+    """Capacidades de movimiento derivadas del genoma de un organismo.
+    
+    Esta clase es inmutable y se crea consultando el genoma.
+    Representa QUÉ puede hacer un organismo en términos de movimiento,
+    no CÓMO lo hace (eso lo deciden los sistemas de movimiento).
+    
+    Atributos:
+        can_move: ¿Puede moverse? (mobility > 0.1)
+        can_migrate: ¿Puede migrar largas distancias?
+        can_walk: ¿Puede caminar? (movilidad terrestre)
+        can_fly: ¿Puede volar? (flight > 0.5)
+        can_swim: ¿Puede nadar? (swimming > 0.5)
+        can_burrow: ¿Puede excavar? (burrowing > 0.5)
+        movement_speed: Multiplicador de velocidad (0.5 a 2.0)
+        vision_range: Radio de visión (0.5 a 5.0)
+        smell_range: Radio de olfato (0.0 a 3.0)
+        is_social: ¿Atraído a densidad? (sociability > 0.7)
+        is_territorial: ¿Repelido por densidad? (territoriality > 0.7)
+        exploration_tendency: Tendencia a explorar (0.0 a 1.0)
+        needs_ground_resources: ¿Necesita recursos del suelo?
+    """
+    
+    # === CAPACIDADES BÁSICAS ===
+    can_move: bool = False          # ¿Puede moverse? (mobility > 0.1)
+    can_migrate: bool = False       # ¿Puede migrar largas distancias?
+    
+    # === MODALIDADES DE MOVIMIENTO ===
+    can_walk: bool = False          # ¿Puede caminar? (movilidad terrestre)
+    can_fly: bool = False           # ¿Puede volar? (flight > 0.5)
+    can_swim: bool = False          # ¿Puede nadar? (swimming > 0.5)
+    can_burrow: bool = False        # ¿Puede excavar? (burrowing > 0.5)
+    
+    # === PARÁMETROS DE MOVIMIENTO ===
+    movement_speed: float = 1.0     # Multiplicador de velocidad (0.5 a 2.0)
+    vision_range: float = 1.0       # Radio de visión (0.5 a 5.0)
+    smell_range: float = 0.5        # Radio de olfato (0.0 a 3.0)
+    
+    # === COMPORTAMIENTO SOCIAL ===
+    is_social: bool = False         # ¿Atraído a densidad? (sociability > 0.7)
+    is_territorial: bool = False    # ¿Repelido por densidad? (territoriality > 0.7)
+    exploration_tendency: float = 0.5  # Tendencia a explorar (0.0 a 1.0)
+    
+    # === NECESIDADES ===
+    needs_ground_resources: bool = True  # ¿Necesita recursos del suelo?
+    
+    @classmethod
+    def from_genome(cls, genome: 'Genome') -> 'MovementCapabilities':
+        """Crea MovementCapabilities consultando el genoma.
+        
+        Este método es la única forma de crear MovementCapabilities.
+        Consulta el genoma y deriva las capacidades de forma determinista.
+        
+        Args:
+            genome: El genoma del organismo.
+            
+        Returns:
+            MovementCapabilities con las capacidades derivadas.
+            
+        Note:
+            Si un rasgo no existe en el genoma, usa valores por defecto
+            apropiados para organismos que no tienen ese rasgo.
+            
+        Examples:
+            >>> caps = MovementCapabilities.from_genome(human_genome)
+            >>> caps.can_move
+            True
+            >>> caps.can_fly
+            False
+            
+            >>> caps = MovementCapabilities.from_genome(plant_genome)
+            >>> caps.can_move
+            False
+        """
+        # Helper para obtener valor de rasgo de forma segura
+        def get_trait(trait_id: str, default: float = 0.0) -> float:
+            """Obtiene el valor de un rasgo, retornando default si no existe."""
+            if genome.has_trait(trait_id):
+                return genome.get_trait_value(trait_id)
+            return default
+        
+        # === OBTENER VALORES DE RASGOS ===
+        mobility = get_trait("mobility", 0.5)
+        speed = get_trait("speed", 1.0)
+        flight = get_trait("flight", 0.0)
+        swimming = get_trait("swimming", 0.0)
+        burrowing = get_trait("burrowing", 0.0)
+        curiosity = get_trait("curiosity", 0.5)
+        vision = get_trait("vision", 1.0)
+        smell = get_trait("smell", 0.5)
+        sociability = get_trait("sociability", 0.5)
+        territoriality = get_trait("territoriality", 0.3)
+        photosynthesis = get_trait("photosynthesis", 0.0)
+        
+        # === CAPACIDADES BÁSICAS ===
+        can_move = mobility > 0.1
+        
+        # === MODALIDADES DE MOVIMIENTO ===
+        # Lógica matizada para capacidades de movimiento:
+        # - Peces: NO pueden caminar (son nadadores exclusivos)
+        # - Aves: SÍ pueden caminar (pueden volar Y caminar)
+        # - Humanos: SÍ pueden caminar
+        
+        # ¿Es principalmente nadador? (swimming muy alto, mobility bajo)
+        is_primarily_swimmer = swimming > 0.7 and mobility < 0.5
+        
+        # Puede caminar si:
+        # - Tiene movilidad suficiente (> 0.3)
+        # - NO es principalmente nadador (peces)
+        can_walk = mobility > 0.3 and not is_primarily_swimmer
+        
+        can_fly = flight > 0.5
+        can_swim = swimming > 0.5
+        can_burrow = burrowing > 0.5
+        
+        # ¿Puede migrar? (necesita poder moverse + capacidad de movimiento fuerte)
+        # Requiere:
+        # - mobility > 0.5 (no solo > 0.1, porque migrar es esfuerzo grande)
+        # - Al menos un modo de movimiento fuerte (> 0.5)
+        # - Curiosidad suficiente para explorar
+        can_migrate = (
+            can_move and 
+            mobility > 0.5 and
+            (speed > 0.5 or flight > 0.5 or swimming > 0.5) and
+            curiosity > 0.3
+        )
+        
+        # === PARÁMETROS DE MOVIMIENTO ===
+        # Clampear a rangos válidos
+        movement_speed = max(0.5, min(2.0, speed))
+        vision_range = max(0.5, min(5.0, vision))
+        smell_range = max(0.0, min(3.0, smell))
+        
+        # === COMPORTAMIENTO SOCIAL ===
+        is_social = sociability > 0.7
+        is_territorial = territoriality > 0.7 and not is_social  # Territorial si no es social
+        exploration_tendency = max(0.0, min(1.0, curiosity))
+        
+        # === NECESIDADES ===
+        # Los organismos fotosintéticos no necesitan recursos del suelo
+        needs_ground_resources = photosynthesis < 0.5
+        
+        return cls(
+            can_move=can_move,
+            can_migrate=can_migrate,
+            can_walk=can_walk,
+            can_fly=can_fly,
+            can_swim=can_swim,
+            can_burrow=can_burrow,
+            movement_speed=movement_speed,
+            vision_range=vision_range,
+            smell_range=smell_range,
+            is_social=is_social,
+            is_territorial=is_territorial,
+            exploration_tendency=exploration_tendency,
+            needs_ground_resources=needs_ground_resources,
+        )
+    
+    def __str__(self) -> str:
+        """Representación legible para debugging.
+        
+        Returns:
+            String con las capacidades principales en formato compacto.
+            
+        Examples:
+            >>> str(caps)
+            "MovementCapabilities(modes=['walk'], speed=1.0, vision=1.5, social=social, can_migrate=True)"
+        """
+        modes = []
+        if self.can_walk:
+            modes.append("walk")
+        if self.can_fly:
+            modes.append("fly")
+        if self.can_swim:
+            modes.append("swim")
+        if self.can_burrow:
+            modes.append("burrow")
+        
+        if not modes:
+            modes.append("static")
+        
+        if self.is_social:
+            social = "social"
+        elif self.is_territorial:
+            social = "territorial"
+        else:
+            social = "neutral"
+        
+        return (
+            f"MovementCapabilities("
+            f"modes={modes}, "
+            f"speed={self.movement_speed:.1f}, "
+            f"vision={self.vision_range:.1f}, "
+            f"social={social}, "
+            f"can_migrate={self.can_migrate}"
+            f")"
+        )
+    
+    def __repr__(self) -> str:
+        """Representación completa para debugging."""
+        return (
+            f"MovementCapabilities("
+            f"can_move={self.can_move}, "
+            f"can_migrate={self.can_migrate}, "
+            f"can_walk={self.can_walk}, "
+            f"can_fly={self.can_fly}, "
+            f"can_swim={self.can_swim}, "
+            f"can_burrow={self.can_burrow}, "
+            f"movement_speed={self.movement_speed}, "
+            f"vision_range={self.vision_range}, "
+            f"smell_range={self.smell_range}, "
+            f"is_social={self.is_social}, "
+            f"is_territorial={self.is_territorial}, "
+            f"exploration_tendency={self.exploration_tendency}, "
+            f"needs_ground_resources={self.needs_ground_resources}"
+            f")"
+        )
+
+================================================================================
+ARCHIVO: .\systems\movement\movement_resolver.py
+================================================================================
+
+"""Módulo responsable de arbitrar colisiones espaciales antes del commit global.
+
+CAMBIOS RECIENTES:
+- Gasto de energía por movimiento: Cada agente que realmente se mueve
+  gasta energía. Como cada movimiento es exactamente una casilla por tick,
+  el coste es un valor fijo por "acción" y se modifica por el tamaño y 
+  tipo de movimiento de la especie (no por distancia física).
+"""
+
+import random
+import logging
+from typing import Dict, List, Tuple, Set
+from core.state.world_state import WorldState
+from core.state.pending_changes import PendingChanges
+from systems.environment.environment_context import EnvironmentContext
+from core.config.simulation_config import SimulationConfig
+
+class MovementResolver:
+    """Resuelve cuellos de botella espaciales de forma determinista.
+    
+    Asegura que dos entidades no ocupen la misma celda si el motor no lo permite,
+    operando como un sistema estándar dentro del ciclo de la simulación.
+    
+    RESPONSABILIDADES:
+    - Resolver conflictos de ocupación espacial.
+    - Aplicar gasto de energía por la acción de moverse (1 casilla = 1 acción).
+    """
+
+    def __init__(self, config: SimulationConfig) -> None:
+        """Inicializa el resolutor cumpliendo el contrato de la arquitectura.
+        
+        Args:
+            config (SimulationConfig): Configuración maestra de la simulación.
+        """
+        self.config = config
+        self.logger = logging.getLogger("MovementResolver")
+        
+        # Parámetros de gasto de energía por movimiento
+        # Como cada tick es 1 casilla, es un coste base por la "acción" de moverse.
+        self.energy_cost_per_action: float = 0.2  # Energía gastada por moverse 1 casilla
+
+    def process(self, state: WorldState, pending: PendingChanges, 
+                delta_days: float, context: EnvironmentContext) -> None:
+        """Analiza las intenciones de movimiento y evita solapamientos espaciales.
+        
+        Args:
+            state (WorldState): Estado centralizado del mundo.
+            pending (PendingChanges): Búfer transaccional de mutaciones.
+            delta_days (float): Paso de tiempo en días.
+            context (EnvironmentContext): Contexto espacial y medioambiental.
+        """
+        
+        # Aborto temprano si no hay movimientos solicitados en el búfer
+        if not getattr(pending, 'movements', None):
+            return 
+
+        # 1. Identificar casillas bloqueadas (ocupadas por individuos estáticos)
+        casillas_bloqueadas: Set[Tuple[int, int]] = set()
+        for person in state.get_all_persons():
+            # Regla de seguridad 1: Nunca considerar a los individuos muertos
+            if person.entity_id in pending.deaths:
+                continue 
+                
+            # Si la persona no se mueve en este tick, su casilla actual es un obstáculo duro
+            if person.entity_id not in pending.movements:
+                casillas_bloqueadas.add((person.x, person.y))
+
+        # 2. Agrupar peticiones por celda destino y aplicar Fail-Safes
+        peticiones_por_celda: Dict[Tuple[int, int], List[int]] = {} 
+        
+        for entity_id, (target_x, target_y) in pending.movements.items():
+            # Regla de seguridad 1 (Doble validación): Garantizar que la entidad no ha fallecido
+            if entity_id in pending.deaths:
+                continue
+
+            # Regla de seguridad 2: Nunca salir de los límites del mapa (Clamping estricto)
+            final_x = max(0, min(int(target_x), state.width - 1))
+            final_y = max(0, min(int(target_y), state.height - 1))
+            destino = (final_x, final_y)
+            
+            if destino not in peticiones_por_celda:
+                peticiones_por_celda[destino] = []
+            peticiones_por_celda[destino].append(entity_id)
+
+        # 3. Arbitrar conflictos y respetar ocupaciones (Regla de objetivos y velocidades)
+        movimientos_validados: Dict[int, Tuple[int, int]] = {}
+        
+        for destino, candidatos in peticiones_por_celda.items():
+            # REGLA A: Destino bloqueado por una entidad estática
+            if destino in casillas_bloqueadas:
+                # El movimiento se cancela; las entidades se quedan en su posición de origen
+                continue
+
+            # REGLA B: Celda libre o disputa entre varios agentes en movimiento
+            if len(candidatos) == 1:
+                ganador = candidatos[0]
+                movimientos_validados[ganador] = destino
+            else:
+                # CONFLICTO: Varios agentes quieren la misma celda. Se resuelve al azar para evitar sesgos de ID.
+                ganador = random.choice(candidatos)
+                movimientos_validados[ganador] = destino
+
+        # 4. REEMPLAZO ATÓMICO: Sobrescribimos el búfer solo con los movimientos validados y aprobados
+        pending.movements = movimientos_validados
+        
+        # 5. Aplicar gasto de energía por la acción de moverse
+        self._apply_movement_energy_cost(state, pending)
+
+    def _apply_movement_energy_cost(
+        self,
+        state: WorldState,
+        pending: PendingChanges,
+    ) -> None:
+        """Aplica el gasto de energía a los agentes que realmente se movieron.
+        
+        Como cada movimiento aprobado representa exactamente 1 casilla (1 tick),
+        no calculamos distancias físicas. Simplemente aplicamos un coste por acción,
+        modificado por las capacidades biológicas del agente.
+        
+        Args:
+            state (WorldState): Estado centralizado del mundo.
+            pending (PendingChanges): Búfer transaccional de mutaciones.
+        """
+        if not pending.movements:
+            return
+        
+        for person in state.get_all_persons():
+            # Solo procesar agentes cuyo movimiento fue validado
+            if person.entity_id not in pending.movements:
+                continue
+            
+            # Calcular coste basado en la especie (tamaño, tipo de movimiento)
+            energy_cost = self._calculate_movement_cost(person)
+            
+            # Aplicar el gasto de energía
+            person.spend_energy(energy_cost)
+
+    def _calculate_movement_cost(self, person) -> float:
+        """Calcula el coste de energía de moverse 1 casilla.
+        
+        Args:
+            person: El agente que se mueve.
+            
+        Returns:
+            Cantidad de energía a gastar.
+        """
+        # Coste base por la acción de moverse
+        cost = self.energy_cost_per_action
+        
+        # Modificador por tamaño corporal (más masa = más energía para moverse)
+        size_factor = self._get_size_factor(person)
+        cost *= size_factor
+        
+        # Modificador por tipo de movimiento (volar/nadar tiene costes distintos)
+        movement_type_factor = self._get_movement_type_factor(person)
+        cost *= movement_type_factor
+        
+        return max(0.0, cost)
+
+    def _get_size_factor(self, person) -> float:
+        """Obtiene el factor de tamaño basado en el genoma."""
+        try:
+            body_size = getattr(person.genome, 'body_size', None)
+            if body_size is not None:
+                # Rango aproximado: 0.5 (pequeño) a 2.0 (grande)
+                return 0.5 + (body_size * 1.5)
+        except (AttributeError, TypeError):
+            pass
+        
+        return 1.0  # Por defecto: tamaño medio
+
+    def _get_movement_type_factor(self, person) -> float:
+        """Obtiene el factor de tipo de movimiento basado en capacidades."""
+        try:
+            from systems.movement.movement_capabilities import MovementCapabilities
+            capabilities = MovementCapabilities.from_genome(person.genome)
+            
+            if capabilities.can_fly:
+                return 1.3  # Volar requiere más energía constante
+            elif capabilities.can_swim:
+                return 1.1  # Nadar tiene resistencia del agua
+            else:
+                return 1.0  # Caminar es el coste base
+        except (AttributeError, TypeError, ImportError):
+            pass
+        
+        return 1.0  # Por defecto
+
+================================================================================
+ARCHIVO: .\systems\movement\movement_system.py
+================================================================================
+
+"""Módulo responsable del movimiento táctico inmediato de cada agente.
+
+Evalúa las celdas hexagonales cercanas a cada individuo y decide el siguiente 
+paso basándose en un modelo de Utility AI que pondera recursos, carga viral, 
+densidad local, proximidad social y personalidad.
+"""
+
+import logging
+import math
+from typing import Any, List, Optional, Tuple
+
+from core.config.simulation_config import SimulationConfig
+from core.state.pending_changes import PendingChanges
+from core.state.world_state import WorldState
+from core.taxonomy.profile_enums import DietType
+from core.taxonomy.species_classification import SpeciesClassificationSystem
+from systems.environment.environment_context import EnvironmentContext
+from systems.movement.movement_capabilities import MovementCapabilities
+from systems.social.social_pressure import SocialPressureCalculator
+from systems.spatial.spatial_grid import SpatialGrid
+
+
+class MovementSystem:
+    """Sistema de movimiento táctico que decide el paso inmediato de cada agente."""
+
+    def __init__(
+        self,
+        config: SimulationConfig,
+        density_system: Any = None,
+        relationship_engine: Any = None,
+    ) -> None:
+        """Inicializa el sistema de movimiento táctico."""
+        self.config = config
+        self.density_system = density_system
+        self.relationship_engine = relationship_engine
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+        self.eval_radius = getattr(config.movement, "eval_radius", 1)
+        self.social_distance = getattr(config.movement, "social_distance", 10.0)
+        self.sector_size = getattr(config.environment, "sector_size", 10)
+        self.social_pressure = SocialPressureCalculator(config)
+        self.spatial_grid = SpatialGrid(cell_size=10.0)
+        self.species_classification = SpeciesClassificationSystem.get_default()
+        self.selection_temperature = getattr(config.movement, "selection_temperature", 2.0)
+        
+        self._threat_cache: dict = {}
+        self._prey_cache: dict = {}
+        self._vegetation_cache: dict = {}
+        self._diet_cache: dict = {}
+
+        # Direcciones hexagonales axiales (q, r)
+        self.hex_directions = [(1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1)]
+
+    def process(
+        self,
+        state: WorldState,
+        pending: PendingChanges,
+        delta_days: float,
+        context: EnvironmentContext,
+    ) -> None:
+        """Calcula el siguiente paso para cada agente activo."""
+        max_q = state.width - 1
+        max_r = state.height - 1
+
+        self._threat_cache.clear()
+        self._prey_cache.clear()
+        self._vegetation_cache.clear()
+        self._diet_cache.clear()
+        
+        self.spatial_grid.populate_from_state(state)
+
+        for person in state.get_all_persons():
+            if person.entity_id in pending.deaths:
+                continue
+
+            capabilities = MovementCapabilities.from_genome(person.genome)
+            if not capabilities.can_move:
+                continue
+
+            if person.entity_id in pending.movements:
+                continue
+
+            migration_target = pending.get_migration_target(person.entity_id)
+            if migration_target is not None:
+                self._move_towards_target(
+                    person, migration_target, max_q, max_r, pending, state, capabilities
+                )
+                continue
+
+            best_move = self._evaluate_nearby_cells(
+                person, state, context, max_q, max_r, pending, capabilities
+            )
+
+            if best_move is not None:
+                pending.register_movement(person.entity_id, best_move[0], best_move[1])
+
+    def _move_towards_target(
+        self,
+        person: Any,
+        target: Tuple[float, float],
+        max_q: int,
+        max_r: int,
+        pending: PendingChanges,
+        state: WorldState,
+        capabilities: MovementCapabilities,
+    ) -> None:
+        """Mueve al agente hacia su destino migratorio."""
+        tq, tr = target
+        dq = tq - person.q
+        dr = tr - person.r
+
+        # Distancia hexagonal
+        distance = (abs(dq) + abs(dr) + abs(dq + dr)) // 2
+        if distance < 1.0:
+            return
+
+        max_step = capabilities.movement_speed
+        if capabilities.can_fly:
+            max_step *= 1.5
+        
+        if distance <= max_step:
+            step_q = int(round(tq))
+            step_r = int(round(tr))
+        else:
+            step_q = int(round(person.q + (dq / max(distance, 1)) * max_step))
+            step_r = int(round(person.r + (dr / max(distance, 1)) * max_step))
+
+        # Wrapping toroidal en paralelogramo
+        step_q = step_q % (max_q + 1)
+        step_r = step_r % (max_r + 1)
+
+        if state.is_cell_occupied(step_q, step_r):
+            for d_q, d_r in self.hex_directions:
+                alt_q = (step_q + d_q) % (max_q + 1)
+                alt_r = (step_r + d_r) % (max_r + 1)
+                if not state.is_cell_occupied(alt_q, alt_r):
+                    pending.register_movement(person.entity_id, alt_q, alt_r)
+                    return
+            return
+
+        pending.register_movement(person.entity_id, step_q, step_r)
+
+    def _evaluate_nearby_cells(
+        self,
+        person: Any,
+        state: WorldState,
+        context: EnvironmentContext,
+        max_q: int,
+        max_r: int,
+        pending: PendingChanges,
+        capabilities: MovementCapabilities,
+    ) -> Optional[Tuple[int, int]]:
+        """Evalúa celdas cercanas y selecciona la mejor casilla disponible."""
+        scored_cells: List[Tuple[Tuple[int, int], float]] = []
+        radius = max(1, int(capabilities.vision_range))
+        
+        person_q = int(person.q)
+        person_r = int(person.r)
+
+        genome = person.genome
+        curiosity = (
+            min(1.0, genome.get_trait_value("curiosity") / 2.0)
+            if genome.has_trait("curiosity")
+            else 0.5
+        )
+        curiosity_factor = (
+            0.5 * (1.0 - curiosity) if curiosity > 0.6 else 1.0 * (1.0 - curiosity)
+        )
+
+        memory = getattr(person, "memory", None)
+        preferred_sector = memory.get("preferred_sector", None) if isinstance(memory, dict) else None
+
+        migration_target = pending.get_migration_target(person.entity_id)
+        migration_weight = 3.0 if migration_target else 0.0
+
+        scored_cells.append(((person_q, person_r), 5.0))
+
+        # Bucle de rango hexagonal
+        for dq in range(-radius, radius + 1):
+            dr_min = max(-radius, -dq - radius)
+            dr_max = min(radius, -dq + radius)
+            for dr in range(dr_min, dr_max + 1):
+                if dq == 0 and dr == 0:
+                    continue
+
+                nq = (person_q + dq) % (max_q + 1)
+                nr = (person_r + dr) % (max_r + 1)
+                
+                hex_dist = (abs(dq) + abs(dr) + abs(dq + dr)) // 2
+                
+                score = self._score_cell(
+                    cell_q=nq,
+                    cell_r=nr,
+                    context=context,
+                    state=state,
+                    person=person,
+                    migration_target=migration_target,
+                    migration_weight=migration_weight,
+                    preferred_sector=preferred_sector,
+                    hex_dist=hex_dist,
+                    curiosity_factor=curiosity_factor,
+                    capabilities=capabilities,
+                )
+                scored_cells.append(((nq, nr), score))
+
+        scored_cells.sort(key=lambda x: x[1], reverse=True)
+
+        available_cells = []
+        for cell, score in scored_cells:
+            if cell == (person_q, person_r):
+                available_cells.append((cell, score))
+            elif not state.is_cell_occupied(cell[0], cell[1]):
+                available_cells.append((cell, score))
+
+        if not available_cells:
+            return None
+
+        selected = SocialPressureCalculator.probabilistic_selection(
+            available_cells, temperature=self.selection_temperature
+        )
+
+        if selected == (person_q, person_r):
+            return None
+
+        return selected
+
+    def _score_cell(
+        self,
+        cell_q: int,
+        cell_r: int,
+        context: EnvironmentContext,
+        state: WorldState,
+        person: Any,
+        migration_target: Optional[Tuple[float, float]] = None,
+        migration_weight: float = 0.0,
+        preferred_sector: Optional[Tuple[int, int]] = None,
+        hex_dist: int = 0,
+        curiosity_factor: float = 1.0,
+        capabilities: Optional[MovementCapabilities] = None,
+    ) -> float:
+        """Calcula la puntuación de una celda usando Utility AI."""
+        score = 0.0
+
+        score += context.get_resources_at(cell_q, cell_r) * 10.0
+        score -= self._get_viral_load(state, cell_q, cell_r) * 15.0
+        
+        pressure = context.get_local_pressure(cell_q, cell_r)
+        score -= max(0.0, pressure - 1.0) * 8.0
+
+        score += self.social_pressure.calculate_pressure_for_cell(
+            person, cell_q, cell_r, state
+        )
+
+        if migration_target is not None:
+            mt_q, mt_r = migration_target
+            dist_to_migration = (
+                abs(cell_q - mt_q) + abs(cell_r - mt_r) + abs((cell_q - mt_q) + (cell_r - mt_r))
+            ) // 2
+            score -= dist_to_migration * migration_weight
+
+        if preferred_sector is not None:
+            cell_sector = (cell_q // self.sector_size, cell_r // self.sector_size)
+            if cell_sector == preferred_sector:
+                score += 5.0
+
+        score -= hex_dist * curiosity_factor
+
+        if capabilities is not None:
+            diet = self._get_diet(person)
+            
+            if diet in ("herbivore", "omnivore"):
+                threats = self._count_nearby_threats(person, state, capabilities)
+                if threats > 0:
+                    score -= threats * 25.0
+            
+            if diet in ("carnivore", "omnivore"):
+                prey = self._count_nearby_prey(person, state, capabilities)
+                if prey > 0:
+                    score += prey * 15.0
+            
+            if diet == "herbivore":
+                vegetation = self._count_nearby_vegetation(person, state, capabilities)
+                if vegetation > 0:
+                    score += vegetation * 20.0
+
+        return score
+
+    def _get_diet(self, person: Any) -> str:
+        """Determina la dieta de un agente usando SpeciesClassificationSystem."""
+        cached = self._diet_cache.get(person.entity_id)
+        if cached is not None:
+            return cached
+        
+        result = "omnivore"
+        species_id = person.species
+        diet_type = self.species_classification.get_diet(species_id)
+        
+        if diet_type is not None:
+            diet_map = {
+                DietType.CARNIVORE: "carnivore",
+                DietType.HERBIVORE: "herbivore",
+                DietType.OMNIVORE: "omnivore",
+                DietType.PHOTOSYNTHETIC: "photosynthetic",
+                DietType.INSECTIVORE: "carnivore",
+                DietType.FILTER_FEEDER: "herbivore",
+                DietType.PARASITE: "carnivore",
+                DietType.DETRITIVORE: "omnivore",
+                DietType.CHEMOSYNTHETIC: "photosynthetic",
+            }
+            result = diet_map.get(diet_type, "omnivore")
+        else:
+            try:
+                diet_value = person.genome.get_trait_value("diet")
+                if diet_value is not None:
+                    if diet_value <= 0.1:
+                        result = "photosynthetic"
+                    elif diet_value <= 1.33:
+                        result = "herbivore"
+                    elif diet_value <= 2.33:
+                        result = "omnivore"
+                    else:
+                        result = "carnivore"
+            except (AttributeError, TypeError):
+                pass
+        
+        self._diet_cache[person.entity_id] = result
+        return result
+
+    def _is_predator_of(self, predator: Any, prey: Any) -> bool:
+        """Verifica si un agente es depredador de otro."""
+        if predator.species == prey.species:
+            return False
+        
+        predator_is_predator = self.species_classification.is_predator(predator.species)
+        if not predator_is_predator:
+            if self._get_diet(predator) not in ("carnivore", "omnivore"):
+                return False
+        
+        if self._get_diet(prey) == "photosynthetic":
+            return False
+        
+        return True
+
+    def _count_nearby_threats(
+        self, person: Any, state: WorldState, capabilities: MovementCapabilities
+    ) -> int:
+        """Cuenta depredadores cercanos a un agente."""
+        detection_range = max(capabilities.vision_range, capabilities.smell_range)
+        threats = 0
+        person_q = int(person.q)
+        person_r = int(person.r)
+        
+        for other in state.get_all_persons():
+            if other.entity_id == person.entity_id:
+                continue
+            
+            dq = int(other.q) - person_q
+            dr = int(other.r) - person_r
+            distance = (abs(dq) + abs(dr) + abs(dq + dr)) // 2
+            
+            if distance <= detection_range:
+                if self._is_predator_of(other, person):
+                    threats += 1
+        
+        return threats
+
+    def _count_nearby_prey(
+        self, person: Any, state: WorldState, capabilities: MovementCapabilities
+    ) -> int:
+        """Cuenta presas cercanas a un agente carnívoro/omnívoro."""
+        cached = self._prey_cache.get(person.entity_id)
+        if cached is not None:
+            return cached
+        
+        detection_range = max(capabilities.vision_range, capabilities.smell_range)
+        prey_count = 0
+        nearby_agents = self.spatial_grid.get_nearby_agents(person, radius=detection_range)
+        
+        for other in nearby_agents:
+            if self._is_predator_of(person, other):
+                prey_count += 1
+        
+        self._prey_cache[person.entity_id] = prey_count
+        return prey_count
+
+    def _count_nearby_vegetation(
+        self, person: Any, state: WorldState, capabilities: MovementCapabilities
+    ) -> int:
+        """Cuenta vegetación cercana a un agente herbívoro."""
+        cached = self._vegetation_cache.get(person.entity_id)
+        if cached is not None:
+            return cached
+        
+        detection_range = max(capabilities.vision_range, capabilities.smell_range)
+        veg_count = 0
+        nearby_agents = self.spatial_grid.get_nearby_agents(person, radius=detection_range)
+        
+        for other in nearby_agents:
+            if self._get_diet(other) == "photosynthetic":
+                veg_count += 1
+        
+        self._vegetation_cache[person.entity_id] = veg_count
+        return veg_count
+
+    @staticmethod
+    def _get_viral_load(state: WorldState, q: int, r: int) -> float:
+        """Obtiene la carga viral de una celda específica."""
+        ep_map = getattr(state, "epidemiological_map", None)
+        if not ep_map:
+            return 0.0
+
+        try:
+            raw_val = None
+            if hasattr(ep_map, "get_load_at"):
+                raw_val = ep_map.get_load_at(q, r)
+            elif hasattr(ep_map, "_cells") and isinstance(ep_map._cells, dict):
+                raw_val = ep_map._cells.get((int(q), int(r)), 0)
+
+            if isinstance(raw_val, (int, float)):
+                return float(raw_val)
+        except Exception:
+            pass
+
+        return 0.0

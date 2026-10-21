@@ -1,0 +1,808 @@
+================================================================================
+ARCHIVO: .\systems\behavior\cognitive_capabilities.py
+================================================================================
+
+"""Capacidades cognitivas derivadas del genoma.
+
+Este módulo consulta el genoma de un organismo y determina qué tipo de
+capacidades cognitivas tiene: si tiene sistema nervioso, emociones,
+memoria episódica, conceptos sociales complejos, etc.
+
+Es la capa de abstracción entre el núcleo genético (agnóstico a especie)
+y los sistemas cognitivos (CognitiveMemorySystem, FreeWillSystem).
+
+Diseño:
+- INMUTABLE: Se crea una vez consultando el genoma, no se modifica
+- AGNÓSTICO: No conoce especies, solo consulta rasgos
+- EXTENSIBLE: Se pueden añadir nuevas capacidades sin romper existentes
+
+Niveles de cognición biológica (aproximación):
+- Nivel 0: Sin sistema nervioso (plantas, bacterias, hongos)
+- Nivel 1: Sistema nervioso simple, reflejos (insectos, gusanos)
+- Nivel 2: Emociones básicas, memoria simple (peces, anfibios)
+- Nivel 3: Memoria episódica, vínculos sociales (lobos, aves, primates)
+- Nivel 4: Conceptos sociales complejos (humanos, delfines)
+"""
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from entities.person.genome import Genome
+
+
+@dataclass
+class CognitiveCapabilities:
+    """Capacidades cognitivas derivadas del genoma de un organismo.
+    
+    Esta clase es inmutable y se crea consultando el genoma.
+    Determina QUÉ capacidades cognitivas tiene un organismo, no CÓMO
+    las usa (eso lo deciden los sistemas cognitivos).
+    
+    Atributos:
+        has_nervous_system: ¿Tiene sistema nervioso? (nervous_system >= 0.1)
+        has_emotions: ¿Tiene emociones básicas? (nervous_system >= 0.3)
+        has_complex_brain: ¿Tiene cerebro complejo? (vertebrados)
+        has_episodic_memory: ¿Tiene memoria episódica?
+        has_complex_motivations: ¿Tiene motivaciones complejas?
+        has_basic_motivations: ¿Tiene instintos básicos?
+        has_pair_bonding: ¿Forma parejas?
+        has_family_structure: ¿Tiene estructura familiar?
+        has_social_concepts: ¿Tiene conceptos sociales (matrimonio, etc.)?
+        cognitive_level: Nivel general de cognición (0.0 a 1.0)
+        emotional_complexity: Complejidad emocional (0.0 a 1.0)
+        social_complexity: Complejidad social (0.0 a 1.0)
+    """
+    
+    # === CAPACIDADES BÁSICAS ===
+    has_nervous_system: bool = False      # ¿Tiene sistema nervioso?
+    has_emotions: bool = False            # ¿Tiene emociones básicas?
+    has_complex_brain: bool = False       # ¿Tiene cerebro complejo?
+    has_episodic_memory: bool = False     # ¿Tiene memoria episódica?
+    
+    # === CAPACIDADES MOTIVACIONALES ===
+    has_basic_motivations: bool = False       # ¿Tiene instintos básicos?
+    has_complex_motivations: bool = False     # ¿Tiene motivaciones complejas?
+    
+    # === CAPACIDADES SOCIALES ===
+    has_pair_bonding: bool = False        # ¿Forma parejas estables?
+    has_family_structure: bool = False    # ¿Tiene estructura familiar?
+    has_social_concepts: bool = False     # ¿Tiene conceptos sociales complejos?
+    
+    # === NIVELES CONTINUOS ===
+    cognitive_level: float = 0.0          # Nivel general (0.0 a 1.0)
+    emotional_complexity: float = 0.0     # Complejidad emocional (0.0 a 1.0)
+    social_complexity: float = 0.0        # Complejidad social (0.0 a 1.0)
+    
+    @classmethod
+    def from_genome(cls, genome: 'Genome') -> 'CognitiveCapabilities':
+        """Crea CognitiveCapabilities consultando el genoma.
+        
+        Este método es la única forma de crear CognitiveCapabilities.
+        Consulta el genoma y deriva las capacidades de forma determinista.
+        
+        Args:
+            genome: El genoma del organismo.
+            
+        Returns:
+            CognitiveCapabilities con las capacidades derivadas.
+            
+        Note:
+            Si un rasgo no existe en el genoma, usa valores por defecto
+            apropiados para organismos que no tienen ese rasgo.
+            
+        Examples:
+            >>> caps = CognitiveCapabilities.from_genome(human_genome)
+            >>> caps.has_complex_motivations
+            True
+            >>> caps.has_social_concepts
+            True
+            
+            >>> caps = CognitiveCapabilities.from_genome(plant_genome)
+            >>> caps.has_nervous_system
+            False
+        """
+        # Helper para obtener valor de rasgo de forma segura
+        def get_trait(trait_id: str, default: float = 0.0) -> float:
+            """Obtiene el valor de un rasgo, retornando default si no existe."""
+            if genome.has_trait(trait_id):
+                return genome.get_trait_value(trait_id)
+            return default
+        
+        # === OBTENER VALORES DE RASGOS ===
+        nervous_system = get_trait("nervous_system", 0.0)
+        intelligence = get_trait("intelligence", 0.0)
+        sociability = get_trait("sociability", 0.0)
+        temperament = get_trait("temperament", 0.0)
+        
+        # === CAPACIDADES BÁSICAS ===
+        # ¿Tiene sistema nervioso? (muy bajo umbral, incluso invertebrados simples)
+        has_nervous_system = nervous_system >= 0.1
+        
+        # ¿Tiene emociones básicas? (requiere sistema nervioso moderado)
+        has_emotions = nervous_system >= 0.3
+        
+        # ¿Tiene cerebro complejo? (vertebrados, requiere sistema nervioso + algo de inteligencia)
+        has_complex_brain = nervous_system >= 0.5 and intelligence >= 0.3
+        
+        # ¿Tiene memoria episódica? (recuerdos específicos, requiere inteligencia media)
+        has_episodic_memory = intelligence >= 0.5 and has_complex_brain
+        
+        # === CAPACIDADES MOTIVACIONALES ===
+        # Instintos básicos (supervivencia): cualquier organismo con sistema nervioso mínimo
+        has_basic_motivations = nervous_system >= 0.2
+        
+        # Motivaciones complejas (rebeldía, independencia, partnership): solo cerebros avanzados
+        has_complex_motivations = intelligence >= 0.7 and has_complex_brain
+        
+        # === CAPACIDADES SOCIALES ===
+        # Vínculos de pareja (lobos, cisnes, primates): sociabilidad + inteligencia
+        has_pair_bonding = sociability >= 0.7 and intelligence >= 0.5
+        
+        # Estructura familiar compleja (cría prolongada, roles): sociabilidad alta + inteligencia
+        has_family_structure = sociability >= 0.8 and intelligence >= 0.6
+        
+        # Conceptos sociales (matrimonio, divorcio, adopción): solo humanos y muy pocos más
+        has_social_concepts = intelligence >= 0.8 and has_episodic_memory
+        
+        # === NIVELES CONTINUOS ===
+        # Nivel cognitivo general: combinación de inteligencia y sistema nervioso
+        cognitive_level = max(0.0, min(1.0, (intelligence * 0.7 + nervous_system * 0.3)))
+        
+        # Complejidad emocional: basada en sistema nervioso y temperamento
+        emotional_complexity = max(0.0, min(1.0, (nervous_system * 0.7 + temperament * 0.3)))
+        
+        # Complejidad social: combinación de sociabilidad e inteligencia
+        social_complexity = max(0.0, min(1.0, (sociability * 0.6 + intelligence * 0.4)))
+        
+        return cls(
+            has_nervous_system=has_nervous_system,
+            has_emotions=has_emotions,
+            has_complex_brain=has_complex_brain,
+            has_episodic_memory=has_episodic_memory,
+            has_basic_motivations=has_basic_motivations,
+            has_complex_motivations=has_complex_motivations,
+            has_pair_bonding=has_pair_bonding,
+            has_family_structure=has_family_structure,
+            has_social_concepts=has_social_concepts,
+            cognitive_level=cognitive_level,
+            emotional_complexity=emotional_complexity,
+            social_complexity=social_complexity,
+        )
+    
+    def can_form_trauma(self, trauma_type: str) -> bool:
+        """Verifica si el organismo puede formar un tipo específico de trauma.
+        
+        Args:
+            trauma_type: Tipo de trauma
+                - "overcrowding": hacinamiento (requiere emociones)
+                - "sickness": enfermedad (requiere emociones)
+                - "abandonment": abandono (requiere vínculos de pareja/familia)
+                - "adoption": adopción (requiere estructura familiar)
+            
+        Returns:
+            True si el organismo puede formar ese tipo de trauma.
+        """
+        if trauma_type in ("overcrowding", "sickness"):
+            return self.has_emotions
+        elif trauma_type == "abandonment":
+            return self.has_pair_bonding or self.has_family_structure
+        elif trauma_type == "adoption":
+            return self.has_family_structure
+        else:
+            return self.has_emotions
+    
+    def can_have_memory_type(self, memory_type: str) -> bool:
+        """Verifica si el organismo puede formar un tipo específico de memoria episódica.
+        
+        Args:
+            memory_type: Tipo de memoria
+                - Tipos básicos: "companion", "conflict", "experience", "event", "disease"
+                - Tipos sociales: "marriage", "child", "death", "adoption", "divorce"
+                - Tipo especial: "migration"
+            
+        Returns:
+            True si el organismo puede formar ese tipo de memoria.
+        """
+        # Tipos sociales complejos requieren conceptos sociales
+        social_types = {"marriage", "child", "death", "adoption", "divorce"}
+        if memory_type in social_types:
+            return self.has_social_concepts
+        
+        # Todos los demás requieren memoria episódica
+        return self.has_episodic_memory
+    
+    def can_have_motivation(self, motivation_name: str) -> bool:
+        """Verifica si el organismo puede tener una motivación específica.
+        
+        Args:
+            motivation_name: Nombre de la motivación
+                - Básicas: "protection", "cooperation"
+                - Complejas: "independence", "exploration", "rebellion",
+                             "partnership", "migration"
+            
+        Returns:
+            True si el organismo puede tener esa motivación.
+        """
+        # Motivaciones complejas requieren cerebro complejo
+        complex_motivations = {
+            "independence", "rebellion", "partnership", "migration"
+        }
+        
+        if motivation_name in complex_motivations:
+            return self.has_complex_motivations
+        
+        # Exploración requiere emociones (curiosidad)
+        if motivation_name == "exploration":
+            return self.has_emotions
+        
+        # Cooperation requiere al menos emociones sociales
+        if motivation_name == "cooperation":
+            return self.has_emotions and self.social_complexity >= 0.3
+        
+        # Protection es instintiva (incluso en peces que protegen crías)
+        if motivation_name == "protection":
+            return self.has_basic_motivations
+        
+        # Por defecto, requiere motivaciones básicas
+        return self.has_basic_motivations
+    
+    def __str__(self) -> str:
+        """Representación legible para debugging."""
+        return (
+            f"CognitiveCapabilities("
+            f"level={self.cognitive_level:.2f}, "
+            f"nervous={self.has_nervous_system}, "
+            f"emotions={self.has_emotions}, "
+            f"episodic={self.has_episodic_memory}, "
+            f"complex_motiv={self.has_complex_motivations}, "
+            f"social_concepts={self.has_social_concepts}"
+            f")"
+        )
+    
+    def __repr__(self) -> str:
+        """Representación completa para debugging."""
+        return (
+            f"CognitiveCapabilities("
+            f"has_nervous_system={self.has_nervous_system}, "
+            f"has_emotions={self.has_emotions}, "
+            f"has_complex_brain={self.has_complex_brain}, "
+            f"has_episodic_memory={self.has_episodic_memory}, "
+            f"has_basic_motivations={self.has_basic_motivations}, "
+            f"has_complex_motivations={self.has_complex_motivations}, "
+            f"has_pair_bonding={self.has_pair_bonding}, "
+            f"has_family_structure={self.has_family_structure}, "
+            f"has_social_concepts={self.has_social_concepts}, "
+            f"cognitive_level={self.cognitive_level}, "
+            f"emotional_complexity={self.emotional_complexity}, "
+            f"social_complexity={self.social_complexity}"
+            f")"
+        )
+
+================================================================================
+ARCHIVO: .\systems\behavior\cognitive_memory_system.py
+================================================================================
+
+"""Módulo responsable de la memoria explícita (episódica) e implícita (traumas).
+
+Implementa un sistema de memoria transaccional avanzado que:
+- Procesa traumas implícitos (hacinamiento, enfermedad, abandono, adopción)
+- Gestiona memoria episódica con metadatos completos (fecha, refuerzos, contexto)
+- Calcula estrés cognitivo basado en traumas y nostalgia
+- Desarrolla preferencias espaciales
+- Usa arquitectura transaccional (PendingChanges) para todas las modificaciones
+- Se integra con todos los sistemas para generar recuerdos automáticamente
+
+GENÉTICA UNIVERSAL: Consulta CognitiveCapabilities para respetar la biología
+de cada especie (plantas sin traumas, insectos sin memoria episódica, etc.)
+"""
+
+from __future__ import annotations
+
+import logging
+import math
+from typing import Any, Optional
+
+from core.config.simulation_config import SimulationConfig
+from core.state.pending_changes import PendingChanges
+from core.state.world_state import WorldState
+from systems.environment.environment_context import EnvironmentContext
+from systems.behavior.cognitive_capabilities import CognitiveCapabilities
+
+
+class CognitiveMemorySystem:
+    """Procesa la impronta cognitiva, recuerdos específicos y desgaste psicológico."""
+
+    # Tipos de memoria episódica
+    TYPE_COMPANION = "companion"
+    TYPE_CONFLICT = "conflict"
+    TYPE_EXPERIENCE = "experience"
+    TYPE_EVENT = "event"
+    TYPE_MARRIAGE = "marriage"
+    TYPE_CHILD = "child"
+    TYPE_DEATH = "death"
+    TYPE_ADOPTION = "adoption"
+    TYPE_DIVORCE = "divorce"
+    TYPE_DISEASE = "disease"
+    TYPE_MIGRATION = "migration"
+
+    def __init__(self, config: SimulationConfig) -> None:
+        self.config = config
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    def _get_current_trauma(self, person: Any, pending: PendingChanges, trauma_key: str) -> float:
+        """Helper para obtener el valor actual de un trauma, respetando el búfer transaccional."""
+        if person.entity_id in pending.memory_updates:
+            return pending.memory_updates[person.entity_id].get(
+                trauma_key, person.memory.get(trauma_key, 0.0)
+            )
+        return person.memory.get(trauma_key, 0.0)
+
+    def process(
+        self,
+        state: WorldState,
+        pending: PendingChanges,
+        delta_days: float,
+        context: EnvironmentContext,
+    ) -> None:
+        """Actualiza el estado mental de todos los agentes vivos de forma transaccional."""
+        cog_cfg = self.config.cognition
+
+        for person in state.get_all_persons():
+            if person.entity_id in pending.deaths:
+                continue
+
+            # GENÉTICA UNIVERSAL: Consultar capacidades cognitivas del genoma
+            cognitive_caps = CognitiveCapabilities.from_genome(person.genome)
+
+            # =================================================================
+            # PARTE A: MEMORIA IMPLÍCITA (Traumas y Preferencias)
+            # =================================================================
+            
+            # GENÉTICA UNIVERSAL: Solo procesar traumas si el organismo puede formarlos
+            trauma_overcrowding = 0.0
+            trauma_sickness = 0.0
+            trauma_adoption = 0.0
+            trauma_abandonment = 0.0
+            rebellion_cooldown = 0.0
+            preferred_sector = None
+            
+            # Solo procesar traumas si tiene emociones
+            if cognitive_caps.has_emotions:
+                temperament = person.genome.get_trait_value("temperament")
+                adjusted_lambda = cog_cfg.base_forgetting_rate * (temperament + cog_cfg.temperament_modifier)
+                decay_factor = math.exp(-adjusted_lambda * delta_days)
+
+                local_pressure = context.get_local_pressure(person.x, person.y)
+                
+                # TRAUMA POR HACINAMIENTO
+                trauma_overcrowding = self._get_current_trauma(person, pending, "trauma_overcrowding") * decay_factor
+                if local_pressure > cog_cfg.overcrowding_threshold:
+                    trauma_overcrowding += (cog_cfg.overcrowding_impact * delta_days)
+                
+                # TRAUMA POR ENFERMEDAD
+                trauma_sickness = self._get_current_trauma(person, pending, "trauma_sickness") * decay_factor
+                if person.is_sick:
+                    trauma_sickness += (cog_cfg.sickness_impact * delta_days)
+                
+                # TRAUMA POR ADOPCIÓN (solo si puede formar este tipo de trauma)
+                if cognitive_caps.can_form_trauma("adoption"):
+                    trauma_adoption = self._get_current_trauma(person, pending, "trauma_adoption") * decay_factor
+                    if trauma_adoption > 0.0:
+                        delta_trauma = trauma_adoption - (trauma_adoption * decay_factor)
+                        pending.register_emotion_update(person.entity_id, "stress", -delta_trauma * 0.6)
+                        pending.register_emotion_update(person.entity_id, "happiness", delta_trauma * 0.5)
+                
+                # TRAUMA POR ABANDONO (solo si puede formar este tipo de trauma)
+                if cognitive_caps.can_form_trauma("abandonment"):
+                    trauma_abandonment = self._get_current_trauma(person, pending, "trauma_abandonment") * decay_factor
+                
+                # PREFERENCIA ESPACIAL (solo si tiene memoria episódica)
+                if cognitive_caps.has_episodic_memory:
+                    preferred_sector = person.memory.get("preferred_sector", None)
+                    if (person.is_adult and not person.is_sick and person.children_count > 0) or person.is_senior:
+                        preferred_sector = (person.x // context.sector_size, person.y // context.sector_size)
+                
+                # REBELLION COOLDOWN (solo si puede tener motivaciones complejas)
+                if cognitive_caps.has_complex_motivations:
+                    rebellion_cooldown = max(0.0, person.memory.get("rebellion_cooldown", 0.0) - delta_days)
+            
+            # REGISTRAR CAMBIOS DE MEMORIA IMPLÍCITA
+            pending.register_memory_update(person.entity_id, "trauma_overcrowding", min(cog_cfg.max_trauma_cap, trauma_overcrowding))
+            pending.register_memory_update(person.entity_id, "trauma_sickness", min(cog_cfg.max_trauma_cap, trauma_sickness))
+            pending.register_memory_update(person.entity_id, "trauma_adoption", min(cog_cfg.max_trauma_cap, trauma_adoption))
+            pending.register_memory_update(person.entity_id, "trauma_abandonment", min(cog_cfg.max_trauma_cap, trauma_abandonment))
+            pending.register_memory_update(person.entity_id, "rebellion_cooldown", rebellion_cooldown)
+            pending.register_memory_update(person.entity_id, "preferred_sector", preferred_sector)
+
+            # =================================================================
+            # PARTE B: MEMORIA EXPLÍCITA (Recuerdos episódicos con metadatos)
+            # =================================================================
+            # GENÉTICA UNIVERSAL: Solo procesar memoria episódica si el organismo la tiene
+            if cognitive_caps.has_episodic_memory:
+                episodic = person.memory.get("episodic", {})
+                if not isinstance(episodic, dict):
+                    episodic = {}
+                else:
+                    episodic = episodic.copy() # Copia superficial segura para mutación transaccional
+                    
+                keys_to_delete = []
+                total_trauma_episodic = 0.0
+                total_nostalgia = 0.0
+                
+                current_day = getattr(state, 'world_days_elapsed', 0.0)
+                
+                for mem_key, mem_data in episodic.items():
+                    # Asegurar metadatos (compatibilidad hacia atrás)
+                    mem_data.setdefault('created_day', current_day)
+                    mem_data.setdefault('last_reinforced_day', current_day)
+                    mem_data.setdefault('times_reinforced', 1)
+                    mem_data.setdefault('context', "general")
+                    
+                    # Decaimiento exponencial con consolidación
+                    emotional_importance = abs(mem_data.get('valence', 0)) * cog_cfg.emotional_importance_factor
+                    reinforcement_bonus = min(0.5, mem_data.get('times_reinforced', 1) * 0.05)
+                    effective_forgetting_rate = cog_cfg.episodic_forgetting_rate * (1.0 - emotional_importance - reinforcement_bonus)
+                    
+                    mem_data['intensity'] *= math.exp(-effective_forgetting_rate * delta_days)
+                    
+                    if mem_data['intensity'] <= cog_cfg.episodic_min_intensity:
+                        keys_to_delete.append(mem_key)
+                    else:
+                        if mem_data.get('valence', 0) < 0:
+                            total_trauma_episodic += mem_data['intensity']
+                        else:
+                            total_nostalgia += mem_data['intensity']
+
+                for k in keys_to_delete:
+                    del episodic[k]
+                
+                # Poda de capacidad máxima
+                if len(episodic) > cog_cfg.max_episodic_memories:
+                    sorted_memories = sorted(episodic.items(), key=lambda x: x[1]['intensity'])
+                    to_remove = len(episodic) - cog_cfg.max_episodic_memories
+                    for i in range(to_remove):
+                        del episodic[sorted_memories[i][0]]
+                
+                pending.register_memory_update(person.entity_id, "episodic", episodic)
+
+                # Cálculo de estrés cognitivo (solo si tiene cerebro complejo)
+                if cognitive_caps.has_complex_brain:
+                    trauma_penalty = min(cog_cfg.max_cognitive_stress, total_trauma_episodic * cog_cfg.trauma_to_stress_factor)
+                    nostalgia_buff = min(cog_cfg.max_cognitive_stress, total_nostalgia * cog_cfg.nostalgia_buffer_factor)
+                    cognitive_stress = max(0.0, trauma_penalty - nostalgia_buff)
+                    
+                    pending.register_memory_update(person.entity_id, "cognitive_stress", cognitive_stress)
+                else:
+                    # Sin cerebro complejo, no hay estrés cognitivo
+                    pending.register_memory_update(person.entity_id, "cognitive_stress", 0.0)
+            else:
+                # Sin memoria episódica, no hay recuerdos ni estrés cognitivo
+                pending.register_memory_update(person.entity_id, "episodic", {})
+                pending.register_memory_update(person.entity_id, "cognitive_stress", 0.0)
+
+    # =====================================================================
+    # MÉTODOS ESTÁTICOS PARA USAR DESDE OTROS SISTEMAS
+    # =====================================================================
+    @staticmethod
+    def add_memory(
+        person: Any,
+        mem_type: str,
+        target_id: str,
+        intensity: float,
+        valence: int,
+        context: str = "general",
+        current_day: float = 0.0,
+        pending: Optional[PendingChanges] = None,
+    ) -> None:
+        """Graba un suceso en el cerebro del agente con metadatos completos.
+        
+        GENÉTICA UNIVERSAL: Consulta CognitiveCapabilities para verificar
+        si el organismo puede formar este tipo de memoria.
+        """
+        if not hasattr(person, 'memory') or not isinstance(person.memory, dict):
+            return
+        
+        # GENÉTICA UNIVERSAL: Verificar si puede formar este tipo de memoria
+        cognitive_caps = CognitiveCapabilities.from_genome(person.genome)
+        if not cognitive_caps.can_have_memory_type(mem_type):
+            return
+            
+        if "episodic" not in person.memory or not isinstance(person.memory["episodic"], dict):
+            person.memory["episodic"] = {}
+            
+        key = f"{mem_type}_{target_id}"
+        episodic = person.memory["episodic"]
+        
+        if key in episodic:
+            # Reforzar recuerdo existente
+            episodic[key]['intensity'] = min(1.0, episodic[key]['intensity'] + intensity)
+            episodic[key]['valence'] = (episodic[key]['valence'] + valence) / 2.0
+            episodic[key]['last_reinforced_day'] = current_day
+            episodic[key]['times_reinforced'] += 1
+        else:
+            # Crear nuevo recuerdo con metadatos completos
+            episodic[key] = {
+                'intensity': min(1.0, intensity),
+                'valence': valence,
+                'created_day': current_day,
+                'last_reinforced_day': current_day,
+                'times_reinforced': 1,
+                'context': context,
+            }
+        
+        if pending is not None:
+            pending.register_memory_update(person.entity_id, "episodic", episodic)
+
+    @staticmethod
+    def get_bias_towards(person: Any, target_id: str) -> float:
+        """Calcula la afinidad hacia una persona o lugar basada en recuerdos pasados."""
+        episodic = person.memory.get("episodic", {})
+        if not isinstance(episodic, dict):
+            return 0.0
+            
+        bias = 0.0
+        for mem_type in [
+            CognitiveMemorySystem.TYPE_COMPANION,
+            CognitiveMemorySystem.TYPE_CONFLICT,
+            CognitiveMemorySystem.TYPE_EXPERIENCE,
+            CognitiveMemorySystem.TYPE_MARRIAGE,
+            CognitiveMemorySystem.TYPE_CHILD,
+            CognitiveMemorySystem.TYPE_DEATH,
+            CognitiveMemorySystem.TYPE_ADOPTION,
+            CognitiveMemorySystem.TYPE_DIVORCE,
+            CognitiveMemorySystem.TYPE_DISEASE,
+            CognitiveMemorySystem.TYPE_MIGRATION,
+        ]:
+            key = f"{mem_type}_{target_id}"
+            if key in episodic:
+                bias += episodic[key]['intensity'] * episodic[key]['valence']
+                
+        return max(-1.0, min(1.0, bias))
+
+================================================================================
+ARCHIVO: .\systems\behavior\parental_influence_system.py
+================================================================================
+
+"""Sistema de influencia parental.
+
+Modela cómo el carácter de los padres (biológicos o adoptivos) afecta 
+la personalidad del hijo con el tiempo, considerando:
+- Temperamento, sociabilidad y niveles de estrés.
+- Clima emocional del hogar (basado en la calidad de la relación).
+- Plasticidad developmental (mayor influencia en la infancia/adolescencia).
+
+Principio: "La crianza moldea el carácter, la genética solo da la base."
+"""
+
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass
+from typing import Any, List, Optional, TYPE_CHECKING
+
+from core.config.simulation_config import SimulationConfig
+from core.state.world_state import WorldState
+from core.state.pending_changes import PendingChanges
+from systems.environment.environment_context import EnvironmentContext
+
+if TYPE_CHECKING:
+    from systems.genealogy.genealogy_system import GenealogySystem
+    from entities.person.person import Person
+
+
+@dataclass
+class ParentalInfluenceEvent:
+    """Registro ligero de un cambio de personalidad por influencia parental."""
+    child_id: int
+    parent_id: int
+    trait_modified: str  # 'temperament', 'sociability', 'stress'
+    delta: float
+    reason: str
+
+
+class ParentalInfluenceSystem:
+    """Transmite rasgos de personalidad de padres a hijos durante la crianza."""
+
+    def __init__(
+        self,
+        config: SimulationConfig,
+        genealogy_system: Optional['GenealogySystem'] = None,
+    ) -> None:
+        self.config = config
+        self.genealogy_system = genealogy_system
+        self.logger = logging.getLogger(self.__class__.__name__)
+        
+        # Contador para logs periódicos (evita spam)
+        self._log_counter = 0
+        self._log_interval = 365  # Días simulados entre logs
+
+    def process(
+        self,
+        state: WorldState,
+        pending: PendingChanges,
+        delta_days: float,
+        context: EnvironmentContext,
+    ) -> None:
+        """Evalúa y aplica la influencia parental en agentes jóvenes."""
+        self._log_counter += delta_days
+        events: List[ParentalInfluenceEvent] = []
+        
+        current_day = getattr(state, 'world_days_elapsed', 0.0)
+        
+        # Configuración de influencia desde ParentalInfluenceConfig
+        parental_cfg = getattr(self.config, 'parental_influence', None)
+        if parental_cfg:
+            max_influence_age = getattr(parental_cfg, 'max_influence_age_days', 5000.0)
+            base_plasticity = getattr(parental_cfg, 'base_personality_plasticity', 0.05)
+        else:
+            max_influence_age = 5000.0
+            base_plasticity = 0.05
+        
+        for person in state.get_all_persons():
+            # 1. FILTRO DE EDAD: Solo agentes en etapa de desarrollo son altamente plásticos
+            age = current_day - getattr(person, 'birth_tick', 0.0)
+            if age > max_influence_age:
+                continue
+                
+            # Plasticidad decrece linealmente con la edad (1.0 al nacer, 0.0 al llegar a max_influence_age)
+            plasticity = base_plasticity * max(0.0, 1.0 - (age / max_influence_age))
+            if plasticity <= 0.01:
+                continue
+
+            # 2. IDENTIFICAR PADRES (Biológicos o Adoptivos)
+            parents = self._get_parents(person, state)
+            if not parents:
+                continue
+
+            # 3. APLICAR INFLUENCIA POR CADA PADRE
+            for parent in parents:
+                # Calcular clima emocional (simplificado: basado en proximidad y estado general del padre)
+                emotional_climate = self._calculate_emotional_climate(person, parent, current_day)
+                
+                # Factor de influencia: plasticidad * clima emocional
+                influence_factor = plasticity * emotional_climate
+                
+                if influence_factor < 0.001:
+                    continue
+
+                # Aplicar cambios en rasgos de personalidad (ejemplo: temperamento y sociabilidad)
+                events.extend(self._apply_trait_influence(
+                    person, parent, influence_factor, current_day
+                ))
+
+        # 4. LOGGING PERIÓDICO
+        if self._log_counter >= self._log_interval and events:
+            self.logger.info(
+                "🌱 Influencia parental: %d rasgos modificados en el último ciclo",
+                len(events)
+            )
+            self._log_counter = 0.0
+
+        # Registrar eventos en pending para otros sistemas (ej: métricas, logging)
+        if events:
+            existing = getattr(pending, 'parental_influences', [])
+            setattr(pending, 'parental_influences', existing + events)
+
+    def _get_parents(self, child: Any, state: WorldState) -> List[Any]:
+        """Obtiene la lista de padres (biológicos o adoptivos) de un hijo."""
+        parents = []
+        
+        # Opción A: Si la entidad Person ya tiene referencias directas
+        bio_parents = getattr(child, 'biological_parents', None)
+        if bio_parents and isinstance(bio_parents, (list, tuple)):
+            for p_id in bio_parents:
+                p = state.get_person_by_id(p_id)
+                if p and getattr(p, 'is_alive', True):
+                    parents.append(p)
+                    
+        adopt_parents = getattr(child, 'adoptive_parents', None)
+        if adopt_parents and isinstance(adopt_parents, (list, tuple)):
+            for p_id in adopt_parents:
+                p = state.get_person_by_id(p_id)
+                if p and getattr(p, 'is_alive', True):
+                    parents.append(p)
+                    
+        # Opción B: Fallback al GenealogySystem si está disponible y Person no tiene las listas
+        if not parents and self.genealogy_system is not None:
+            node = self.genealogy_system.registry.get(child.entity_id)
+            if node:
+                for p_id in node.biological_parents + node.adoptive_parents:
+                    p = state.get_person_by_id(p_id)
+                    if p and getattr(p, 'is_alive', True) and p not in parents:
+                        parents.append(p)
+                        
+        return parents
+
+    def _calculate_emotional_climate(self, child: Any, parent: Any, current_day: float) -> float:
+        """
+        Calcula el clima emocional del hogar [0.0, 1.5].
+        1.0 = neutro, >1.0 = hogar cálido/apoyo, <1.0 = hogar tenso/estrés.
+        """
+        base_climate = 1.0
+        
+        # Si existe sistema de relaciones, ajustar por calidad del vínculo
+        if hasattr(child, 'get_relationship_with'):
+            rel = child.get_relationship_with(parent.entity_id, current_day)
+            if rel:
+                labels = rel.get_labels(current_day)
+                if "Familia Elegida" in labels or "Amigo" in labels:
+                    base_climate = 1.3  # Clima cálido, mayor influencia positiva
+                elif "Rival" in labels or "Enemigo" in labels:
+                    base_climate = 0.5  # Clima tenso, influencia distorsionada (estrés)
+                    
+        # Penalizar si el padre tiene alto estrés (se contagia)
+        parent_stress = getattr(parent, 'stress_level', 0.5)
+        if parent_stress > 0.7:
+            base_climate *= 0.8  # El estrés parental reduce la calidad del clima
+            
+        return max(0.1, min(1.5, base_climate))
+
+    def _apply_trait_influence(
+        self, 
+        child: Any, 
+        parent: Any, 
+        influence_factor: float, 
+        current_day: float
+    ) -> List[ParentalInfluenceEvent]:
+        """Aplica la deriva de rasgos emocionales del hijo hacia los del padre.
+        
+        Como el Genome es inmutable, la influencia parental afecta:
+        - emotions["stress"] (nivel de estrés actual)
+        - emotions["happiness"] (nivel de felicidad actual)
+        - _learned_traits (nuevo diccionario para rasgos adquiridos)
+        """
+        events = []
+        
+        # 1. Influencia en emociones (stress y happiness)
+        if hasattr(child, '_emotions') and hasattr(parent, '_emotions'):
+            for emotion_key in ['stress', 'happiness']:
+                child_val = child._emotions.get(emotion_key, 0.5)
+                parent_val = parent._emotions.get(emotion_key, 0.5)
+                
+                delta = (parent_val - child_val) * influence_factor
+                
+                if abs(delta) > 0.001:
+                    new_val = max(0.0, min(1.0, child_val + delta))
+                    child._emotions[emotion_key] = new_val
+                    
+                    events.append(ParentalInfluenceEvent(
+                        child_id=child.entity_id,
+                        parent_id=parent.entity_id,
+                        trait_modified=f"emotion_{emotion_key}",
+                        delta=delta,
+                        reason=f"parental_influence_{emotion_key}"
+                    ))
+        
+                # 2. Influencia en rasgos aprendidos (nuevo mecanismo)
+        if not hasattr(child, '_learned_traits'):
+            child._learned_traits = {}
+        
+        # Rasgos que pueden aprenderse (ej: preferencias, hábitos)
+        learned_traits = ['diet_preference', 'migration_affinity', 'social_comfort']
+        
+        for trait in learned_traits:
+            child_val = child._learned_traits.get(trait, 0.5)
+            
+            # El padre transmite su valor genético como referencia
+            parent_val = 0.5
+            if hasattr(parent, '_genome'):
+                genome_val = getattr(parent._genome, trait, None)
+                if isinstance(genome_val, (int, float)):
+                    parent_val = float(genome_val)
+            
+            delta = (parent_val - child_val) * influence_factor
+            
+            if abs(delta) > 0.001:
+                new_val = max(0.0, min(1.0, child_val + delta))
+                child._learned_traits[trait] = new_val
+                
+                events.append(ParentalInfluenceEvent(
+                    child_id=child.entity_id,
+                    parent_id=parent.entity_id,
+                    trait_modified=f"learned_{trait}",
+                    delta=delta,
+                    reason=f"parental_influence_{trait}"
+                ))
+                
+        return events

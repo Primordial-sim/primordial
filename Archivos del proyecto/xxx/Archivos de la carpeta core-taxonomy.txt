@@ -1,0 +1,1568 @@
+================================================================================
+ARCHIVO: .\core\taxonomy\profile_enums.py
+================================================================================
+
+"""Enums para el perfil biológico de especies.
+
+El perfil biológico describe CÓMO suele vivir una especie.
+No determina capacidades (eso es del Genome).
+Solo describe patrones típicos.
+"""
+
+from __future__ import annotations
+
+from enum import Enum, auto
+
+
+class DietType(Enum):
+    """Tipo de dieta."""
+    CARNIVORE = "carnivore"              # Carnívoro
+    HERBIVORE = "herbivore"              # Herbívoro
+    OMNIVORE = "omnivore"                # Omnívoro
+    INSECTIVORE = "insectivore"          # Insectívoro
+    DETRITIVORE = "detritivore"          # Detritívoro (descomponedor)
+    FILTER_FEEDER = "filter_feeder"      # Filtrador
+    PARASITE = "parasite"                # Parásito
+    PHOTOSYNTHETIC = "photosynthetic"    # Fotosintético
+    CHEMOSYNTHETIC = "chemosynthetic"    # Quimiosintético
+
+
+class ReproductionType(Enum):
+    """Tipo de reproducción."""
+    SEXUAL = "sexual"
+    ASEXUAL = "asexual"
+    BOTH = "both"                        # Algunas plantas, bacterias
+
+
+class DevelopmentType(Enum):
+    """Tipo de desarrollo."""
+    OVIPAROUS = "oviparous"              # Ponen huevos
+    VIVIPAROUS = "viviparous"            # Crías vivas
+    OVOVIVIPAROUS = "ovoviviparous"      # Huevos dentro del cuerpo
+    METAMORPHOSIS = "metamorphosis"      # Insectos, anfibios
+    BINARY_FISSION = "binary_fission"    # Bacterias
+    SPORES = "spores"                    # Hongos, plantas
+    BUDDING = "budding"                  # Gemación (levaduras, corales)
+
+
+class HabitatType(Enum):
+    """Tipo de hábitat principal."""
+    TERRESTRIAL = "terrestrial"
+    AQUATIC = "aquatic"
+    AERIAL = "aerial"
+    AMPHIBIOUS = "amphibious"
+    SUBTERRANEAN = "subterranean"
+    ARBOREAL = "arboreal"                # Vive en árboles
+
+
+class LocomotionType(Enum):
+    """Tipo de locomoción principal."""
+    WALKING = "walking"
+    RUNNING = "running"
+    SWIMMING = "swimming"
+    FLYING = "flying"
+    CRAWLING = "crawling"
+    BURROWING = "burrowing"
+    CLIMBING = "climbing"
+    SESSILE = "sessile"                  # No se mueve (plantas, corales)
+    DRIFTING = "drifting"                # A la deriva (plancton)
+
+
+class SocialStructureType(Enum):
+    """Estructura social."""
+    SOLITARY = "solitary"
+    PAIR = "pair"                        # Pareja monógama
+    HERD = "herd"                        # Manada herbívora
+    PACK = "pack"                        # Manada cazadora
+    COLONY = "colony"                    # Colonia (insectos, bacterias)
+    FLOCK = "flock"                      # Bandada (aves)
+    SCHOOL = "school"                    # Banco (peces)
+    SWARM = "swarm"                      # Enjambre
+
+
+class ThermoregulationType(Enum):
+    """Tipo de termorregulación."""
+    HOMEOTHERM = "homeotherm"            # Sangre caliente
+    POIKILOTHERM = "poikilotherm"        # Sangre fría
+    HETEROTHERM = "heterotherm"          # Mixto (murciélagos, colibríes)
+
+
+class BodySizeCategory(Enum):
+    """Categoría de tamaño corporal."""
+    MICROSCOPIC = "microscopic"          # Bacterias, protistas
+    SMALL = "small"                      # Insectos, ratones
+    MEDIUM = "medium"                    # Perros, ciervos, humanos
+    LARGE = "large"                      # Elefantes, ballenas
+    GIANT = "giant"                      # Ballena azul, sequoia
+
+
+class ActivityPattern(Enum):
+    """Patrón de actividad."""
+    DIURNAL = "diurnal"                  # Activo de día
+    NOCTURNAL = "nocturnal"              # Activo de noche
+    CREPUSCULAR = "crepuscular"          # Activo al amanecer/atardecer
+    CONTINUOUS = "continuous"            # Activo continuamente
+
+================================================================================
+ARCHIVO: .\core\taxonomy\profile_inference.py
+================================================================================
+
+"""Inferencia de perfiles biológicos desde rasgos genéticos.
+
+El sistema infiere el perfil de una especie basándose en sus rasgos
+genéticos. Esto mantiene la coherencia con el núcleo genético:
+las capacidades salen de la genética, no de reglas fijas.
+
+Filosofía: "Inferimos patrones típicos, no imponemos restricciones."
+"""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from core.taxonomy.profile_enums import (
+    DietType,
+    ReproductionType,
+    DevelopmentType,
+    HabitatType,
+    LocomotionType,
+    SocialStructureType,
+    ThermoregulationType,
+    BodySizeCategory,
+    ActivityPattern,
+)
+from core.taxonomy.species_profile import SpeciesProfile
+
+if TYPE_CHECKING:
+    from core.genetics.species_definition import SpeciesDefinition
+
+
+class ProfileInference:
+    """Infiere el perfil biológico de una especie desde sus rasgos genéticos."""
+    
+    def infer(self, species: SpeciesDefinition) -> SpeciesProfile:
+        """Infiere el perfil biológico de una especie.
+        
+        Args:
+            species: La definición de especie con sus rasgos.
+            
+        Returns:
+            SpeciesProfile inferido.
+        """
+        diet = self._infer_diet(species)
+        habitat = self._infer_habitat(species)
+        locomotion = self._infer_locomotion(species)
+        social = self._infer_social_structure(species)
+        thermoregulation = self._infer_thermoregulation(species)
+        body_size = self._infer_body_size(species)
+        reproduction, development = self._infer_reproduction(species)
+        activity = self._infer_activity_pattern(species)
+        
+        return SpeciesProfile(
+            taxonomy_id=species.species_id,
+            body_size_category=body_size,
+            thermoregulation=thermoregulation,
+            diet=diet,
+            reproduction=reproduction,
+            development=development,
+            habitat=habitat,
+            locomotion=locomotion,
+            social_structure=social,
+            activity_pattern=activity,
+            notes="Perfil inferido desde rasgos genéticos",
+        )
+    
+    def _is_microorganism(self, species: SpeciesDefinition) -> bool:
+        """Verifica si es un microorganismo (bacteria, protista)."""
+        division_speed = self._get_trait(species, "division_speed")
+        return division_speed > 0.5
+    
+    def _is_fungus_or_plant(self, species: SpeciesDefinition) -> bool:
+        """Verifica si es hongo o planta (organismos sésiles)."""
+        photosynthesis = self._get_trait(species, "photosynthesis")
+        symbiosis = self._get_trait(species, "symbiosis")
+        return photosynthesis > 0.5 or symbiosis > 1.0
+    
+    def _infer_diet(self, species: SpeciesDefinition) -> DietType:
+        """Infiere el tipo de dieta desde rasgos genéticos."""
+        photosynthesis = self._get_trait(species, "photosynthesis")
+        heterotrophy = self._get_trait(species, "heterotrophy")
+        symbiosis = self._get_trait(species, "symbiosis")
+        division_speed = self._get_trait(species, "division_speed")
+    
+        # Fotosintético (plantas, algas)
+        if photosynthesis > 1.0:
+            return DietType.PHOTOSYNTHETIC
+    
+        # Detritívoro (hongos, descomponedores)
+        if symbiosis > 1.0 and heterotrophy > 1.0:
+            return DietType.DETRITIVORE
+    
+        # Bacterias: quimiosintéticas o heterótrofas
+        if division_speed > 0.5:
+            return DietType.CHEMOSYNTHETIC
+    
+        # Herbívoro, carnívoro u omnívoro según dieta
+        diet_value = self._get_trait(species, "diet", default=1.0)
+    
+        if diet_value < 0.5:
+            return DietType.HERBIVORE
+        elif diet_value >= 1.5:            # ← CAMBIO: >= en lugar de >
+            return DietType.CARNIVORE
+        else:
+            return DietType.OMNIVORE
+    
+    def _infer_habitat(self, species: SpeciesDefinition) -> HabitatType:
+        """Infiere el hábitat principal desde rasgos genéticos."""
+        swimming = self._get_trait(species, "swimming")
+        flight = self._get_trait(species, "flight")
+        burrowing = self._get_trait(species, "burrowing")
+        
+        # Microorganismos: terrestres por defecto
+        if self._is_microorganism(species):
+            return HabitatType.TERRESTRIAL
+        
+        # Hongos y plantas: terrestres por defecto
+        if self._is_fungus_or_plant(species):
+            return HabitatType.TERRESTRIAL
+        
+        # Anfibios: vida dual (nadan y tienen healing alto)
+        healing = self._get_trait(species, "healing")
+        if swimming > 0.8 and healing > 1.0:
+            return HabitatType.AMPHIBIOUS
+        
+        # Acuático si nada mucho
+        if swimming > 1.0:
+            return HabitatType.AQUATIC
+        
+        # Aéreo si vuela mucho
+        if flight > 1.0:
+            return HabitatType.AERIAL
+        
+        # Subterráneo si excava mucho
+        if burrowing > 1.0:
+            return HabitatType.SUBTERRANEAN
+        
+        # Terrestre por defecto
+        return HabitatType.TERRESTRIAL
+    
+    def _infer_locomotion(self, species: SpeciesDefinition) -> LocomotionType:
+        """Infiere la locomoción principal desde rasgos genéticos."""
+        mobility = self._get_trait(species, "mobility", default=1.0)
+        flight = self._get_trait(species, "flight")
+        swimming = self._get_trait(species, "swimming")
+        burrowing = self._get_trait(species, "burrowing")
+        climbing = self._get_trait(species, "climbing")
+        speed = self._get_trait(species, "speed")
+        
+        # Hongos y plantas: sésiles
+        if self._is_fungus_or_plant(species):
+            return LocomotionType.SESSILE
+        
+        # Microorganismos: derivan con corrientes
+        if self._is_microorganism(species):
+            return LocomotionType.DRIFTING
+        
+        # Sésil si no se mueve
+        if mobility < 0.2:
+            return LocomotionType.SESSILE
+        
+        # Vuelo si tiene flight alto
+        if flight > 1.0:
+            return LocomotionType.FLYING
+        
+        # Natación si tiene swimming alto
+        if swimming > 1.0:
+            return LocomotionType.SWIMMING
+        
+        # Excavación si tiene burrowing alto
+        if burrowing > 1.0:
+            return LocomotionType.BURROWING
+        
+        # Escalada si tiene climbing alto
+        if climbing > 1.0:
+            return LocomotionType.CLIMBING
+        
+        # Corredor si tiene speed alto
+        if speed > 1.2:
+            return LocomotionType.RUNNING
+        
+        # Caminante por defecto
+        return LocomotionType.WALKING
+    
+    def _infer_social_structure(self, species: SpeciesDefinition) -> SocialStructureType:
+        """Infiere la estructura social desde rasgos genéticos."""
+        sociability = self._get_trait(species, "sociability")
+        cooperation = self._get_trait(species, "cooperation")
+        territoriality = self._get_trait(species, "territoriality")
+        pack_behavior = self._get_trait(species, "pack_behavior", default=0.0)
+        
+        # Microorganismos: colonia
+        if self._is_microorganism(species):
+            return SocialStructureType.COLONY
+        
+        # Colonia si tiene sociabilidad extrema (insectos sociales)
+        if sociability > 1.5 and cooperation > 1.2:
+            return SocialStructureType.COLONY
+        
+        # Manada cazadora si tiene pack_behavior alto
+        if pack_behavior > 1.0:
+            return SocialStructureType.PACK
+        
+        # Manada herbívora si es social pero no cazador
+        if sociability > 1.0:
+            return SocialStructureType.HERD
+        
+        # Pareja si es moderadamente social y territorial
+        if sociability > 0.7 and territoriality > 0.8:
+            return SocialStructureType.PAIR
+        
+        # Solitario por defecto
+        return SocialStructureType.SOLITARY
+    
+    def _infer_thermoregulation(self, species: SpeciesDefinition) -> ThermoregulationType:
+        """Infiere la termorregulación desde rasgos genéticos.
+        
+        Lógica mejorada:
+        - Hongos, plantas, bacterias: no tienen termorregulación (poikilotherm)
+        - Mamíferos y aves: homeotermos (metabolismo alto + sistema nervioso complejo)
+        - Reptiles, anfibios, peces: poikilotermos (metabolismo bajo)
+        - Insectos: poikilotermos (metabolismo alto por tamaño, no por termorregulación)
+        """
+        # Hongos, plantas y microorganismos no tienen termorregulación
+        if self._is_fungus_or_plant(species) or self._is_microorganism(species):
+            return ThermoregulationType.POIKILOTHERM
+        
+        metabolism = self._get_trait(species, "metabolism")
+        nervous_system = self._get_trait(species, "nervous_system")
+        flight = self._get_trait(species, "flight")
+        
+        # Mamíferos y aves son homeotermos
+        # Identificación: sistema nervioso complejo + metabolismo alto
+        # Nota: Los insectos tienen metabolismo alto pero nervous_system bajo
+        if nervous_system > 0.8 and metabolism > 1.0:
+            return ThermoregulationType.HOMEOTHERM
+        
+        # Aves también son homeotermos (identificación por flight)
+        if flight > 0.5 and nervous_system > 0.5:
+            return ThermoregulationType.HOMEOTHERM
+        
+        # Reptiles, anfibios, peces, insectos: poikilotermos
+        return ThermoregulationType.POIKILOTHERM
+    
+    def _infer_body_size(self, species: SpeciesDefinition) -> BodySizeCategory:
+        """Infiere el tamaño corporal desde rasgos genéticos."""
+        # Microorganismos
+        if self._is_microorganism(species):
+            return BodySizeCategory.MICROSCOPIC
+        
+        # Hongos y plantas: usar growth_rate como proxy
+        if self._is_fungus_or_plant(species):
+            growth_rate = self._get_trait(species, "growth_rate")
+            if growth_rate > 1.5:
+                return BodySizeCategory.MEDIUM
+            return BodySizeCategory.SMALL
+        
+        # Usar tamaño si existe
+        size_value = self._get_trait(species, "body_size", default=1.0)
+        
+        if size_value < 0.3:
+            return BodySizeCategory.MICROSCOPIC
+        elif size_value < 0.7:
+            return BodySizeCategory.SMALL
+        elif size_value < 1.3:
+            return BodySizeCategory.MEDIUM
+        elif size_value < 1.8:
+            return BodySizeCategory.LARGE
+        else:
+            return BodySizeCategory.GIANT
+    
+    def _infer_reproduction(self, species: SpeciesDefinition) -> tuple:
+        """Infiere el tipo de reproducción y desarrollo."""
+        division_speed = self._get_trait(species, "division_speed")
+        photosynthesis = self._get_trait(species, "photosynthesis")
+        symbiosis = self._get_trait(species, "symbiosis")
+        swimming = self._get_trait(species, "swimming")
+        
+        # Bacterias: fisión binaria
+        if division_speed > 0.5:
+            return ReproductionType.ASEXUAL, DevelopmentType.BINARY_FISSION
+        
+        # Plantas y hongos: esporas
+        if photosynthesis > 0.5 or symbiosis > 1.0:
+            return ReproductionType.BOTH, DevelopmentType.SPORES
+        
+        # Peces y anfibios: ovíparos
+        if swimming > 0.8:
+            return ReproductionType.SEXUAL, DevelopmentType.OVIPAROUS
+        
+        # Mamíferos y aves: vivíparos u ovíparos según vuelo
+        flight = self._get_trait(species, "flight")
+        if flight > 0.5:
+            return ReproductionType.SEXUAL, DevelopmentType.OVIPAROUS
+        
+        # Mamíferos: vivíparos
+        return ReproductionType.SEXUAL, DevelopmentType.VIVIPAROUS
+    
+    def _infer_activity_pattern(self, species: SpeciesDefinition) -> ActivityPattern:
+        """Infiere el patrón de actividad desde rasgos genéticos."""
+        night_vision = self._get_trait(species, "night_vision")
+        
+        # Nocturno si tiene visión nocturna alta
+        if night_vision > 1.0:
+            return ActivityPattern.NOCTURNAL
+        
+        # Microorganismos y hongos: actividad continua
+        if self._is_microorganism(species) or self._is_fungus_or_plant(species):
+            return ActivityPattern.CONTINUOUS
+        
+        # Diurno por defecto
+        return ActivityPattern.DIURNAL
+    
+    def _get_trait(self, species: SpeciesDefinition, trait_id: str, default: float = 0.0) -> float:
+        """Obtiene el valor de un rasgo de la especie."""
+        config = species.get_trait_config(trait_id)
+        if config is not None:
+            return config.default_value
+        return default
+
+================================================================================
+ARCHIVO: .\core\taxonomy\species_classification.py
+================================================================================
+
+"""Sistema de Clasificación de Especies.
+
+Unifica la taxonomía y los perfiles biológicos con las especies existentes.
+Proporciona consultas unificadas para el sistema ecológico.
+
+Filosofía:
+- La taxonomía es INFORMATIVA, no prescriptiva
+- Los perfiles describen patrones típicos, no capacidades
+- Las capacidades salen del Genome
+"""
+
+from __future__ import annotations
+
+from typing import Dict, List, Optional, TYPE_CHECKING
+import logging
+
+from core.taxonomy.taxonomic_system import TaxonomicSystem
+from core.taxonomy.taxonomic_node import TaxonomicNode, TaxonomicRank
+from core.taxonomy.species_profile import SpeciesProfile
+from core.taxonomy.profile_inference import ProfileInference
+from core.taxonomy.profile_enums import (
+    DietType,
+    HabitatType,
+    LocomotionType,
+    SocialStructureType,
+    ThermoregulationType,
+    BodySizeCategory,
+)
+
+if TYPE_CHECKING:
+    from core.genetics.species_definition import SpeciesDefinition
+
+
+class SpeciesClassificationSystem:
+    """Sistema que gestiona taxonomía y perfiles de especies.
+    
+    Uso:
+        classification = SpeciesClassificationSystem.get_default()
+        
+        # Consultas
+        profile = classification.get_profile("human")
+        taxonomy = classification.get_taxonomy("human")
+        is_mammal = classification.is_mammal("human")
+        
+        # Consultas por categoría
+        carnivores = classification.get_species_by_diet(DietType.CARNIVORE)
+        aquatic = classification.get_species_by_habitat(HabitatType.AQUATIC)
+    """
+    
+    _default_instance: Optional['SpeciesClassificationSystem'] = None
+    _logger = logging.getLogger("SpeciesClassificationSystem")
+    
+    def __init__(self) -> None:
+        self.taxonomy = TaxonomicSystem.get_default()
+        self.profile_inference = ProfileInference()
+        
+        # Mapeo de especies a taxones y perfiles
+        self._species_taxonomy: Dict[str, str] = {}  # species_id → taxon_id
+        self._species_profiles: Dict[str, SpeciesProfile] = {}  # species_id → profile
+    
+    # =========================================================================
+    # CONSTRUCTOR DE INSTANCIA POR DEFECTO
+    # =========================================================================
+    
+    @classmethod
+    def get_default(cls) -> 'SpeciesClassificationSystem':
+        """Retorna la instancia por defecto."""
+        if cls._default_instance is None:
+            cls._default_instance = cls()
+        return cls._default_instance
+    
+    # =========================================================================
+    # REGISTRO DE ESPECIES
+    # =========================================================================
+    
+    def register_species(
+        self,
+        species: SpeciesDefinition,
+        taxon_id: Optional[str] = None,
+        profile: Optional[SpeciesProfile] = None,
+    ) -> None:
+        """Registra una especie con su taxonomía y perfil.
+        
+        Args:
+            species: La definición de especie.
+            taxon_id: ID del taxón en el árbol taxonómico.
+                     Si es None, se usa species_id como taxon_id.
+            profile: Perfil biológico. Si es None, se infiere desde rasgos.
+        """
+        species_id = species.species_id
+        
+        # Asignar taxonomía
+        if taxon_id is None:
+            taxon_id = species_id
+        self._species_taxonomy[species_id] = taxon_id
+        
+        # Asignar perfil (inferido o manual)
+        if profile is None:
+            profile = self.profile_inference.infer(species)
+        self._species_profiles[species_id] = profile
+        
+        self._logger.debug(
+            f"Especie clasificada: {species_id} → {taxon_id} "
+            f"[{profile.diet.value}, {profile.habitat.value}]"
+        )
+    
+    def register_taxonomy_for_species(
+        self,
+        species_id: str,
+        taxon_id: str,
+    ) -> None:
+        """Asigna un taxón existente a una especie."""
+        if not self.taxonomy.has(taxon_id):
+            raise ValueError(f"El taxón '{taxon_id}' no existe")
+        self._species_taxonomy[species_id] = taxon_id
+    
+    def register_profile_for_species(
+        self,
+        species_id: str,
+        profile: SpeciesProfile,
+    ) -> None:
+        """Asigna un perfil manual a una especie."""
+        self._species_profiles[species_id] = profile
+    
+    # =========================================================================
+    # CONSULTAS DE TAXONOMÍA
+    # =========================================================================
+    
+    def get_taxonomy_id(self, species_id: str) -> Optional[str]:
+        """Obtiene el ID del taxón de una especie."""
+        return self._species_taxonomy.get(species_id)
+    
+    def get_taxonomy_node(self, species_id: str) -> Optional[TaxonomicNode]:
+        """Obtiene el nodo taxonómico de una especie."""
+        taxon_id = self._species_taxonomy.get(species_id)
+        if taxon_id is None:
+            return None
+        return self.taxonomy.get(taxon_id)
+    
+    def get_taxonomy_chain(self, species_id: str) -> List[TaxonomicNode]:
+        """Obtiene la cadena taxonómica completa de una especie."""
+        taxon_id = self._species_taxonomy.get(species_id)
+        if taxon_id is None:
+            return []
+        return self.taxonomy.get_ancestors(taxon_id)
+    
+    def is_descendant_of(self, species_id: str, ancestor_id: str) -> bool:
+        """Verifica si una especie desciende de un taxón."""
+        taxon_id = self._species_taxonomy.get(species_id)
+        if taxon_id is None:
+            return False
+        return self.taxonomy.is_descendant_of(taxon_id, ancestor_id)
+    
+    def is_mammal(self, species_id: str) -> bool:
+        """Verifica si una especie es un mamífero."""
+        return self.is_descendant_of(species_id, "mammalia")
+    
+    def is_bird(self, species_id: str) -> bool:
+        """Verifica si una especie es un ave."""
+        return self.is_descendant_of(species_id, "aves")
+    
+    def is_reptile(self, species_id: str) -> bool:
+        """Verifica si una especie es un reptil."""
+        return self.is_descendant_of(species_id, "reptilia")
+    
+    def is_fish(self, species_id: str) -> bool:
+        """Verifica si una especie es un pez."""
+        return self.is_descendant_of(species_id, "pisces")
+    
+    def is_insect(self, species_id: str) -> bool:
+        """Verifica si una especie es un insecto."""
+        return self.is_descendant_of(species_id, "insecta")
+    
+    def is_fungus(self, species_id: str) -> bool:
+        """Verifica si una especie es un hongo."""
+        return self.is_descendant_of(species_id, "fungi")
+    
+    def is_plant(self, species_id: str) -> bool:
+        """Verifica si una especie es una planta."""
+        return self.is_descendant_of(species_id, "plantae")
+    
+    def is_bacteria(self, species_id: str) -> bool:
+        """Verifica si una especie es una bacteria."""
+        return self.is_descendant_of(species_id, "bacteria")
+    
+    # =========================================================================
+    # CONSULTAS DE PERFIL
+    # =========================================================================
+    
+    def get_profile(self, species_id: str) -> Optional[SpeciesProfile]:
+        """Obtiene el perfil biológico de una especie."""
+        return self._species_profiles.get(species_id)
+    
+    def get_diet(self, species_id: str) -> Optional[DietType]:
+        """Obtiene la dieta de una especie."""
+        profile = self._species_profiles.get(species_id)
+        return profile.diet if profile else None
+    
+    def get_habitat(self, species_id: str) -> Optional[HabitatType]:
+        """Obtiene el hábitat de una especie."""
+        profile = self._species_profiles.get(species_id)
+        return profile.habitat if profile else None
+    
+    def get_locomotion(self, species_id: str) -> Optional[LocomotionType]:
+        """Obtiene la locomoción de una especie."""
+        profile = self._species_profiles.get(species_id)
+        return profile.locomotion if profile else None
+    
+    def is_carnivore(self, species_id: str) -> bool:
+        """Verifica si una especie es carnívora."""
+        profile = self._species_profiles.get(species_id)
+        return profile.is_carnivore() if profile else False
+    
+    def is_herbivore(self, species_id: str) -> bool:
+        """Verifica si una especie es herbívora."""
+        profile = self._species_profiles.get(species_id)
+        return profile.is_herbivore() if profile else False
+    
+    def is_predator(self, species_id: str) -> bool:
+        """Verifica si una especie es un depredador potencial."""
+        profile = self._species_profiles.get(species_id)
+        return profile.is_predator() if profile else False
+    
+    # =========================================================================
+    # CONSULTAS POR CATEGORÍA
+    # =========================================================================
+    
+    def get_species_by_diet(self, diet: DietType) -> List[str]:
+        """Retorna todas las especies con una dieta específica."""
+        return [
+            sid for sid, profile in self._species_profiles.items()
+            if profile.diet == diet
+        ]
+    
+    def get_species_by_habitat(self, habitat: HabitatType) -> List[str]:
+        """Retorna todas las especies con un hábitat específico."""
+        return [
+            sid for sid, profile in self._species_profiles.items()
+            if profile.habitat == habitat
+        ]
+    
+    def get_species_by_locomotion(self, locomotion: LocomotionType) -> List[str]:
+        """Retorna todas las especies con una locomoción específica."""
+        return [
+            sid for sid, profile in self._species_profiles.items()
+            if profile.locomotion == locomotion
+        ]
+    
+    def get_species_by_taxonomy(self, ancestor_id: str) -> List[str]:
+        """Retorna todas las especies descendientes de un taxón."""
+        return [
+            sid for sid, taxon_id in self._species_taxonomy.items()
+            if self.taxonomy.is_descendant_of(taxon_id, ancestor_id)
+        ]
+    
+    # =========================================================================
+    # CONSULTAS PARA ECOLOGÍA
+    # =========================================================================
+    
+    def can_interact(
+        self,
+        species_a_id: str,
+        species_b_id: str,
+    ) -> bool:
+        """Verifica si dos especies pueden interactuar ecológicamente.
+        
+        Esta es una verificación básica. El EcologicalRelationshipSystem
+        hará verificaciones más detalladas usando genomas y biomas.
+        """
+        profile_a = self._species_profiles.get(species_a_id)
+        profile_b = self._species_profiles.get(species_b_id)
+        
+        if profile_a is None or profile_b is None:
+            return False
+        
+        # Verificar compatibilidad de hábitat
+        if profile_a.habitat != profile_b.habitat:
+            # Hábitats incompatibles (excepto anfibio que puede estar en ambos)
+            if profile_a.habitat != HabitatType.AMPHIBIOUS and \
+               profile_b.habitat != HabitatType.AMPHIBIOUS:
+                return False
+        
+        return True
+    
+    def get_potential_prey(self, predator_id: str) -> List[str]:
+        """Retorna las presas potenciales de un depredador.
+        
+        Basado en perfiles, no en genomas. El sistema ecológico
+        hará la verificación final con genomas y biomas.
+        """
+        predator_profile = self._species_profiles.get(predator_id)
+        if predator_profile is None:
+            return []
+        
+        if not predator_profile.is_predator():
+            return []
+        
+        potential_prey = []
+        for species_id, profile in self._species_profiles.items():
+            if species_id == predator_id:
+                continue
+            
+            # Presas potenciales: herbívoros u omnívoros más pequeños
+            if profile.diet in (DietType.HERBIVORE, DietType.OMNIVORE):
+                if profile.body_size_category.value <= predator_profile.body_size_category.value:
+                    if self.can_interact(predator_id, species_id):
+                        potential_prey.append(species_id)
+        
+        return potential_prey
+    
+    # =========================================================================
+    # ESTADÍSTICAS
+    # =========================================================================
+    
+    def get_statistics(self) -> Dict[str, object]:
+        """Retorna estadísticas del sistema de clasificación."""
+        stats: Dict[str, object] = {
+            "total_species": len(self._species_taxonomy),
+            "species_with_profile": len(self._species_profiles),
+        }
+        
+        # Por dieta
+        diet_counts: Dict[str, int] = {}
+        for profile in self._species_profiles.values():
+            diet_name = profile.diet.value
+            diet_counts[diet_name] = diet_counts.get(diet_name, 0) + 1
+        stats["by_diet"] = diet_counts
+        
+        # Por hábitat
+        habitat_counts: Dict[str, int] = {}
+        for profile in self._species_profiles.values():
+            habitat_name = profile.habitat.value
+            habitat_counts[habitat_name] = habitat_counts.get(habitat_name, 0) + 1
+        stats["by_habitat"] = habitat_counts
+        
+        return stats
+    
+    # =========================================================================
+    # INICIALIZACIÓN POR DEFECTO
+    # =========================================================================
+    
+    def initialize_defaults(self) -> None:
+        """Inicializa la clasificación de especies por defecto."""
+        from core.genetics.species_definition import SpeciesRegistry
+        
+        SpeciesRegistry.initialize_defaults()
+        
+        # Mapeo de especies a taxones
+        taxonomy_mapping = {
+            "human": "homo_sapiens",
+            "bird": "aves",
+            "fish": "pisces",
+            "insect": "insecta",
+            "reptile": "reptilia",
+            "amphibian": "amphibia",
+            "grass": "plantae",         
+            "fungus": "fungi",
+            "bacteria": "bacteria",
+        }
+        
+        for species_id, taxon_id in taxonomy_mapping.items():
+            species = SpeciesRegistry.get(species_id)
+            if species is not None:
+                self.register_species(species, taxon_id=taxon_id)
+        
+        self._logger.info(
+            f"Clasificación por defecto inicializada: {len(self._species_taxonomy)} especies"
+        )
+    
+    # =========================================================================
+    # UTILIDADES
+    # =========================================================================
+    
+    def __len__(self) -> int:
+        return len(self._species_taxonomy)
+    
+    def __contains__(self, species_id: str) -> bool:
+        return species_id in self._species_taxonomy
+    
+    def __repr__(self) -> str:
+        return f"SpeciesClassificationSystem({len(self._species_taxonomy)} especies)"
+
+================================================================================
+ARCHIVO: .\core\taxonomy\species_profile.py
+================================================================================
+
+"""Perfil biológico de una especie.
+
+Describe CÓMO suele vivir una especie (no QUÉ puede hacer).
+Las capacidades concretas salen del Genome.
+
+Filosofía: "El perfil es una descripción, no una restricción."
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Optional
+
+from core.taxonomy.profile_enums import (
+    DietType,
+    ReproductionType,
+    DevelopmentType,
+    HabitatType,
+    LocomotionType,
+    SocialStructureType,
+    ThermoregulationType,
+    BodySizeCategory,
+    ActivityPattern,
+)
+
+
+@dataclass(frozen=True)
+class SpeciesProfile:
+    """Perfil biológico de una especie.
+    
+    Attributes:
+        taxonomy_id: ID del taxón en el árbol taxonómico.
+        body_size_category: Categoría de tamaño corporal.
+        thermoregulation: Tipo de termorregulación.
+        diet: Tipo de dieta.
+        reproduction: Tipo de reproducción.
+        development: Tipo de desarrollo.
+        habitat: Hábitat principal.
+        locomotion: Locomoción principal.
+        social_structure: Estructura social.
+        activity_pattern: Patrón de actividad.
+        notes: Notas opcionales.
+    """
+    
+    # Taxonomía (referencia al árbol)
+    taxonomy_id: str
+    
+    # Plan corporal
+    body_size_category: BodySizeCategory
+    thermoregulation: ThermoregulationType
+    
+    # Dieta
+    diet: DietType
+    
+    # Reproducción
+    reproduction: ReproductionType
+    development: DevelopmentType
+    
+    # Hábitat y locomoción
+    habitat: HabitatType
+    locomotion: LocomotionType
+    
+    # Estructura social
+    social_structure: SocialStructureType
+    
+    # Patrón de actividad
+    activity_pattern: ActivityPattern
+    
+    # Notas opcionales
+    notes: str = ""
+    
+    def is_carnivore(self) -> bool:
+        """Verifica si es carnívoro."""
+        return self.diet == DietType.CARNIVORE
+    
+    def is_herbivore(self) -> bool:
+        """Verifica si es herbívoro."""
+        return self.diet == DietType.HERBIVORE
+    
+    def is_predator(self) -> bool:
+        """Verifica si es un depredador potencial."""
+        return self.diet in (DietType.CARNIVORE, DietType.INSECTIVORE)
+    
+    def can_fly(self) -> bool:
+        """Verifica si su locomoción principal es volar.
+        
+        Nota: Esto es una descripción del perfil, no una capacidad.
+        La capacidad real de volar depende del Genome (trait flight).
+        """
+        return self.locomotion == LocomotionType.FLYING
+    
+    def is_terrestrial(self) -> bool:
+        """Verifica si es terrestre."""
+        return self.habitat == HabitatType.TERRESTRIAL
+    
+    def is_aquatic(self) -> bool:
+        """Verifica si es acuático."""
+        return self.habitat == HabitatType.AQUATIC
+    
+    def is_social(self) -> bool:
+        """Verifica si tiene estructura social."""
+        return self.social_structure != SocialStructureType.SOLITARY
+    
+    def __repr__(self) -> str:
+        return (
+            f"SpeciesProfile({self.taxonomy_id}: "
+            f"{self.diet.value}, {self.habitat.value}, "
+            f"{self.social_structure.value})"
+        )
+
+================================================================================
+ARCHIVO: .\core\taxonomy\taxonomic_node.py
+================================================================================
+
+"""Nodos del árbol taxonómico.
+
+Define la estructura de un nodo taxonómico y los rangos disponibles.
+La taxonomía es INFORMATIVA: clasifica especies pero no decide capacidades.
+Las capacidades siguen saliendo de la genética (Genome).
+
+Filosofía: "La taxonomía dice QUÉ ES una especie, no QUÉ PUEDE HACER."
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import Enum, auto
+from typing import Optional
+
+
+class TaxonomicRank(Enum):
+    """Rangos taxonómicos estándar (9 niveles)."""
+    
+    DOMAIN = auto()       # Vida
+    KINGDOM = auto()      # Animalia, Plantae, Fungi, Bacteria
+    PHYLUM = auto()       # Vertebrata, Arthropoda
+    CLASS = auto()        # Mammalia, Aves, Reptilia
+    ORDER = auto()        # Carnivora, Primates, Rodentia
+    FAMILY = auto()       # Canidae, Felidae, Ursidae
+    GENUS = auto()        # Canis, Felis, Ursus
+    SPECIES = auto()      # Canis lupus, Felis catus
+    SUBSPECIES = auto()   # Canis lupus familiaris
+    
+    def __str__(self) -> str:
+        return self.name.lower()
+    
+    @property
+    def level(self) -> int:
+        """Nivel numérico del rango (0=DOMAIN, 8=SUBSPECIES)."""
+        return list(TaxonomicRank).index(self)
+
+
+@dataclass(frozen=True)
+class TaxonomicNode:
+    """Un nodo en el árbol taxonómico.
+    
+    Attributes:
+        taxon_id: Identificador único del taxón (ej: "mammalia").
+        name: Nombre legible (ej: "Mamíferos").
+        parent_id: ID del taxón padre (None para DOMAIN).
+        rank: Rango taxonómico.
+        description: Descripción opcional.
+        scientific_name: Nombre científico (ej: "Canis lupus").
+    """
+    
+    taxon_id: str
+    name: str
+    parent_id: Optional[str]
+    rank: TaxonomicRank
+    description: str = ""
+    scientific_name: str = ""
+    
+    def __post_init__(self) -> None:
+        """Valida el nodo tras la creación."""
+        if not self.taxon_id:
+            raise ValueError("taxon_id no puede estar vacío")
+        if not self.name:
+            raise ValueError("name no puede estar vacío")
+        if self.rank != TaxonomicRank.DOMAIN and not self.parent_id:
+            raise ValueError(f"El taxón '{self.taxon_id}' necesita un parent_id")
+    
+    @property
+    def is_root(self) -> bool:
+        """Verifica si es el nodo raíz (DOMAIN)."""
+        return self.parent_id is None
+    
+    def __repr__(self) -> str:
+        return f"TaxonomicNode({self.taxon_id}: {self.name} [{self.rank.name}])"
+
+================================================================================
+ARCHIVO: .\core\taxonomy\taxonomic_system.py
+================================================================================
+
+"""Sistema Taxonómico.
+
+Árbol taxonómico global editable en runtime.
+Solo clasifica especies, NO decide capacidades.
+
+Filosofía:
+- La taxonomía es INFORMATIVA, no prescriptiva
+- Las capacidades salen de la genética (Genome)
+- El sistema debe ser editable para soportar evolución
+- Las consultas deben ser rápidas y flexibles
+"""
+
+from __future__ import annotations
+
+from typing import Dict, List, Optional, Set
+import logging
+
+from core.taxonomy.taxonomic_node import TaxonomicNode, TaxonomicRank
+
+
+class TaxonomicSystem:
+    """Árbol taxonómico global.
+    
+    Uso:
+        taxonomy = TaxonomicSystem.get_default()
+        
+        # Consultas
+        is_mammal = taxonomy.is_descendant_of("wolf", "mammalia")
+        ancestors = taxonomy.get_ancestors("wolf")
+        mammals = taxonomy.get_all_by_rank(TaxonomicRank.CLASS)
+        
+        # Edición en runtime (para evolución)
+        taxonomy.register(TaxonomicNode(
+            taxon_id="canis_lupus_familiaris",
+            name="Perro doméstico",
+            parent_id="canis_lupus",
+            rank=TaxonomicRank.SUBSPECIES,
+        ))
+    """
+    
+    _default_instance: Optional['TaxonomicSystem'] = None
+    _logger = logging.getLogger("TaxonomicSystem")
+    
+    def __init__(self) -> None:
+        self._nodes: Dict[str, TaxonomicNode] = {}
+        self._children: Dict[str, List[str]] = {}  # parent_id → [child_ids]
+    
+    # =========================================================================
+    # CONSTRUCTOR DE INSTANCIA POR DEFECTO
+    # =========================================================================
+    
+    @classmethod
+    def get_default(cls) -> 'TaxonomicSystem':
+        """Retorna la instancia por defecto con la taxonomía precargada."""
+        if cls._default_instance is None:
+            cls._default_instance = cls()
+            cls._default_instance._initialize_default_taxonomy()
+        return cls._default_instance
+    
+    # =========================================================================
+    # GESTIÓN DE NODOS (editable en runtime)
+    # =========================================================================
+    
+    def register(self, node: TaxonomicNode) -> None:
+        """Registra un nuevo nodo taxonómico.
+        
+        Args:
+            node: El nodo a registrar.
+            
+        Raises:
+            ValueError: Si el taxon_id ya existe o el padre no existe.
+        """
+        if node.taxon_id in self._nodes:
+            raise ValueError(f"El taxón '{node.taxon_id}' ya está registrado")
+        
+        if node.parent_id is not None and node.parent_id not in self._nodes:
+            raise ValueError(f"El padre '{node.parent_id}' no existe")
+        
+        self._nodes[node.taxon_id] = node
+        
+        # Actualizar índice de hijos
+        if node.parent_id is not None:
+            if node.parent_id not in self._children:
+                self._children[node.parent_id] = []
+            self._children[node.parent_id].append(node.taxon_id)
+        
+        self._logger.debug(f"Taxón registrado: {node.taxon_id} [{node.rank.name}]")
+    
+    def unregister(self, taxon_id: str) -> None:
+        """Elimina un nodo taxonómico (y todos sus descendientes).
+        
+        Args:
+            taxon_id: ID del taxón a eliminar.
+            
+        Raises:
+            ValueError: Si el taxón no existe.
+        """
+        if taxon_id not in self._nodes:
+            raise ValueError(f"El taxón '{taxon_id}' no existe")
+        
+        # Eliminar todos los descendientes primero
+        descendants = self.get_descendants(taxon_id)
+        for desc_id in descendants:
+            del self._nodes[desc_id]
+            if desc_id in self._children:
+                del self._children[desc_id]
+        
+        # Eliminar el nodo
+        node = self._nodes[taxon_id]
+        del self._nodes[taxon_id]
+        
+        # Eliminar de la lista de hijos del padre
+        if node.parent_id and node.parent_id in self._children:
+            self._children[node.parent_id].remove(taxon_id)
+        
+        self._logger.debug(f"Taxón eliminado: {taxon_id}")
+    
+    def get(self, taxon_id: str) -> Optional[TaxonomicNode]:
+        """Obtiene un nodo por su ID."""
+        return self._nodes.get(taxon_id)
+    
+    def has(self, taxon_id: str) -> bool:
+        """Verifica si un taxón existe."""
+        return taxon_id in self._nodes
+    
+    # =========================================================================
+    # CONSULTAS JERÁRQUICAS
+    # =========================================================================
+    
+    def get_ancestors(self, taxon_id: str) -> List[TaxonomicNode]:
+        """Retorna la cadena de ancestros (de más específico a más general).
+        
+        Ejemplo:
+            get_ancestors("canis_lupus") → 
+            [canis_lupus, canis, canidae, carnivora, mammalia, vertebrata, animalia, life]
+        """
+        if taxon_id not in self._nodes:
+            return []
+        
+        ancestors = []
+        current = self._nodes[taxon_id]
+        
+        while current is not None:
+            ancestors.append(current)
+            if current.parent_id is None:
+                break
+            current = self._nodes.get(current.parent_id)
+        
+        return ancestors
+    
+    def get_descendants(self, taxon_id: str) -> List[str]:
+        """Retorna todos los IDs de descendientes (recursivo).
+        
+        Ejemplo:
+            get_descendants("mammalia") → 
+            [carnivora, canidae, canis, canis_lupus, primates, hominidae, ...]
+        """
+        if taxon_id not in self._nodes:
+            return []
+        
+        descendants = []
+        queue = [taxon_id]
+        
+        while queue:
+            current_id = queue.pop(0)
+            children = self._children.get(current_id, [])
+            
+            for child_id in children:
+                descendants.append(child_id)
+                queue.append(child_id)
+        
+        return descendants
+    
+    def get_children(self, taxon_id: str) -> List[TaxonomicNode]:
+        """Retorna los hijos directos de un taxón."""
+        if taxon_id not in self._children:
+            return []
+        return [self._nodes[cid] for cid in self._children[taxon_id] if cid in self._nodes]
+    
+    def is_descendant_of(self, taxon_id: str, ancestor_id: str) -> bool:
+        """Verifica si un taxón desciende de otro.
+        
+        Ejemplo:
+            is_descendant_of("canis_lupus", "mammalia") → True
+            is_descendant_of("canis_lupus", "plantae") → False
+        """
+        ancestors = self.get_ancestors(taxon_id)
+        ancestor_ids = {a.taxon_id for a in ancestors}
+        return ancestor_id in ancestor_ids
+    
+    def get_all_by_rank(self, rank: TaxonomicRank) -> List[TaxonomicNode]:
+        """Retorna todos los nodos de un rango específico.
+        
+        Ejemplo:
+            get_all_by_rank(TaxonomicRank.CLASS) → 
+            [mammalia, aves, reptilia, amphibia, pisces, insecta]
+        """
+        return [node for node in self._nodes.values() if node.rank == rank]
+    
+    def get_kingdom_of(self, taxon_id: str) -> Optional[TaxonomicNode]:
+        """Retorna el reino de un taxón."""
+        for ancestor in self.get_ancestors(taxon_id):
+            if ancestor.rank == TaxonomicRank.KINGDOM:
+                return ancestor
+        return None
+    
+    def get_class_of(self, taxon_id: str) -> Optional[TaxonomicNode]:
+        """Retorna la clase de un taxón."""
+        for ancestor in self.get_ancestors(taxon_id):
+            if ancestor.rank == TaxonomicRank.CLASS:
+                return ancestor
+        return None
+    
+    # =========================================================================
+    # CONSULTAS POR PATRÓN
+    # =========================================================================
+    
+    def search_by_name(self, query: str) -> List[TaxonomicNode]:
+        """Busca taxones por nombre (case-insensitive)."""
+        query_lower = query.lower()
+        return [
+            node for node in self._nodes.values()
+            if query_lower in node.name.lower() or query_lower in node.taxon_id.lower()
+        ]
+    
+    def get_statistics(self) -> Dict[str, int]:
+        """Retorna estadísticas del árbol taxonómico."""
+        stats = {rank.name: 0 for rank in TaxonomicRank}
+        for node in self._nodes.values():
+            stats[node.rank.name] += 1
+        stats["TOTAL"] = len(self._nodes)
+        return stats
+    
+    # =========================================================================
+    # INICIALIZACIÓN DE TAXONOMÍA POR DEFECTO
+    # =========================================================================
+    
+    def _initialize_default_taxonomy(self) -> None:
+        """Registra la taxonomía biológica estándar."""
+        
+        # =====================================================================
+        # DOMAIN: Life
+        # =====================================================================
+        self.register(TaxonomicNode(
+            taxon_id="life",
+            name="Vida",
+            parent_id=None,
+            rank=TaxonomicRank.DOMAIN,
+            description="Todos los organismos vivos",
+        ))
+        
+        # =====================================================================
+        # KINGDOMS
+        # =====================================================================
+        self.register(TaxonomicNode(
+            taxon_id="animalia",
+            name="Animales",
+            parent_id="life",
+            rank=TaxonomicRank.KINGDOM,
+            description="Organismos multicelulares heterótrofos",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="plantae",
+            name="Plantas",
+            parent_id="life",
+            rank=TaxonomicRank.KINGDOM,
+            description="Organismos fotosintéticos multicelulares",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="fungi",
+            name="Hongos",
+            parent_id="life",
+            rank=TaxonomicRank.KINGDOM,
+            description="Organismos heterótrofos por absorción",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="bacteria",
+            name="Bacterias",
+            parent_id="life",
+            rank=TaxonomicRank.KINGDOM,
+            description="Organismos unicelulares procariotas",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="protista",
+            name="Protistas",
+            parent_id="life",
+            rank=TaxonomicRank.KINGDOM,
+            description="Organismos eucariotas unicelulares",
+        ))
+        
+        # =====================================================================
+        # PHYLUMS (Animalia)
+        # =====================================================================
+        self.register(TaxonomicNode(
+            taxon_id="vertebrata",
+            name="Vertebrados",
+            parent_id="animalia",
+            rank=TaxonomicRank.PHYLUM,
+            description="Animales con columna vertebral",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="arthropoda",
+            name="Artrópodos",
+            parent_id="animalia",
+            rank=TaxonomicRank.PHYLUM,
+            description="Animales con exoesqueleto y patas articuladas",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="mollusca",
+            name="Moluscos",
+            parent_id="animalia",
+            rank=TaxonomicRank.PHYLUM,
+            description="Animales de cuerpo blando (caracoles, pulpos)",
+        ))
+        
+        # =====================================================================
+        # CLASSES (Vertebrata)
+        # =====================================================================
+        self.register(TaxonomicNode(
+            taxon_id="mammalia",
+            name="Mamíferos",
+            parent_id="vertebrata",
+            rank=TaxonomicRank.CLASS,
+            description="Vertebrados de sangre caliente con glándulas mamarias",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="aves",
+            name="Aves",
+            parent_id="vertebrata",
+            rank=TaxonomicRank.CLASS,
+            description="Vertebrados con plumas y pico",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="reptilia",
+            name="Reptiles",
+            parent_id="vertebrata",
+            rank=TaxonomicRank.CLASS,
+            description="Vertebrados de sangre fría con escamas",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="amphibia",
+            name="Anfibios",
+            parent_id="vertebrata",
+            rank=TaxonomicRank.CLASS,
+            description="Vertebrados con vida dual agua/tierra",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="pisces",
+            name="Peces",
+            parent_id="vertebrata",
+            rank=TaxonomicRank.CLASS,
+            description="Vertebrados acuáticos con branquias",
+        ))
+        
+        # =====================================================================
+        # CLASSES (Arthropoda)
+        # =====================================================================
+        self.register(TaxonomicNode(
+            taxon_id="insecta",
+            name="Insectos",
+            parent_id="arthropoda",
+            rank=TaxonomicRank.CLASS,
+            description="Artrópodos con 6 patas",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="arachnida",
+            name="Arácnidos",
+            parent_id="arthropoda",
+            rank=TaxonomicRank.CLASS,
+            description="Artrópodos con 8 patas (arañas, escorpiones)",
+        ))
+        
+        # =====================================================================
+        # ORDERS (Mammalia)
+        # =====================================================================
+        self.register(TaxonomicNode(
+            taxon_id="carnivora",
+            name="Carnívoros",
+            parent_id="mammalia",
+            rank=TaxonomicRank.ORDER,
+            description="Mamíferos depredadores",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="primates",
+            name="Primates",
+            parent_id="mammalia",
+            rank=TaxonomicRank.ORDER,
+            description="Mamíferos con manos prensiles",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="rodentia",
+            name="Roedores",
+            parent_id="mammalia",
+            rank=TaxonomicRank.ORDER,
+            description="Mamíferos con dientes incisivos crecientes",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="cetacea",
+            name="Cetáceos",
+            parent_id="mammalia",
+            rank=TaxonomicRank.ORDER,
+            description="Mamíferos acuáticos (ballenas, delfines)",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="chiroptera",
+            name="Murciélagos",
+            parent_id="mammalia",
+            rank=TaxonomicRank.ORDER,
+            description="Mamíferos voladores",
+        ))
+        
+        # =====================================================================
+        # FAMILIES (Carnivora)
+        # =====================================================================
+        self.register(TaxonomicNode(
+            taxon_id="canidae",
+            name="Cánidos",
+            parent_id="carnivora",
+            rank=TaxonomicRank.FAMILY,
+            description="Perros, lobos, zorros",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="felidae",
+            name="Félidos",
+            parent_id="carnivora",
+            rank=TaxonomicRank.FAMILY,
+            description="Gatos, leones, tigres",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="ursidae",
+            name="Úrsidos",
+            parent_id="carnivora",
+            rank=TaxonomicRank.FAMILY,
+            description="Osos",
+        ))
+        
+        # =====================================================================
+        # FAMILIES (Primates)
+        # =====================================================================
+        self.register(TaxonomicNode(
+            taxon_id="hominidae",
+            name="Homínidos",
+            parent_id="primates",
+            rank=TaxonomicRank.FAMILY,
+            description="Grandes simios y humanos",
+        ))
+        
+        # =====================================================================
+        # GENUS
+        # =====================================================================
+        self.register(TaxonomicNode(
+            taxon_id="canis",
+            name="Canis",
+            parent_id="canidae",
+            rank=TaxonomicRank.GENUS,
+            description="Perros, lobos, coyotes",
+            scientific_name="Canis",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="felis",
+            name="Felis",
+            parent_id="felidae",
+            rank=TaxonomicRank.GENUS,
+            description="Gatos pequeños",
+            scientific_name="Felis",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="homo",
+            name="Homo",
+            parent_id="hominidae",
+            rank=TaxonomicRank.GENUS,
+            description="Humanos y especies cercanas",
+            scientific_name="Homo",
+        ))
+        
+        # =====================================================================
+        # SPECIES
+        # =====================================================================
+        self.register(TaxonomicNode(
+            taxon_id="canis_lupus",
+            name="Lobo",
+            parent_id="canis",
+            rank=TaxonomicRank.SPECIES,
+            description="Lobo gris",
+            scientific_name="Canis lupus",
+        ))
+        self.register(TaxonomicNode(
+            taxon_id="homo_sapiens",
+            name="Humano",
+            parent_id="homo",
+            rank=TaxonomicRank.SPECIES,
+            description="Ser humano moderno",
+            scientific_name="Homo sapiens",
+        ))
+        
+        self._logger.info(
+            f"Taxonomía por defecto inicializada: {len(self._nodes)} taxones"
+        )
+    
+    # =========================================================================
+    # UTILIDADES
+    # =========================================================================
+    
+    def __len__(self) -> int:
+        return len(self._nodes)
+    
+    def __contains__(self, taxon_id: str) -> bool:
+        return taxon_id in self._nodes
+    
+    def __repr__(self) -> str:
+        return f"TaxonomicSystem({len(self._nodes)} taxones)"
+
+================================================================================
+ARCHIVO: .\core\taxonomy\__init__.py
+================================================================================
+
+"""Sistema Taxonómico.
+
+Proporciona clasificación jerárquica de especies y perfiles biológicos.
+La taxonomía es INFORMATIVA: no decide capacidades.
+Las capacidades salen de la genética (Genome).
+"""
+
+from core.taxonomy.taxonomic_node import TaxonomicNode, TaxonomicRank
+from core.taxonomy.taxonomic_system import TaxonomicSystem
+from core.taxonomy.profile_enums import (
+    DietType,
+    ReproductionType,
+    DevelopmentType,
+    HabitatType,
+    LocomotionType,
+    SocialStructureType,
+    ThermoregulationType,
+    BodySizeCategory,
+    ActivityPattern,
+)
+from core.taxonomy.species_profile import SpeciesProfile
+from core.taxonomy.profile_inference import ProfileInference
+from core.taxonomy.species_classification import SpeciesClassificationSystem
+
+__all__ = [
+    "TaxonomicNode",
+    "TaxonomicRank",
+    "TaxonomicSystem",
+    "DietType",
+    "ReproductionType",
+    "DevelopmentType",
+    "HabitatType",
+    "LocomotionType",
+    "SocialStructureType",
+    "ThermoregulationType",
+    "BodySizeCategory",
+    "ActivityPattern",
+    "SpeciesProfile",
+    "ProfileInference",
+    "SpeciesClassificationSystem",
+]

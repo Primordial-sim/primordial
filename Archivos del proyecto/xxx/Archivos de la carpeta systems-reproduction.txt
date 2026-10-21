@@ -1,0 +1,1774 @@
+================================================================================
+ARCHIVO: .\systems\reproduction\conception_system.py
+================================================================================
+
+"""Módulo responsable de la concepción y fertilización.
+
+Implementa un modelo de concepción biológicamente realista con:
+- Verificación explícita de sexo para gestación
+- Prevención de doble embarazo por pareja
+- Fertilidad por producto (esterilidad real)
+- Infertilidad adquirida por edad, enfermedad y trauma
+- Periodo posparto refractario
+- Soporte multiespecie con partenogénesis
+- Integración con PendingChanges para coherencia transaccional
+
+GENÉTICA UNIVERSAL: Distingue entre reproducción vivípara (embarazo)
+y ovípara (huevos) basándose en ReproductiveCapabilities.
+
+CORRECCIONES APLICADAS (Auditoría):
+- Verificación de sexo antes de procesar embarazo
+- Prevención de doble concepción en el mismo tick
+- Fertilidad multiplicativa en lugar de promedio
+- Infertilidad adquirida por factores fisiológicos
+- Periodo refractario posparto configurable
+- Llamadas exactas a register_pregnancy_update (is_pregnant, pregnancy_days, failed_increment)
+- OPCIÓN B.2: Ovíparos ponen huevos en lugar de quedar embarazados
+
+SISTEMA DE ENERGÍA:
+- Verificación de energía mínima antes de intentar reproducirse
+- Gasto de energía al concebir (vivíparos)
+- Gasto de energía al poner huevos (ovíparos)
+- Gasto de energía en reproducción asexual
+"""
+
+from __future__ import annotations
+
+import logging
+import random
+from typing import Any, Optional, Dict
+
+from core.config.simulation_config import SimulationConfig
+from core.state.pending_changes import PendingChanges
+from core.state.world_state import WorldState
+from systems.environment.environment_context import EnvironmentContext
+from systems.reproduction.reproductive_capabilities import ReproductiveCapabilities
+from systems.reproduction.egg_model import Egg
+from systems.behavior.cognitive_capabilities import CognitiveCapabilities
+
+
+class ConceptionSystem:
+    """Motor de concepción con restricciones biológicas realistas."""
+
+    def __init__(self, config: SimulationConfig, relationship_engine: Any = None) -> None:
+        self.config = config
+        self.relationship_engine = relationship_engine
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self._clutch_counter = 0
+        
+        # Parámetros de coste energético por reproducción
+        self.energy_cost_per_offspring: float = 10.0  # Energía por cada descendiente
+        self.energy_cost_per_egg: float = 5.0         # Energía por cada huevo puesto
+        self.minimum_energy_to_reproduce: float = 20.0  # Energía mínima para intentar reproducirse
+
+    def process(
+        self,
+        state: WorldState,
+        pending: PendingChanges,
+        delta_days: float,
+        context: EnvironmentContext,
+    ) -> None:
+        """Procesa intentos de concepción para todos los agentes elegibles."""
+        repro_cfg = self.config.reproduction
+        current_day = getattr(state, 'world_days_elapsed', 0.0)
+
+        for person in state.get_all_persons():
+            if person.entity_id in pending.deaths:
+                continue
+
+            # GENÉTICA UNIVERSAL: Consultar capacidades reproductivas del genoma
+            repro_caps = ReproductiveCapabilities.from_genome(person.genome)
+            
+            # Solo procesar si puede reproducirse
+            if not repro_caps.can_reproduce:
+                continue
+
+            # CORRECCIÓN 1: Verificación explícita de sexo para gestación
+            # Solo las hembras pueden gestar (a menos que la especie sea hermafrodita)
+            # GENÉTICA UNIVERSAL: Solo verificar si requiere pareja (reproducción sexual)
+            if repro_caps.requires_partner:
+                species_traits = self._get_species_traits(person.species)
+                can_gestate = species_traits.get("can_gestate_female_only", True)
+                
+                if can_gestate and getattr(person, 'gender', 'M') != 'F':
+                    continue
+            else:
+                # Reproducción asexual: no hay restricción de sexo
+                pass
+
+            # Verificar que puede reproducirse (método legacy)
+            if hasattr(person, 'can_reproduce') and not person.can_reproduce():
+                continue
+
+            # CORRECCIÓN 6: Periodo posparto refractario
+            postpartum_cooldown = getattr(repro_cfg, 'postpartum_cooldown_days', 90.0)
+            if hasattr(person, 'memory') and isinstance(person.memory, dict):
+                last_birth_day = person.memory.get("last_birth_day", 0.0)
+                if current_day - last_birth_day < postpartum_cooldown:
+                    continue
+
+            # CORRECCIÓN 4: Infertilidad adquirida por factores fisiológicos
+            acquired_fertility_modifier = self._calculate_acquired_fertility(person)
+            if acquired_fertility_modifier <= 0.05:
+                continue  # Efectivamente estéril por condición adquirida
+            
+            # NUEVO: Verificación de energía mínima para reproducirse
+            # Sin energía suficiente, el organismo no puede invertir en reproducción
+            current_energy = getattr(person, 'energy', self.minimum_energy_to_reproduce)
+            if current_energy < self.minimum_energy_to_reproduce:
+                continue  # No tiene energía suficiente para reproducirse
+
+            # Determinar compañero reproductivo
+            # GENÉTICA UNIVERSAL: Solo buscar pareja si la requiere
+            partner_id = None
+            partner = None
+            
+            if repro_caps.requires_partner:
+                partner_id = getattr(person, 'partner_id', None)
+                
+                if partner_id is not None:
+                    partner = state.get_person_by_id(partner_id)
+                    
+                    # CORRECCIÓN 2: Prevención de doble embarazo
+                    if partner and getattr(partner, 'is_pregnant', False):
+                        continue
+                    if partner and partner.entity_id in pending.pregnancy_updates:
+                        continue
+                    if person.entity_id in pending.pregnancy_updates:
+                        continue
+            else:
+                # Reproducción asexual: no hay pareja
+                pass
+
+            # Calcular probabilidad de concepción
+            conception_chance = self._calculate_conception_chance(
+                person=person,
+                partner=partner,
+                acquired_modifier=acquired_fertility_modifier,
+                repro_cfg=repro_cfg,
+            )
+
+            if conception_chance <= 0.0:
+                continue
+
+            if random.random() < conception_chance:
+                # Determinar tamaño de camada
+                litter_size = self._determine_litter_size(person, repro_cfg)
+                
+                # GENÉTICA UNIVERSAL: Distinguir entre vivíparos y ovíparos
+                if repro_caps.is_viviparous():
+                    # VIVÍPAROS: Registrar embarazo
+                    pending.register_pregnancy_update(
+                        entity_id=person.entity_id,
+                        is_pregnant=True,
+                        pregnancy_days=0.0,
+                        failed_increment=0,
+                        litter_size=litter_size,
+                    )
+                    
+                    # NUEVO: Gasto de energía por concepción
+                    # El acto de concebir y preparar el cuerpo cuesta energía
+                    energy_cost = self._calculate_conception_energy_cost(person, litter_size)
+                    if hasattr(person, 'spend_energy'):
+                        person.spend_energy(energy_cost)
+                    
+                    # Registrar en memoria para cooldown posparto futuro
+                    pending.register_memory_update(
+                        person.entity_id,
+                        "last_conception_day",
+                        current_day,
+                    )
+                    
+                elif repro_caps.is_oviparous():
+                    # OVÍPAROS: Poner huevos
+                    self._lay_eggs(
+                        mother=person,
+                        partner=partner,
+                        litter_size=litter_size,
+                        repro_caps=repro_caps,
+                        state=state,
+                        pending=pending,
+                        current_day=current_day,
+                    )
+                    
+                    # NUEVO: Gasto de energía por puesta de huevos
+                    # Poner huevos requiere mucha energía (cáscara, nutrientes)
+                    energy_cost = self._calculate_egg_laying_energy_cost(person, litter_size)
+                    if hasattr(person, 'spend_energy'):
+                        person.spend_energy(energy_cost)
+                    
+                else:
+                    # ASEXUAL / SIN GESTACIÓN: Reproducción directa
+                    self._asexual_reproduction(
+                        parent=person,
+                        litter_size=litter_size,
+                        state=state,
+                        pending=pending,
+                        current_day=current_day,
+                    )
+                    
+                    # NUEVO: Gasto de energía por división/clonación
+                    energy_cost = self._calculate_asexual_energy_cost(person, litter_size)
+                    if hasattr(person, 'spend_energy'):
+                        person.spend_energy(energy_cost)
+
+    def _lay_eggs(
+        self,
+        mother: Any,
+        partner: Optional[Any],
+        litter_size: int,
+        repro_caps: ReproductiveCapabilities,
+        state: WorldState,
+        pending: PendingChanges,
+        current_day: float,
+    ) -> None:
+        """Pone huevos para organismos ovíparos.
+        
+        GENÉTICA UNIVERSAL: Los huevos se registran en pending.new_eggs
+        y serán procesados por EggSystem en ticks posteriores.
+        """
+        from core.config.simulation_config import MutationConfig
+        mutation_config = MutationConfig()
+        
+        # Obtener genoma del padre (si existe)
+        father_genome = None
+        father_id = None
+        if partner is not None:
+            father_genome = partner.genome
+            father_id = partner.entity_id
+        
+        # Generar ID de nidada
+        self._clutch_counter += 1
+        clutch_id = self._clutch_counter
+        
+        # Asegurar que pending tiene la lista de huevos nuevos
+        if not hasattr(pending, 'new_eggs'):
+            pending.new_eggs = []
+        
+        # Crear huevos
+        for i in range(litter_size):
+            # Combinar genomas
+            if father_genome is not None:
+                child_genome = mother.genome.combine(father_genome, mutation_config)
+            else:
+                child_genome = mother.genome.replicate(mutation_config)
+            
+            # Posición cerca de la madre
+            spawn_x = mother.x + random.randint(-2, 2)
+            spawn_y = mother.y + random.randint(-2, 2)
+            
+            egg = Egg(
+                egg_id=0,  # Se asignará automáticamente
+                mother_id=mother.entity_id,
+                father_id=father_id,
+                x=spawn_x,
+                y=spawn_y,
+                genome=child_genome,
+                laid_day=current_day,
+                incubation_days=repro_caps.gestation_days,
+                clutch_id=clutch_id,
+            )
+            
+            pending.new_eggs.append(egg)
+        
+        # Registrar en memoria para cooldown
+        pending.register_memory_update(
+            mother.entity_id,
+            "last_conception_day",
+            current_day,
+        )
+        
+        # Registrar memoria de puesta (si tiene capacidades cognitivas)
+        cognitive_caps = CognitiveCapabilities.from_genome(mother.genome)
+        if cognitive_caps.can_have_memory_type("child"):
+            from systems.behavior.cognitive_memory_system import CognitiveMemorySystem
+            CognitiveMemorySystem.add_memory(
+                person=mother,
+                mem_type=CognitiveMemorySystem.TYPE_CHILD,
+                target_id=f"clutch_{clutch_id}",
+                intensity=0.5,
+                valence=1,
+                context="puesta_huevos",
+                current_day=current_day,
+                pending=pending,
+            )
+        
+        self.logger.debug(
+            "🥚 Agente %s puso %d huevos (nidada %d)",
+            mother.entity_id, litter_size, clutch_id,
+        )
+
+    def _asexual_reproduction(
+        self,
+        parent: Any,
+        litter_size: int,
+        state: WorldState,
+        pending: PendingChanges,
+        current_day: float,
+    ) -> None:
+        """Reproducción asexual directa (plantas, bacterias).
+        
+        GENÉTICA UNIVERSAL: Los descendientes se registran directamente
+        como nacimientos sin gestación ni huevos.
+        """
+        from core.config.simulation_config import MutationConfig
+        mutation_config = MutationConfig()
+        
+        for _ in range(litter_size):
+            # Clonar genoma con mutación
+            child_genome = parent.genome.replicate(mutation_config)
+            
+            # Posición cerca del progenitor
+            spawn_x = parent.x + random.randint(-3, 3)
+            spawn_y = parent.y + random.randint(-3, 3)
+            
+            # Registrar nacimiento directamente
+            pending.register_birth(
+                mother_id=parent.entity_id,
+                father_id=None,
+                x=spawn_x,
+                y=spawn_y,
+                genome=child_genome,
+            )
+        
+        # Registrar en memoria para cooldown
+        pending.register_memory_update(
+            parent.entity_id,
+            "last_birth_day",
+            current_day,
+        )
+
+    def _calculate_acquired_fertility(self, person: Any) -> float:
+        """CORRECCIÓN 4: Calcula la fertilidad adquirida basada en estado fisiológico.
+        
+        GENÉTICA UNIVERSAL: Solo aplica factores fisiológicos si tiene emociones.
+        """
+        # GENÉTICA UNIVERSAL: Solo aplicar factores fisiológicos si tiene emociones
+        cognitive_caps = CognitiveCapabilities.from_genome(person.genome)
+        
+        if not cognitive_caps.has_emotions:
+            return 1.0  # Sin emociones, no hay factores fisiológicos adquiridos 
+        
+        modifier = 1.0
+        
+        # Edad: penalización fuera de la ventana fértil óptima
+        repro_cfg = self.config.reproduction
+        age = getattr(person, 'age', 0.0)
+        optimal_start = getattr(repro_cfg, 'min_fertility_age_days', 5475.0)
+        optimal_end = getattr(repro_cfg, 'max_fertility_age_days', 14600.0)
+        
+        if age < optimal_start:
+            modifier *= (age / max(1.0, optimal_start)) * 0.5
+        elif age > optimal_end:
+            over_age = age - optimal_end
+            modifier *= max(0.05, 1.0 - (over_age / 3650.0))
+        
+        # Enfermedad activa
+        if getattr(person, 'is_sick', False):
+            modifier *= 0.4
+        
+        # Estrés extremo
+        stress = person.emotions.get("stress", 0.0)
+        if stress > 0.7:
+            modifier *= 1.0 - ((stress - 0.7) / 0.3) * 0.6
+        
+        # Baja energía (desnutrición)
+        energy = person.emotions.get("energy", 1.0)
+        if energy < 0.4:
+            modifier *= energy / 0.4
+        
+        # Trauma severo
+        if hasattr(person, 'memory') and isinstance(person.memory, dict):
+            trauma_sickness = person.memory.get("trauma_sickness", 0.0)
+            if trauma_sickness > 0.5:
+                modifier *= 0.7
+        
+        return max(0.0, min(1.0, modifier))
+
+    def _calculate_conception_chance(
+        self,
+        person: Any,
+        partner: Optional[Any],
+        acquired_modifier: float,
+        repro_cfg: Any,
+    ) -> float:
+        """Calcula la probabilidad de concepción con fertilidad multiplicativa.
+        
+        GENÉTICA UNIVERSAL: Ajusta según capacidades reproductivas.
+        """
+        # GENÉTICA UNIVERSAL: Consultar capacidades reproductivas
+        repro_caps = ReproductiveCapabilities.from_genome(person.genome)
+        
+        # Fertilidad genética base
+        mother_fertility = person.genome.get_trait_value("fertility")
+        
+        # Aplicar nivel de fertilidad de las capacidades
+        fertility_modifier = mother_fertility * repro_caps.fertility_level
+        
+        if partner is not None:
+            # CORRECCIÓN 3: Producto de fertilidades (no promedio)
+            father_fertility = partner.genome.get_trait_value("fertility")
+            fertility_modifier *= father_fertility
+        else:
+            # Reproducción asexual: solo fertilidad de la madre
+            fertility_modifier *= 0.8
+
+        # GENÉTICA UNIVERSAL: Solo aplicar emociones si tiene capacidades cognitivas
+        cognitive_caps = CognitiveCapabilities.from_genome(person.genome)
+        
+        if cognitive_caps.has_emotions:
+            # Energía como factor limitante
+            if partner is not None:
+                energy_multiplier = min(
+                    person.emotions.get("energy", 1.0),
+                    partner.emotions.get("energy", 1.0)
+                )
+            else:
+                energy_multiplier = person.emotions.get("energy", 1.0)
+        else:
+            energy_multiplier = 1.0
+
+        # CORRECCIÓN 5: Penalización por longevidad con clamp de seguridad
+        if partner is not None:
+            avg_longevity = (
+                person.genome.get_trait_value("longevity") + 
+                partner.genome.get_trait_value("longevity")
+            ) / 2.0
+        else:
+            avg_longevity = person.genome.get_trait_value("longevity")
+        
+        avg_longevity = max(0.3, avg_longevity)
+        k_strategy_penalty = avg_longevity
+
+        # Cálculo final
+        base_chance = getattr(repro_cfg, 'base_conception_chance', 0.02)
+        final_chance = (
+            base_chance * 
+            fertility_modifier * 
+            energy_multiplier * 
+            acquired_modifier
+        ) / k_strategy_penalty
+
+        return max(0.0, min(0.5, final_chance))
+
+    def _determine_litter_size(self, person: Any, repro_cfg: Any) -> int:
+        """Determina el tamaño de camada según las capacidades reproductivas.
+        
+        GENÉTICA UNIVERSAL: Usa litter_size_min y litter_size_max de las capacidades.
+        """
+        repro_caps = ReproductiveCapabilities.from_genome(person.genome)
+        
+        min_size = repro_caps.litter_size_min
+        max_size = repro_caps.litter_size_max
+        
+        if min_size == max_size:
+            litter_size = min_size
+        else:
+            litter_size = random.randint(min_size, max_size)
+        
+        max_litter = getattr(repro_cfg, 'max_litter_size', 8)
+        return min(litter_size, max_litter)
+
+    # =========================================================================
+    # CÁLCULOS DE COSTE ENERGÉTICO POR REPRODUCCIÓN
+    # =========================================================================
+
+    def _calculate_conception_energy_cost(self, person: Any, litter_size: int) -> float:
+        """Calcula el coste energético de concebir y preparar el embarazo.
+        
+        El coste depende de:
+        - Tamaño de la camada (más bebés = más preparación)
+        - Tamaño corporal del progenitor
+        
+        Args:
+            person: El agente que concibe.
+            litter_size: Tamaño de la camada.
+            
+        Returns:
+            Energía a gastar.
+        """
+        # Coste base por cada descendiente
+        cost = self.energy_cost_per_offspring * litter_size
+        
+        # Modificador por tamaño corporal
+        size_factor = self._get_size_factor(person)
+        cost *= size_factor
+        
+        return max(0.0, cost)
+
+    def _calculate_egg_laying_energy_cost(self, person: Any, litter_size: int) -> float:
+        """Calcula el coste energético de poner huevos.
+        
+        Poner huevos requiere producir cáscara, nutrientes y el esfuerzo físico.
+        Es más costoso que la concepción vivípara porque es un esfuerzo inmediato.
+        
+        Args:
+            person: El agente que pone huevos.
+            litter_size: Número de huevos.
+            
+        Returns:
+            Energía a gastar.
+        """
+        # Coste base por cada huevo
+        cost = self.energy_cost_per_egg * litter_size
+        
+        # Modificador por tamaño corporal
+        size_factor = self._get_size_factor(person)
+        cost *= size_factor
+        
+        return max(0.0, cost)
+
+    def _calculate_asexual_energy_cost(self, person: Any, litter_size: int) -> float:
+        """Calcula el coste energético de reproducción asexual.
+        
+        La división celular o clonación requiere energía metabólica.
+        
+        Args:
+            person: El agente que se divide.
+            litter_size: Número de descendientes.
+            
+        Returns:
+            Energía a gastar.
+        """
+        # Coste reducido comparado con reproducción sexual (no hay búsqueda de pareja)
+        cost = self.energy_cost_per_offspring * 0.5 * litter_size
+        
+        # Modificador por tamaño corporal
+        size_factor = self._get_size_factor(person)
+        cost *= size_factor
+        
+        return max(0.0, cost)
+
+    def _get_size_factor(self, person: Any) -> float:
+        """Obtiene el factor de tamaño basado en el genoma."""
+        try:
+            body_size = getattr(person.genome, 'body_size', None)
+            if body_size is not None:
+                return 0.5 + (body_size * 1.5)
+        except (AttributeError, TypeError):
+            pass
+        
+        return 1.0  # Por defecto: tamaño medio
+
+    def _get_species_traits(self, species: str) -> Dict[str, Any]:
+        """Obtiene rasgos reproductivos de la especie."""
+        repro_cfg = self.config.reproduction
+        species_profiles = getattr(repro_cfg, 'species_profiles', {})
+        profile = species_profiles.get(species, {})
+        
+        defaults = {
+            "gestation_days": 180.0,
+            "litter_size_min": 1,
+            "litter_size_max": 2,
+            "parthenogenesis_chance": 0.0,
+            "can_gestate_female_only": True,
+            "fertility_window_start": 3650.0,
+            "fertility_window_end": 10950.0,
+        }
+        
+        traits = {**defaults, **profile}
+        
+        if "litter_size" not in traits:
+            traits["litter_size"] = (traits["litter_size_min"] + traits["litter_size_max"]) // 2
+        
+        return traits
+
+================================================================================
+ARCHIVO: .\systems\reproduction\egg_model.py
+================================================================================
+
+"""Modelo de huevos para reproducción ovípara.
+
+Representa un huevo puesto por un organismo ovíparo (aves, peces,
+reptiles, insectos, anfibios). Los huevos son entidades independientes
+que se incuban fuera del cuerpo de la madre.
+
+GENÉTICA UNIVERSAL: Los huevos contienen el genoma del embrión,
+que puede ser resultado de reproducción sexual (combine) o asexual (replicate).
+
+Ciclo de vida de un huevo:
+1. Puesta (laid) → 2. Incubación (incubating) → 3. Eclosión (hatched) o Muerte (dead)
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Optional
+
+
+class EggStatus(Enum):
+    """Estado de un huevo."""
+    LAID = "laid"              # Recién puesto
+    INCUBATING = "incubating"  # En incubación
+    HATCHED = "hatched"        # Eclosionado (nacimiento)
+    DEAD = "dead"              # Muerto (depredación, clima, etc.)
+    ABANDONED = "abandoned"    # Abandonado por la madre
+
+
+# Contador de clase para IDs únicos de huevos
+_egg_id_counter = 0
+
+
+def _generate_egg_id() -> int:
+    """Genera el siguiente ID único para huevos."""
+    global _egg_id_counter
+    _egg_id_counter += 1
+    return _egg_id_counter
+
+
+@dataclass
+class Egg:
+    """Representa un huevo individual.
+    
+    Attributes:
+        egg_id: Identificador único del huevo.
+        mother_id: ID de la madre que puso el huevo.
+        father_id: ID del padre (None si es partenogénesis/asexual).
+        x: Posición X del huevo.
+        y: Posición Y del huevo.
+        genome: Genoma del embrión (combinado o clonado).
+        laid_day: Día en que fue puesto el huevo.
+        incubation_days: Duración total de incubación en días.
+        status: Estado actual del huevo.
+        current_incubation: Días de incubación transcurridos.
+        mortality_risk: Riesgo de mortalidad ambiental (0.0 a 1.0).
+        clutch_id: ID de la nidada (huevos puestos juntos).
+    """
+    
+    # Identificación
+    egg_id: int = 0
+    mother_id: int = 0
+    father_id: Optional[int] = None
+    
+    # Posición
+    x: float = 0.0
+    y: float = 0.0
+    
+    # Genética
+    genome: Any = None
+    
+    # Temporal
+    laid_day: float = 0.0
+    incubation_days: float = 30.0
+    current_incubation: float = 0.0
+    
+    # Estado
+    status: EggStatus = EggStatus.LAID
+    
+    # Riesgo
+    mortality_risk: float = 0.001  # Riesgo diario base
+    
+    # Agrupación
+    clutch_id: Optional[int] = None
+    
+    def __post_init__(self):
+        """Asigna ID único si no se proporcionó."""
+        if self.egg_id == 0:
+            self.egg_id = _generate_egg_id()
+    
+    @property
+    def is_incubating(self) -> bool:
+        """Verifica si el huevo está en incubación."""
+        return self.status == EggStatus.INCUBATING
+    
+    @property
+    def is_alive(self) -> bool:
+        """Verifica si el huevo está vivo."""
+        return self.status in (EggStatus.LAID, EggStatus.INCUBATING)
+    
+    @property
+    def progress(self) -> float:
+        """Progreso de incubación (0.0 a 1.0)."""
+        if self.incubation_days <= 0:
+            return 1.0
+        return min(1.0, self.current_incubation / self.incubation_days)
+    
+    @property
+    def days_until_hatch(self) -> float:
+        """Días restantes hasta la eclosión."""
+        return max(0.0, self.incubation_days - self.current_incubation)
+    
+    def start_incubation(self) -> None:
+        """Inicia la incubación del huevo."""
+        if self.status == EggStatus.LAID:
+            self.status = EggStatus.INCUBATING
+    
+    def advance_incubation(self, delta_days: float) -> None:
+        """Avanza la incubación del huevo."""
+        if self.status == EggStatus.INCUBATING:
+            self.current_incubation += delta_days
+    
+    def hatch(self) -> None:
+        """Marca el huevo como eclosionado."""
+        self.status = EggStatus.HATCHED
+    
+    def die(self) -> None:
+        """Marca el huevo como muerto."""
+        self.status = EggStatus.DEAD
+    
+    def abandon(self) -> None:
+        """Marca el huevo como abandonado."""
+        self.status = EggStatus.ABANDONED
+    
+    def should_hatch(self) -> bool:
+        """Verifica si el huevo debe eclosionar."""
+        return self.is_incubating and self.current_incubation >= self.incubation_days
+    
+    def to_dict(self) -> dict:
+        """Serializa el huevo para debugging o guardado."""
+        return {
+            "egg_id": self.egg_id,
+            "mother_id": self.mother_id,
+            "father_id": self.father_id,
+            "x": self.x,
+            "y": self.y,
+            "laid_day": self.laid_day,
+            "incubation_days": self.incubation_days,
+            "current_incubation": self.current_incubation,
+            "status": self.status.value,
+            "progress": self.progress,
+            "clutch_id": self.clutch_id,
+        }
+    
+    def __str__(self) -> str:
+        return (
+            f"Egg(id={self.egg_id}, mother={self.mother_id}, "
+            f"status={self.status.value}, progress={self.progress:.1%})"
+        )
+    
+    def __repr__(self) -> str:
+        return (
+            f"Egg(egg_id={self.egg_id}, mother_id={self.mother_id}, "
+            f"father_id={self.father_id}, x={self.x}, y={self.y}, "
+            f"laid_day={self.laid_day}, incubation_days={self.incubation_days}, "
+            f"current_incubation={self.current_incubation}, "
+            f"status={self.status}, clutch_id={self.clutch_id})"
+        )
+
+================================================================================
+ARCHIVO: .\systems\reproduction\egg_system.py
+================================================================================
+
+"""Sistema de procesamiento de huevos ovíparos.
+
+Procesa la incubación, mortalidad ambiental y eclosión de huevos
+puestos por organismos ovíparos (aves, peces, reptiles, insectos).
+
+GENÉTICA UNIVERSAL: Este sistema solo procesa huevos; la decisión de
+poner huevos vs gestar internamente se toma en ConceptionSystem
+basándose en ReproductiveCapabilities.
+
+Flujo:
+1. ConceptionSystem registra huevos nuevos en pending.new_eggs
+2. EggSystem los recoge y los añade a state.active_eggs
+3. Cada tick: avanza incubación, verifica mortalidad, eclosiona
+4. Al eclosionar: register_birth y elimina el huevo
+"""
+
+from __future__ import annotations
+
+import logging
+import random
+from typing import List
+
+from core.config.simulation_config import SimulationConfig
+from core.state.pending_changes import PendingChanges
+from core.state.world_state import WorldState
+from systems.environment.environment_context import EnvironmentContext
+from systems.reproduction.egg_model import Egg, EggStatus
+from systems.behavior.cognitive_capabilities import CognitiveCapabilities
+
+
+class EggSystem:
+    """Sistema de procesamiento de huevos ovíparos."""
+
+    def __init__(self, config: SimulationConfig) -> None:
+        self.config = config
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self._clutch_counter = 0
+
+    def process(
+        self,
+        state: WorldState,
+        pending: PendingChanges,
+        delta_days: float,
+        context: EnvironmentContext,
+    ) -> None:
+        """Procesa todos los huevos activos.
+        
+        1. Recoge huevos nuevos de pending
+        2. Avanza incubación
+        3. Verifica mortalidad ambiental
+        4. Eclosiona huevos maduros
+        """
+        current_day = getattr(state, 'world_days_elapsed', 0.0)
+        
+        # 1. Recoger huevos nuevos del buffer de pending
+        self._collect_new_eggs(state, pending, current_day)
+        
+        # 2. Procesar huevos activos
+        active_eggs = self._get_active_eggs(state)
+        eggs_to_remove = []
+        
+        for egg in active_eggs:
+            if not egg.is_alive:
+                eggs_to_remove.append(egg)
+                continue
+            
+            # Iniciar incubación si está recién puesto
+            if egg.status == EggStatus.LAID:
+                egg.start_incubation()
+            
+            # Avanzar incubación
+            egg.advance_incubation(delta_days)
+            
+            # Verificar mortalidad ambiental
+            if self._check_environmental_mortality(egg, context, delta_days):
+                egg.die()
+                eggs_to_remove.append(egg)
+                self.logger.debug(
+                    "🥚 Huevo %d murió por causas ambientales (madre: %d)",
+                    egg.egg_id, egg.mother_id,
+                )
+                continue
+            
+            # Verificar eclosión
+            if egg.should_hatch():
+                self._execute_hatch(egg, state, pending, current_day)
+                egg.hatch()
+                eggs_to_remove.append(egg)
+                self.logger.debug(
+                    "🐣 Huevo %d eclosionó (madre: %d)",
+                    egg.egg_id, egg.mother_id,
+                )
+        
+        # 3. Eliminar huevos procesados (eclosionados o muertos)
+        self._remove_eggs(state, eggs_to_remove)
+
+    def _collect_new_eggs(
+        self,
+        state: WorldState,
+        pending: PendingChanges,
+        current_day: float,
+    ) -> None:
+        """Recoge huevos nuevos del buffer de pending y los añade al estado."""
+        new_eggs = getattr(pending, 'new_eggs', [])
+        
+        if not new_eggs:
+            return
+        
+        # Asegurar que state tiene la lista de huevos activos
+        if not hasattr(state, 'active_eggs'):
+            state.active_eggs = []
+        
+        for egg_data in new_eggs:
+            if isinstance(egg_data, Egg):
+                egg = egg_data
+            else:
+                # Si viene como dict, crear Egg
+                egg = Egg(
+                    egg_id=egg_data.get('egg_id', 0),
+                    mother_id=egg_data.get('mother_id', 0),
+                    father_id=egg_data.get('father_id', None),
+                    x=egg_data.get('x', 0.0),
+                    y=egg_data.get('y', 0.0),
+                    genome=egg_data.get('genome', None),
+                    laid_day=current_day,
+                    incubation_days=egg_data.get('incubation_days', 30.0),
+                    clutch_id=egg_data.get('clutch_id', None),
+                )
+            
+            state.active_eggs.append(egg)
+        
+        # Limpiar el buffer
+        pending.new_eggs = []
+        
+        self.logger.debug(
+            "🥚 Se recogieron %d huevos nuevos (total activos: %d)",
+            len(new_eggs), len(state.active_eggs),
+        )
+
+    def _get_active_eggs(self, state: WorldState) -> List[Egg]:
+        """Obtiene la lista de huevos activos del estado."""
+        if not hasattr(state, 'active_eggs'):
+            state.active_eggs = []
+        return state.active_eggs
+
+    def _check_environmental_mortality(
+        self,
+        egg: Egg,
+        context: EnvironmentContext,
+        delta_days: float,
+    ) -> bool:
+        """Verifica si el huevo muere por causas ambientales.
+        
+        Factores de mortalidad:
+        - Riesgo base (depredación, clima)
+        - Presión ambiental local (hacinamiento)
+        """
+        # Riesgo base
+        mortality_chance = egg.mortality_risk * delta_days
+        
+        # Presión ambiental local puede aumentar la mortalidad
+        try:
+            local_pressure = context.get_local_pressure(int(egg.x), int(egg.y))
+            if local_pressure > 1.5:
+                mortality_chance *= 1.5
+        except (AttributeError, TypeError):
+            pass
+        
+        return random.random() < mortality_chance
+
+    def _execute_hatch(
+        self,
+        egg: Egg,
+        state: WorldState,
+        pending: PendingChanges,
+        current_day: float,
+    ) -> None:
+        """Ejecuta la eclosión de un huevo: registra el nacimiento."""
+        if egg.genome is None:
+            self.logger.warning(
+                "⚠️ Huevo %d no tiene genoma, no se puede registrar nacimiento",
+                egg.egg_id,
+            )
+            return
+        
+        # Registrar el nacimiento
+        pending.register_birth(
+            mother_id=egg.mother_id,
+            father_id=egg.father_id,
+            x=int(egg.x),
+            y=int(egg.y),
+            genome=egg.genome,
+        )
+        
+        # Registrar memoria de nacimiento para la madre (si tiene capacidades cognitivas)
+        mother = state.get_person_by_id(egg.mother_id)
+        if mother is not None:
+            cognitive_caps = CognitiveCapabilities.from_genome(mother.genome)
+            
+            if cognitive_caps.can_have_memory_type("child"):
+                from systems.behavior.cognitive_memory_system import CognitiveMemorySystem
+                CognitiveMemorySystem.add_memory(
+                    person=mother,
+                    mem_type=CognitiveMemorySystem.TYPE_CHILD,
+                    target_id=f"egg_hatch_{egg.egg_id}",
+                    intensity=0.7,
+                    valence=1,
+                    context="eclosion",
+                    current_day=current_day,
+                    pending=pending,
+                )
+
+    def _remove_eggs(self, state: WorldState, eggs_to_remove: List[Egg]) -> None:
+        """Elimina huevos procesados del estado."""
+        if not eggs_to_remove:
+            return
+        
+        if not hasattr(state, 'active_eggs'):
+            return
+        
+        eggs_to_remove_ids = {egg.egg_id for egg in eggs_to_remove}
+        state.active_eggs = [
+            egg for egg in state.active_eggs
+            if egg.egg_id not in eggs_to_remove_ids
+        ]
+
+    def get_egg_count(self, state: WorldState) -> int:
+        """Retorna el número de huevos activos."""
+        if not hasattr(state, 'active_eggs'):
+            return 0
+        return len([e for e in state.active_eggs if e.is_alive])
+
+    def get_eggs_by_mother(self, state: WorldState, mother_id: int) -> List[Egg]:
+        """Retorna los huevos activos de una madre específica."""
+        if not hasattr(state, 'active_eggs'):
+            return []
+        return [
+            egg for egg in state.active_eggs
+            if egg.mother_id == mother_id and egg.is_alive
+        ]
+
+================================================================================
+ARCHIVO: .\systems\reproduction\gestation_system.py
+================================================================================
+
+"""Módulo responsable de la gestación y el parto.
+
+Implementa un modelo de gestación biológicamente realista con:
+- Progresión temporal del embarazo
+- Abortos espontáneos por condiciones adversas
+- Mortalidad fetal por enfermedad/desnutrición
+- Parto prematuro bajo estrés extremo
+- Mortalidad materna durante el parto
+- Integración genética vía genome.combine()
+- Soporte para camadas con recombinación independiente
+- Registro de nacimientos en PendingChanges
+
+GENÉTICA UNIVERSAL: Filtra gestación según ReproductiveCapabilities del organismo.
+
+CORRECCIONES APLICADAS (Auditoría):
+- Abortos espontáneos por estado fisiológico adverso
+- Mortalidad fetal durante la gestación
+- Parto prematuro por estrés extremo
+- Mortalidad materna asociada al parto
+- Efectos de la edad en complicaciones
+- Configuración de especies centralizada
+- Llamadas exactas a register_pregnancy_update y register_birth
+"""
+
+from __future__ import annotations
+
+import logging
+import random
+from typing import Any, Optional, Dict
+
+from core.config.simulation_config import SimulationConfig
+from core.state.pending_changes import PendingChanges
+from core.state.world_state import WorldState
+from systems.environment.environment_context import EnvironmentContext
+from systems.behavior.cognitive_memory_system import CognitiveMemorySystem
+from systems.behavior.cognitive_capabilities import CognitiveCapabilities
+from systems.reproduction.reproductive_capabilities import ReproductiveCapabilities
+
+
+class GestationSystem:
+    """Motor de gestación con complicaciones biológicas realistas."""
+
+    def __init__(
+        self, 
+        config: SimulationConfig,
+        evolution_engine: Any = None,
+        relationship_engine: Any = None,
+    ) -> None:
+        self.config = config
+        self.evolution_engine = evolution_engine
+        self.relationship_engine = relationship_engine
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    def process(
+        self,
+        state: WorldState,
+        pending: PendingChanges,
+        delta_days: float,
+        context: EnvironmentContext,
+    ) -> None:
+        """Procesa la progresión de todos los embarazos activos."""
+        current_day = getattr(state, 'world_days_elapsed', 0.0)
+
+        for person in state.get_all_persons():
+            if person.entity_id in pending.deaths:
+                continue
+
+            if not getattr(person, 'is_pregnant', False):
+                continue
+
+            # GENÉTICA UNIVERSAL: Consultar capacidades reproductivas
+            repro_caps = ReproductiveCapabilities.from_genome(person.genome)
+            
+            # Solo procesar si puede gestar
+            if not repro_caps.can_gestate:
+                continue
+            
+            # OPCIÓN B.2: Solo procesar vivíparos (los ovíparos usan EggSystem)
+            if not repro_caps.is_viviparous():
+                continue
+            
+            # Usar duración de gestación de las capacidades
+            gestation_duration = repro_caps.gestation_days
+            
+            # Si no hay gestación definida, usar valor por defecto
+            if gestation_duration <= 0:
+                gestation_duration = 270.0
+            
+            # Avanzar el embarazo
+            new_pregnancy_days = person.pregnancy_days + delta_days
+            
+            # Verificar complicaciones durante la gestación
+            complication_result = self._check_gestation_complications(
+                person=person,
+                pregnancy_days=new_pregnancy_days,
+                gestation_duration=gestation_duration,
+                delta_days=delta_days,
+            )
+            
+            if complication_result == "miscarriage":
+                # Aborto espontáneo: finalizar embarazo con failed_increment=1
+                pending.register_pregnancy_update(
+                    entity_id=person.entity_id,
+                    is_pregnant=False,
+                    pregnancy_days=0.0,
+                    failed_increment=1,
+                    litter_size=1,
+                )
+                
+                # GENÉTICA UNIVERSAL: Solo registrar memoria si tiene capacidades cognitivas
+                cognitive_caps = CognitiveCapabilities.from_genome(person.genome)
+                
+                if cognitive_caps.can_have_memory_type("disease"):
+                    CognitiveMemorySystem.add_memory(
+                        person=person,
+                        mem_type=CognitiveMemorySystem.TYPE_DISEASE,
+                        target_id="miscarriage",
+                        intensity=0.6,
+                        valence=-1,
+                        context="aborto_espontaneo",
+                        current_day=current_day,
+                        pending=pending,
+                    )
+                
+                self.logger.debug(
+                    "⚠️ Agente %s sufrió aborto espontáneo (día %.0f de gestación)",
+                    person.entity_id, new_pregnancy_days,
+                )
+                continue
+            
+            elif complication_result == "premature_birth":
+                # Parto prematuro: ejecutar nacimiento con penalizaciones
+                self._execute_premature_birth(
+                    mother=person,
+                    state=state,
+                    pending=pending,
+                    current_day=current_day,
+                )
+                continue
+            
+            # Verificar si el embarazo ha llegado a término
+            if new_pregnancy_days >= gestation_duration:
+                self._execute_full_term_birth(
+                    mother=person,
+                    state=state,
+                    pending=pending,
+                    current_day=current_day,
+                )
+            else:
+                # Actualizar progreso del embarazo (sin failed_increment)
+                pending.register_pregnancy_update(
+                    entity_id=person.entity_id,
+                    is_pregnant=True,
+                    pregnancy_days=new_pregnancy_days,
+                    failed_increment=0,
+                    litter_size=person.litter_size_gestating,
+                )
+
+    def _check_gestation_complications(
+        self,
+        person: Any,
+        pregnancy_days: float,
+        gestation_duration: float,
+        delta_days: float,
+    ) -> str:
+        """Verifica complicaciones durante la gestación.
+        
+        GENÉTICA UNIVERSAL: Solo aplica factores emocionales si tiene capacidades cognitivas.
+        
+        Returns:
+            "normal" - El embarazo continúa normalmente
+            "miscarriage" - Aborto espontáneo
+            "premature_birth" - Parto prematuro
+        """
+        repro_cfg = self.config.reproduction
+        
+        # GENÉTICA UNIVERSAL: Solo aplicar factores emocionales si tiene emociones
+        cognitive_caps = CognitiveCapabilities.from_genome(person.genome)
+        has_emotions = cognitive_caps.has_emotions
+        
+        # No verificar complicaciones en el primer trimestre (25% de la gestación)
+        first_trimester_end = gestation_duration * 0.25
+        if pregnancy_days < first_trimester_end:
+            base_miscarriage_risk = getattr(repro_cfg, 'early_miscarriage_risk', 0.0001)
+        else:
+            base_miscarriage_risk = getattr(repro_cfg, 'miscarriage_risk', 0.00005)
+        
+        # --- FACTORES DE RIESGO DE ABORTO ---
+        miscarriage_risk = base_miscarriage_risk
+        
+        # GENÉTICA UNIVERSAL: Solo aplicar factores emocionales si tiene emociones
+        if has_emotions:
+            # Desnutrición severa
+            energy = person.emotions.get("energy", 1.0)
+            if energy < 0.2:
+                miscarriage_risk *= 5.0
+            
+            # Estrés extremo
+            stress = person.emotions.get("stress", 0.0)
+            if stress > 0.8:
+                miscarriage_risk *= 2.5
+        
+        # Enfermedad activa (aplica a todos)
+        if getattr(person, 'is_sick', False):
+            miscarriage_risk *= 3.0
+            if len(getattr(person, 'active_infections', {})) > 2:
+                miscarriage_risk *= 2.0
+        
+        # Edad avanzada (complicaciones)
+        age = getattr(person, 'age', 0.0)
+        max_fertility_age = getattr(repro_cfg, 'max_fertility_age_days', 14600.0)
+        if age > max_fertility_age:
+            miscarriage_risk *= 3.0
+        
+        # Verificar aborto
+        daily_miscarriage_chance = 1.0 - (1.0 - miscarriage_risk) ** delta_days
+        if random.random() < daily_miscarriage_chance:
+            return "miscarriage"
+        
+        # --- PARTO PREMATURO (solo después del 70% de la gestación) ---
+        premature_threshold = gestation_duration * 0.70
+        if pregnancy_days >= premature_threshold:
+            premature_risk = 0.0
+            
+            # GENÉTICA UNIVERSAL: Solo aplicar estrés si tiene emociones
+            if has_emotions:
+                stress = person.emotions.get("stress", 0.0)
+                if stress > 0.9:
+                    premature_risk += 0.001
+            
+            if person.is_sick and len(person.active_infections) > 1:
+                premature_risk += 0.0005
+            
+            daily_premature_chance = 1.0 - (1.0 - premature_risk) ** delta_days
+            if random.random() < daily_premature_chance:
+                return "premature_birth"
+        
+        return "normal"
+
+    def _execute_full_term_birth(
+        self,
+        mother: Any,
+        state: WorldState,
+        pending: PendingChanges,
+        current_day: float,
+    ) -> None:
+        """Ejecuta un parto a término completo con riesgo de mortalidad materna."""
+        repro_cfg = self.config.reproduction
+        
+        # GENÉTICA UNIVERSAL: Obtener tamaño de camada de las capacidades
+        repro_caps = ReproductiveCapabilities.from_genome(mother.genome)
+        litter_size = getattr(mother, 'litter_size_gestating', None)
+        if litter_size is None:
+            litter_size = repro_caps.litter_size_min  # Usar mínimo si no está definido
+        
+        # Riesgo de mortalidad materna durante el parto
+        maternal_mortality_risk = self._calculate_maternal_mortality_risk(mother, repro_cfg)
+        
+        if random.random() < maternal_mortality_risk:
+            pending.register_death(
+                mother.entity_id,
+                reason="Complicaciones durante el parto (mortalidad materna)"
+            )
+            self.logger.debug(
+                "⚰️ Agente %s falleció durante el parto",
+                mother.entity_id,
+            )
+        
+        # Obtener el genoma del padre (si existe)
+        father_genome = None
+        father_id = getattr(mother, 'partner_id', None)
+        if father_id:
+            father = state.get_person_by_id(father_id)
+            if father and father.entity_id not in pending.deaths:
+                father_genome = father.genome
+        
+        # Ejecutar nacimientos de la camada
+        for _ in range(litter_size):
+            self._execute_single_birth(
+                mother=mother,
+                father_genome=father_genome,
+                father_id=father_id,
+                state=state,
+                pending=pending,
+                current_day=current_day,
+            )
+        
+        # Finalizar embarazo (sin failed_increment)
+        pending.register_pregnancy_update(
+            entity_id=mother.entity_id,
+            is_pregnant=False,
+            pregnancy_days=0.0,
+            failed_increment=0,
+            litter_size=1,
+        )
+        
+        # GENÉTICA UNIVERSAL: Solo registrar memoria si tiene capacidades cognitivas
+        cognitive_caps = CognitiveCapabilities.from_genome(mother.genome)
+        
+        if cognitive_caps.can_have_memory_type("child"):
+            CognitiveMemorySystem.add_memory(
+                person=mother,
+                mem_type=CognitiveMemorySystem.TYPE_CHILD,
+                target_id="birth",
+                intensity=0.9,
+                valence=1,
+                context="nacimiento",
+                current_day=current_day,
+                pending=pending,
+            )
+        
+        # Registrar día del parto para cooldown posparto
+        pending.register_memory_update(
+            mother.entity_id,
+            "last_birth_day",
+            current_day,
+        )
+
+    def _execute_premature_birth(
+        self,
+        mother: Any,
+        state: WorldState,
+        pending: PendingChanges,
+        current_day: float,
+    ) -> None:
+        """Ejecuta un parto prematuro con mayor riesgo de mortalidad."""
+        repro_cfg = self.config.reproduction
+        
+        # GENÉTICA UNIVERSAL: Obtener tamaño de camada de las capacidades
+        repro_caps = ReproductiveCapabilities.from_genome(mother.genome)
+        litter_size = getattr(mother, 'litter_size_gestating', None)
+        if litter_size is None:
+            litter_size = repro_caps.litter_size_min  # Usar mínimo si no está definido
+        
+        # Riesgo aumentado en parto prematuro
+        maternal_mortality_risk = self._calculate_maternal_mortality_risk(mother, repro_cfg) * 2.0
+        
+        if random.random() < maternal_mortality_risk:
+            pending.register_death(
+                mother.entity_id,
+                reason="Complicaciones por parto prematuro"
+            )
+        
+        # Obtener genoma del padre
+        father_genome = None
+        father_id = getattr(mother, 'partner_id', None)
+        if father_id:
+            father = state.get_person_by_id(father_id)
+            if father and father.entity_id not in pending.deaths:
+                father_genome = father.genome
+        
+        # En parto prematuro, hay riesgo de mortalidad fetal
+        fetal_mortality_risk = getattr(repro_cfg, 'premature_fetal_mortality_risk', 0.15)
+        
+        for _ in range(litter_size):
+            if random.random() < fetal_mortality_risk:
+                self.logger.debug(
+                    "⚠️ Mortalidad fetal en parto prematuro de Agente %s",
+                    mother.entity_id,
+                )
+                continue
+            
+            self._execute_single_birth(
+                mother=mother,
+                father_genome=father_genome,
+                father_id=father_id,
+                state=state,
+                pending=pending,
+                current_day=current_day,
+            )
+        
+        # Finalizar embarazo (sin failed_increment)
+        pending.register_pregnancy_update(
+            entity_id=mother.entity_id,
+            is_pregnant=False,
+            pregnancy_days=0.0,
+            failed_increment=0,
+            litter_size=1,
+        )
+        
+        pending.register_memory_update(
+            mother.entity_id,
+            "last_birth_day",
+            current_day,
+        )
+
+    def _execute_single_birth(
+        self,
+        mother: Any,
+        father_genome: Optional[Any],
+        father_id: Optional[int],
+        state: WorldState,
+        pending: PendingChanges,
+        current_day: float,
+    ) -> None:
+        """Ejecuta el nacimiento de un individuo con recombinación genética.
+        
+        GENÉTICA UNIVERSAL:
+        - Si hay padre: reproducción sexual con combine()
+        - Si no hay padre: reproducción asexual con replicate()
+        """
+        from core.config.simulation_config import MutationConfig
+        mutation_config = MutationConfig()
+        
+        if father_genome is not None:
+            # REPRODUCCIÓN SEXUAL
+            child_genome = mother.genome.combine(father_genome, mutation_config)
+        else:
+            # REPRODUCCIÓN ASEXUAL (partenogénesis/clonación)
+            child_genome = mother.genome.replicate(mutation_config)
+        
+        # Determinar posición (cerca de la madre)
+        spawn_x = mother.x + random.randint(-2, 2)
+        spawn_y = mother.y + random.randint(-2, 2)
+        
+        # CORRECCIÓN: register_birth NO acepta species (se deriva del genome)
+        pending.register_birth(
+            mother_id=mother.entity_id,
+            father_id=father_id,
+            x=spawn_x,
+            y=spawn_y,
+            genome=child_genome,
+        )
+
+    def _calculate_maternal_mortality_risk(self, mother: Any, repro_cfg: Any) -> float:
+        """Calcula el riesgo de mortalidad materna durante el parto.
+        
+        GENÉTICA UNIVERSAL: Solo aplica factores emocionales si tiene capacidades cognitivas.
+        
+        Factores de riesgo:
+        - Edad avanzada
+        - Enfermedad activa
+        - Desnutrición
+        - Estrés extremo
+        - Embarazo múltiple (camada grande)
+        """
+        base_risk = getattr(repro_cfg, 'maternal_mortality_risk', 0.001)
+        
+        # Edad: mayor riesgo en edades extremas
+        age = getattr(mother, 'age', 0.0)
+        max_fertility_age = getattr(repro_cfg, 'max_fertility_age_days', 14600.0)
+        if age > max_fertility_age:
+            base_risk *= 3.0
+        elif age < max_fertility_age * 0.3:
+            base_risk *= 2.0
+        
+        # Enfermedad activa
+        if getattr(mother, 'is_sick', False):
+            base_risk *= 2.0
+        
+        # GENÉTICA UNIVERSAL: Solo aplicar factores emocionales si tiene emociones
+        cognitive_caps = CognitiveCapabilities.from_genome(mother.genome)
+        
+        if cognitive_caps.has_emotions:
+            # Desnutrición
+            energy = mother.emotions.get("energy", 1.0)
+            if energy < 0.3:
+                base_risk *= 2.5
+            
+            # Estrés extremo
+            stress = mother.emotions.get("stress", 0.0)
+            if stress > 0.8:
+                base_risk *= 1.5
+        
+        # Camada grande (mayor riesgo)
+        litter_size = getattr(mother, 'litter_size_gestating', 1)
+        if litter_size > 2:
+            base_risk *= (1.0 + (litter_size - 2) * 0.2)
+        
+        return min(0.1, base_risk)  # Cap del 10%
+
+    def _get_species_traits(self, species: str) -> Dict[str, Any]:
+        """Configuración de especies centralizada.
+        
+        GENÉTICA UNIVERSAL: Usa species_profiles de ReproductionConfig
+        como fuente única de verdad.
+        """
+        repro_cfg = self.config.reproduction
+        species_profiles = getattr(repro_cfg, 'species_profiles', {})
+        
+        # Perfil específico de especie
+        profile = species_profiles.get(species, {})
+        
+        # Valores por defecto universales
+        defaults = {
+            "gestation_days": 180.0,
+            "litter_size_min": 1,
+            "litter_size_max": 2,
+            "parthenogenesis_chance": 0.0,
+            "can_gestate_female_only": True,
+            "fertility_window_start": 3650.0,
+            "fertility_window_end": 10950.0,
+        }
+        
+        # Combinar con defaults
+        traits = {**defaults, **profile}
+        
+        # Calcular litter_size promedio para compatibilidad con código legacy
+        if "litter_size" not in traits:
+            traits["litter_size"] = (traits["litter_size_min"] + traits["litter_size_max"]) // 2
+        
+        return traits
+
+================================================================================
+ARCHIVO: .\systems\reproduction\reproductive_capabilities.py
+================================================================================
+
+"""Capacidades reproductivas derivadas del genoma.
+
+Este módulo consulta el genoma de un organismo y determina cómo se reproduce,
+qué tipo de gestación tiene, y qué cuidado parental proporciona.
+
+Es la capa de abstracción entre el núcleo genético (agnóstico a especie)
+y los sistemas de reproducción (ConceptionSystem, GestationSystem).
+
+Diseño:
+- INMUTABLE: Se crea una vez consultando el genoma, no se modifica
+- AGNÓSTICO: No conoce especies, solo consulta rasgos
+- EXTENSIBLE: Se pueden añadir nuevas capacidades sin romper existentes
+
+Tipos de reproducción biológica:
+- Asexual: Fisión binaria, esporas, clonación (plantas, bacterias)
+- Sexual: Requiere dos progenitores (animales)
+- Partenogénesis: Hembra sin macho (algunas especies)
+
+Tipos de gestación:
+- Vivípara: Gestación interna, crías vivas (mamíferos)
+- Ovípara: Pone huevos (aves, peces, insectos, reptiles)
+- Sin gestación: Liberación de gametos o esporas (plantas, bacterias)
+"""
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from entities.person.genome import Genome
+
+
+@dataclass
+class ReproductiveCapabilities:
+    """Capacidades reproductivas derivadas del genoma de un organismo.
+    
+    Esta clase es inmutable y se crea consultando el genoma.
+    Determina QUÉ tipo de reproducción tiene un organismo y cómo
+    se desarrolla su descendencia.
+    
+    Atributos:
+        can_reproduce: ¿Puede reproducirse en general?
+        reproduction_type: Tipo de reproducción (asexual, sexual, parthenogenesis)
+        requires_partner: ¿Requiere pareja para reproducirse?
+        can_gestate: ¿Puede gestar descendencia?
+        gestation_type: Tipo de gestación (viviparous, oviparous, none)
+        has_parental_care: ¿Proporciona cuidado parental?
+        can_conceive: ¿Puede concebir (quedar embarazada)?
+        has_postpartum: ¿Tiene periodo posparto?
+        fertility_level: Nivel de fertilidad (0.0 a 1.0)
+        litter_size_min: Tamaño mínimo de camada
+        litter_size_max: Tamaño máximo de camada
+    """
+    
+    # === CAPACIDADES BÁSICAS ===
+    can_reproduce: bool = False           # ¿Puede reproducirse?
+    reproduction_type: str = "asexual"    # "asexual", "sexual", "parthenogenesis"
+    requires_partner: bool = False        # ¿Requiere pareja?
+    
+    # === GESTACIÓN ===
+    can_gestate: bool = False             # ¿Puede gestar?
+    gestation_type: str = "none"          # "viviparous", "oviparous", "none"
+    gestation_days: float = 0.0           # Duración de gestación/incubación
+    
+    # === CUIDADO PARENTAL ===
+    has_parental_care: bool = False       # ¿Proporciona cuidado parental?
+    care_duration_days: float = 0.0       # Duración del cuidado parental
+    
+    # === CARACTERÍSTICAS REPRODUCTIVAS ===
+    can_conceive: bool = False            # ¿Puede concebir (quedar embarazada)?
+    has_postpartum: bool = False          # ¿Tiene periodo posparto?
+    fertility_level: float = 0.0          # Nivel de fertilidad (0.0 a 1.0)
+    
+    # === CAMADA ===
+    litter_size_min: int = 1              # Tamaño mínimo de camada
+    litter_size_max: int = 1              # Tamaño máximo de camada
+    
+    @classmethod
+    def from_genome(cls, genome: 'Genome') -> 'ReproductiveCapabilities':
+        """Crea ReproductiveCapabilities consultando el genoma.
+        
+        Este método es la única forma de crear ReproductiveCapabilities.
+        Consulta el genoma y deriva las capacidades de forma determinista.
+        
+        Args:
+            genome: El genoma del organismo.
+            
+        Returns:
+            ReproductiveCapabilities con las capacidades derivadas.
+            
+        Note:
+            Si un rasgo no existe en el genoma, usa valores por defecto
+            apropiados para organismos que no tienen ese rasgo.
+            
+        Examples:
+            >>> caps = ReproductiveCapabilities.from_genome(human_genome)
+            >>> caps.gestation_type
+            "viviparous"
+            >>> caps.has_parental_care
+            True
+            
+            >>> caps = ReproductiveCapabilities.from_genome(plant_genome)
+            >>> caps.reproduction_type
+            "asexual"
+            >>> caps.can_gestate
+            False
+        """
+        # Helper para obtener valor de rasgo de forma segura
+        def get_trait(trait_id: str, default: float = 0.0) -> float:
+            """Obtiene el valor de un rasgo, retornando default si no existe."""
+            if genome.has_trait(trait_id):
+                return genome.get_trait_value(trait_id)
+            return default
+        
+        # === OBTENER VALORES DE RASGOS ===
+        fertility = get_trait("fertility", 0.5)
+        metabolism = get_trait("metabolism", 0.5)
+        nervous_system = get_trait("nervous_system", 0.0)
+        intelligence = get_trait("intelligence", 0.0)
+        sociability = get_trait("sociability", 0.0)
+        heterotrophy = get_trait("heterotrophy", 0.0)
+        longevity = get_trait("longevity", 1.0)
+        
+        # === CAPACIDADES BÁSICAS ===
+        # Todos los organismos pueden reproducirse de alguna forma
+        can_reproduce = fertility > 0.0 and metabolism > 0.1
+        
+        # Tipo de reproducción
+        # Si tiene sistema nervioso, es sexual; si no, es asexual
+        if nervous_system > 0.1:
+            reproduction_type = "sexual"
+            # Requiere pareja solo si es muy social (interacción directa)
+            # Peces, anfibios: fertilización externa (no requieren pareja directa)
+            # Aves, mamíferos: cópula (requieren pareja)
+            requires_partner = sociability >= 0.6
+        else:
+            reproduction_type = "asexual"
+            requires_partner = False
+        
+        # === GESTACIÓN ===
+        # Solo organismos complejos (con sistema nervioso) pueden gestar
+        can_gestate = nervous_system > 0.3
+        
+        # Tipo de gestación
+        if not can_gestate:
+            gestation_type = "none"
+            gestation_days = 0.0
+        elif nervous_system >= 0.7 and heterotrophy >= 0.7:
+            # Mamíferos: vivíparos
+            gestation_type = "viviparous"
+            # Duración basada en longevidad (especies longevas = gestación larga)
+            # Humanos (longevity=1.0): ~270 días
+            # Lobos (longevity=0.5): ~60 días
+            # Ratones (longevity=0.2): ~20 días
+            gestation_days = max(30.0, min(300.0, longevity * 270.0))
+        else:
+            # Aves, peces, reptiles, insectos: ovíparos
+            gestation_type = "oviparous"
+            # Incubación más corta que gestación vivípara
+            # Aves (longevity=1.0): ~30 días
+            # Peces (longevity=0.5): ~15 días
+            gestation_days = max(7.0, min(60.0, longevity * 30.0))
+        
+        # === CUIDADO PARENTAL ===
+        # Solo organismos con inteligencia y sociabilidad altas
+        has_parental_care = intelligence > 0.5 and sociability > 0.6
+        
+        if has_parental_care:
+            # Duración basada en inteligencia (más inteligente = más cuidado)
+            care_duration_days = intelligence * 365.0 * 2.0  # Hasta 2 años
+        else:
+            care_duration_days = 0.0
+        
+        # === CARACTERÍSTICAS REPRODUCTIVAS ===
+        # Solo vivíparos pueden concebir (quedar embarazados)
+        can_conceive = gestation_type == "viviparous"
+        
+        # Solo mamíferos tienen periodo posparto
+        has_postpartum = gestation_type == "viviparous" and has_parental_care
+        
+        # Nivel de fertilidad (0.0 a 1.0)
+        fertility_level = max(0.0, min(1.0, fertility))
+        
+        # === CAMADA ===
+        # Tamaño basado en estrategia reproductiva
+        if not can_reproduce:
+            litter_size_min = 0
+            litter_size_max = 0
+        elif gestation_type == "viviparous":
+            # Mamíferos: camadas pequeñas
+            litter_size_min = 1
+            litter_size_max = max(1, int(3 - longevity))  # Especies longevas = menos crías
+        elif gestation_type == "oviparous":
+            # Ovíparos: muchos huevos
+            litter_size_min = 2
+            litter_size_max = max(2, int(10 - longevity * 2))
+        else:
+            # Asexual: muchos descendientes
+            litter_size_min = 1
+            litter_size_max = max(1, int(100 / max(0.1, longevity)))
+        
+        # Asegurar que min <= max
+        litter_size_max = max(litter_size_min, litter_size_max)
+        
+        return cls(
+            can_reproduce=can_reproduce,
+            reproduction_type=reproduction_type,
+            requires_partner=requires_partner,
+            can_gestate=can_gestate,
+            gestation_type=gestation_type,
+            gestation_days=gestation_days,
+            has_parental_care=has_parental_care,
+            care_duration_days=care_duration_days,
+            can_conceive=can_conceive,
+            has_postpartum=has_postpartum,
+            fertility_level=fertility_level,
+            litter_size_min=litter_size_min,
+            litter_size_max=litter_size_max,
+        )
+    
+    def is_sexual_reproduction(self) -> bool:
+        """Verifica si usa reproducción sexual."""
+        return self.reproduction_type in ("sexual", "parthenogenesis")
+    
+    def is_asexual_reproduction(self) -> bool:
+        """Verifica si usa reproducción asexual."""
+        return self.reproduction_type == "asexual"
+    
+    def is_viviparous(self) -> bool:
+        """Verifica si es vivíparo."""
+        return self.gestation_type == "viviparous"
+    
+    def is_oviparous(self) -> bool:
+        """Verifica si es ovíparo."""
+        return self.gestation_type == "oviparous"
+    
+    def can_form_nucleus(self) -> bool:
+        """Verifica si puede formar núcleo residencial (requiere cuidado parental)."""
+        return self.has_parental_care
+    
+    def __str__(self) -> str:
+        """Representación legible para debugging."""
+        return (
+            f"ReproductiveCapabilities("
+            f"type={self.reproduction_type}, "
+            f"gestation={self.gestation_type}, "
+            f"care={self.has_parental_care}, "
+            f"fertility={self.fertility_level:.2f}, "
+            f"litter={self.litter_size_min}-{self.litter_size_max}"
+            f")"
+        )
+    
+    def __repr__(self) -> str:
+        """Representación completa para debugging."""
+        return (
+            f"ReproductiveCapabilities("
+            f"can_reproduce={self.can_reproduce}, "
+            f"reproduction_type={self.reproduction_type}, "
+            f"requires_partner={self.requires_partner}, "
+            f"can_gestate={self.can_gestate}, "
+            f"gestation_type={self.gestation_type}, "
+            f"gestation_days={self.gestation_days}, "
+            f"has_parental_care={self.has_parental_care}, "
+            f"care_duration_days={self.care_duration_days}, "
+            f"can_conceive={self.can_conceive}, "
+            f"has_postpartum={self.has_postpartum}, "
+            f"fertility_level={self.fertility_level}, "
+            f"litter_size_min={self.litter_size_min}, "
+            f"litter_size_max={self.litter_size_max}"
+            f")"
+        )

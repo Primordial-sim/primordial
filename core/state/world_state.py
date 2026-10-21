@@ -29,7 +29,6 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
-
 if TYPE_CHECKING:
     from systems.environment.tile import Tile
 
@@ -51,6 +50,7 @@ from events.population.divorce_occurred import DivorceOccurredEvent
 from events.population.marriage_created import MarriageCreatedEvent
 from events.population.person_born import PersonBornEvent
 from events.population.person_died import PersonDiedEvent
+
 
 class WorldState:
     """Contenedor de la realidad simulada. Garantiza aislamiento en la lectura."""
@@ -100,8 +100,8 @@ class WorldState:
         if person.entity_id > self._last_entity_id:
             self._last_entity_id = person.entity_id
         
-        # FASE C: Ocupar la casilla del nuevo agente
-        self.occupy_cell(int(person.x), int(person.y), person.entity_id)
+        # FASE C: Ocupar la casilla del nuevo agente (Hexagonal)
+        self.occupy_cell(int(person.q), int(person.r), person.entity_id)
         
         # FASE A: Si el agente no tiene núcleo, crear uno individual
         if not hasattr(person, 'nucleus_id') or person.nucleus_id is None:
@@ -133,8 +133,8 @@ class WorldState:
             if entity_id in self.persons:
                 p = self.persons.pop(entity_id)
                 
-                # FASE C: Liberar la casilla del agente fallecido
-                self.free_cell(int(p.x), int(p.y))
+                # FASE C: Liberar la casilla del agente fallecido (Hexagonal)
+                self.free_cell(int(p.q), int(p.r))
                 
                 # FASE A: Eliminar al agente de su núcleo
                 self._handle_death_in_nucleus(entity_id)
@@ -187,15 +187,15 @@ class WorldState:
             new_id = self.get_next_entity_id()
             baby_genome = data.get("genome")
             
-            # Envolver coordenadas de nacimiento como toroide
-            birth_x = int(data["x"]) % self.width
-            birth_y = int(data["y"]) % self.height
+            # Envolver coordenadas de nacimiento como toroide (Hexagonal)
+            birth_q = int(data["q"]) % self.width
+            birth_r = int(data["r"]) % self.height
             
             newborn = Person(
                 config=self.config,
                 entity_id=new_id, 
-                x=birth_x, 
-                y=birth_y, 
+                q=birth_q, 
+                r=birth_r, 
                 age=0.0, 
                 genome=baby_genome,
                 species=getattr(baby_genome, 'species_baseline', 'human'),
@@ -206,8 +206,8 @@ class WorldState:
             newborn.set_parents(mother_id, father_id)
             self.add_person(newborn)
             
-            # FASE C: Ocupar la casilla del recién nacido (con wrapping aplicado)
-            self.occupy_cell(birth_x, birth_y, new_id)
+            # FASE C: Ocupar la casilla del recién nacido (Hexagonal)
+            self.occupy_cell(birth_q, birth_r, new_id)
                             
             madre = self.get_person(mother_id)
             padre = self.get_person(father_id) if father_id else None
@@ -227,7 +227,7 @@ class WorldState:
                 gender = getattr(newborn, 'gender', 'indefinido')
                 event_bus.publish(
                     PersonBornEvent(
-                        new_id, mother_id, father_id, data["x"], data["y"],
+                        new_id, mother_id, father_id, birth_q, birth_r,
                         gender, current_tick,
                     )
                 )
@@ -274,20 +274,20 @@ class WorldState:
         # =====================================================================
         # 6. RELACIONES Y MOVIMIENTOS ESPACIALES
         # =====================================================================
-        for entity_id, (new_x, new_y) in pending.movements.items():
+        for entity_id, (new_q, new_r) in pending.movements.items():
             p = self.get_person(entity_id)
             if p:
-                # Envolver como toroide: si sale por un lado, aparece por el otro
-                wrapped_x = int(new_x) % self.width
-                wrapped_y = int(new_y) % self.height
+                # Envolver como toroide (Hexagonal)
+                wrapped_q = int(new_q) % self.width
+                wrapped_r = int(new_r) % self.height
                 
                 # FASE C: Liberar casilla antigua y ocupar la nueva
-                old_x, old_y = int(p.x), int(p.y)
-                self.free_cell(old_x, old_y)
+                old_q, old_r = int(p.q), int(p.r)
+                self.free_cell(old_q, old_r)
                 
-                p.set_position(wrapped_x, wrapped_y)
+                p.set_position(wrapped_q, wrapped_r)
                 
-                self.occupy_cell(wrapped_x, wrapped_y, entity_id)
+                self.occupy_cell(wrapped_q, wrapped_r, entity_id)
 
         # Divorcios
         for p_a_id, p_b_id in pending.divorces:
@@ -369,7 +369,7 @@ class WorldState:
         # 8. ACTUALIZACIÓN FINAL DEL TICK
         # =====================================================================
         
-        # FASE A: Actualizar centros de todos los núcleos
+        # FASE A: Actualizar centros de todos los núcleos (Hexagonal)
         self.update_nuclei_centers()
         
         # FASE C: Verificar consistencia de ocupación
@@ -706,7 +706,8 @@ class WorldState:
         """
         positions = {}
         for person in self.get_all_persons():
-            positions[person.entity_id] = (person.x, person.y)
+            # HEX: Usar q, r en lugar de x, y
+            positions[person.entity_id] = (person.q, person.r)
         
         for nucleus in self._nuclei.values():
             nucleus.update_center(positions)
@@ -728,25 +729,25 @@ class WorldState:
         return summary
 
     # =========================================================================
-    # OCUPACIÓN DE CASILLAS (FASE C)
+    # OCUPACIÓN DE CASILLAS (FASE C) - HEXAGONAL
     # =========================================================================
     
-    def is_cell_occupied(self, x: int, y: int) -> bool:
+    def is_cell_occupied(self, q: int, r: int) -> bool:
         """Verifica si una casilla está ocupada por algún agente."""
-        cell = (int(x), int(y))
+        cell = (int(q), int(r))
         return cell in self._cell_occupancy and self._cell_occupancy[cell] is not None
 
-    def get_cell_occupant(self, x: int, y: int) -> Optional[int]:
+    def get_cell_occupant(self, q: int, r: int) -> Optional[int]:
         """Retorna el entity_id del agente que ocupa la casilla, o None."""
-        return self._cell_occupancy.get((int(x), int(y)))
+        return self._cell_occupancy.get((int(q), int(r)))
 
-    def occupy_cell(self, x: int, y: int, entity_id: int) -> None:
+    def occupy_cell(self, q: int, r: int, entity_id: int) -> None:
         """Marca una casilla como ocupada por un agente."""
-        self._cell_occupancy[(int(x), int(y))] = entity_id
+        self._cell_occupancy[(int(q), int(r))] = entity_id
 
-    def free_cell(self, x: int, y: int) -> None:
+    def free_cell(self, q: int, r: int) -> None:
         """Libera una casilla (cuando un agente muere o se mueve)."""
-        cell = (int(x), int(y))
+        cell = (int(q), int(r))
         if cell in self._cell_occupancy:
             del self._cell_occupancy[cell]
 
@@ -757,7 +758,8 @@ class WorldState:
         """
         self._cell_occupancy.clear()
         for person in self.get_all_persons():
-            cell = (int(person.x), int(person.y))
+            # HEX: Usar q, r
+            cell = (int(person.q), int(person.r))
             self._cell_occupancy[cell] = person.entity_id
         
         self.logger.info(
@@ -776,7 +778,8 @@ class WorldState:
         conflicts = 0
         
         for person in self.get_all_persons():
-            cell = (int(person.x), int(person.y))
+            # HEX: Usar q, r
+            cell = (int(person.q), int(person.r))
             if cell in seen_cells:
                 conflicts += 1
                 self.logger.warning(
@@ -906,10 +909,14 @@ class WorldState:
             )
 
     # =========================================================================
-    # API PÚBLICA DE TILES (SISTEMA DE BIOMAS)
+    # API PÚBLICA DE TILES (SISTEMA DE BIOMAS) - HEXAGONAL
     # =========================================================================
     
-    def initialize_tile_map(self, world_config: Optional[WorldConfig] = None, seed: int = 42) -> None:
+    def initialize_tile_map(
+        self,
+        world_config: Optional[WorldConfig] = None,
+        seed: int = 42
+    ) -> None:
         """Inicializa el mapa de tiles usando generación procedural.
 
         Args:
@@ -941,19 +948,19 @@ class WorldState:
             )
             self.tile_map = None
     
-    def get_tile_at(self, x: int, y: int) -> Optional[Tile]:
+    def get_tile_at(self, q: int, r: int) -> Optional[Tile]:
         """Retorna el tile en la posición dada.
         
         Args:
-            x: Coordenada X.
-            y: Coordenada Y.
+            q: Coordenada Q (hexagonal).
+            r: Coordenada R (hexagonal).
             
         Returns:
-            El tile en esa posición, o None si no existe.
+            El tile en esa posición, o None si no existe o no hay mapa de tiles.
         """
         if self.tile_map is None:
             return None
-        return self.tile_map.get_tile(int(x), int(y))
+        return self.tile_map.get_tile(int(q), int(r))
     
     def has_tile_map(self) -> bool:
         """Verifica si el mapa de tiles ha sido inicializado."""

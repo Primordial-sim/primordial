@@ -2,17 +2,16 @@
 
 Gestiona el metabolismo energético de todos los organismos:
 1. Genera energía por fotosíntesis (plantas y organismos fotosintéticos)
-2. Aplica el coste metabólico basal (mantenimiento del organismo)
-3. Gestiona el estado de inanición (starvation)
-4. Calcula el riesgo de muerte por inanición
+2. Forrajeo pasivo para heterótrofos en tiles con recursos
+3. Aplica el coste metabólico basal (mantenimiento del organismo)
+4. Gestiona el estado de inanición (starvation)
+5. Calcula el riesgo de muerte por inanición
 
 Flujo de energía en el ecosistema:
 Sol → Plantas (fotosíntesis) → Herbívoros (comen plantas) → Carnívoros (cazan)
 
 Filosofía: "La energía es el recurso fundamental de la vida. Sin energía,
 no hay movimiento, reproducción ni supervivencia."
-
-MIGRACIÓN HEXAGONAL: person.x/y → person.q/r en consultas de tiles.
 """
 
 from __future__ import annotations
@@ -29,52 +28,34 @@ if TYPE_CHECKING:
 
 
 class EnergySystem:
-    """Sistema que gestiona el metabolismo energético de los organismos.
-
-    Responsabilidades:
-    - Fotosíntesis: Plantas y organismos fotosintéticos generan energía del sol
-    - Metabolismo basal: Todos los organismos gastan energía por mantenimiento
-    - Inanición: Sin energía, los organismos mueren
-
-    Uso:
-        energy_system = EnergySystem(config)
-        # En cada tick de simulación:
-        energy_system.process(state, pending, delta_days, context)
-    """
+    """Sistema que gestiona el metabolismo energético de los organismos."""
 
     _logger = logging.getLogger("EnergySystem")
 
     def __init__(self, config) -> None:
-        """Inicializa el sistema de energía.
-
-        Args:
-            config: Configuración de la simulación.
-        """
         self.config = config
 
         # Parámetros de metabolismo
-        # NOTA: Valores conservadores hasta que implementemos fuentes de comida
-        # 0.1 energía/día = ~1000 días hasta agotar 100 de energía
-        self.basal_metabolic_rate: float = 0.1
+        self.basal_metabolic_rate: float = 0.05  # REDUCIDO: 0.1 → 0.05
         self.starvation_death_threshold: float = 30.0
         self.starvation_damage_rate: float = 0.05
 
         # Parámetros de fotosíntesis
-        self.photosynthesis_rate: float = 5.0
+        self.photosynthesis_rate: float = 8.0  # AUMENTADO: 5.0 → 8.0
         self.photosynthesis_light_factor: float = 1.0
+
+        # NUEVO: Parámetros de forrajeo pasivo
+        self.passive_foraging_rate: float = 0.05
+        self.foraging_vegetation_threshold: float = 0.3
 
         # Estadísticas
         self._total_starvation_deaths: int = 0
         self._total_energy_processed: int = 0
         self._total_photosynthesis_events: int = 0
+        self._total_foraging_events: int = 0
 
     def _get_param(self, name: str, default: float) -> float:
-        """Lee un parámetro de energía desde la config en caliente.
-
-        Permite que el ParameterRegistry modifique los valores de
-        EnergyConfig en plena simulación y que el cambio surta efecto
-        en el siguiente tick.
-        """
+        """Lee un parámetro de energía desde la config en caliente."""
         if self.config is not None:
             energy_cfg = getattr(self.config, "energy", None)
             if energy_cfg is not None:
@@ -88,20 +69,14 @@ class EnergySystem:
         delta_days: float,
         context: "EnvironmentContext",
     ) -> None:
-        """Procesa el metabolismo energético para todos los organismos.
-
-        Args:
-            state: Estado del mundo con agentes.
-            pending: Buffer de cambios pendientes.
-            delta_days: Días transcurridos desde el último tick.
-            context: Contexto ambiental.
-        """
+        """Procesa el metabolismo energético para todos los organismos."""
         persons = list(state.get_all_persons())
         if not persons:
             return
 
         starvation_deaths = 0
         photosynthesis_count = 0
+        foraging_count = 0
 
         for person in persons:
             # 1. Generar energía por fotosíntesis (si aplica)
@@ -112,17 +87,25 @@ class EnergySystem:
                 person.add_energy(energy_generated)
                 photosynthesis_count += 1
 
-            # 2. Aplicar metabolismo basal
+            # 2. NUEVO: Forrajeo pasivo para heterótrofos
+            elif not getattr(person, "is_sick", False):
+                foraging_gained = self._apply_passive_foraging(
+                    person, state, delta_days
+                )
+                if foraging_gained > 0:
+                    foraging_count += 1
+
+            # 3. Aplicar metabolismo basal
             metabolic_cost = self._calculate_metabolic_cost(person, delta_days)
             person.spend_energy(metabolic_cost)
 
-            # 3. Avanzar contador de inanición
+            # 4. Avanzar contador de inanición
             person.advance_starvation(delta_days)
 
-            # 4. Sincronizar energía física con emoción de energía
+            # 5. Sincronizar energía física con emoción de energía
             self._sync_energy_with_emotions(person)
 
-            # 5. Verificar muerte por inanición
+            # 6. Verificar muerte por inanición
             if self._check_starvation_death(person, delta_days):
                 pending.register_death(
                     entity_id=person.entity_id,
@@ -138,42 +121,90 @@ class EnergySystem:
 
         self._total_energy_processed += len(persons)
         self._total_photosynthesis_events += photosynthesis_count
+        self._total_foraging_events += foraging_count
 
-        if starvation_deaths > 0 or photosynthesis_count > 0:
+        if starvation_deaths > 0 or photosynthesis_count > 0 or foraging_count > 0:
             self._logger.debug(
                 "⚡ Energía: %d organismos procesados, "
                 "%d fotosíntesis, "
+                "%d forrajes, "
                 "%d muertes por inanición",
                 len(persons),
                 photosynthesis_count,
+                foraging_count,
                 starvation_deaths,
             )
+
+    # =========================================================================
+    # NUEVO: FORRAJEO PASIVO
+    # =========================================================================
+
+    def _apply_passive_foraging(
+        self,
+        person: "Person",
+        state: "WorldState",
+        delta_days: float,
+    ) -> float:
+        """Aplica forrajeo pasivo para organismos heterótrofos.
+
+        Los organismos en tiles con vegetación suficiente obtienen
+        energía automáticamente, simulando la búsqueda de alimento.
+        """
+        from systems.environment.tile import Tile
+
+        tile = state.get_tile_at(int(person.q), int(person.r))
+        if tile is None:
+            return 0.0
+
+        vegetation = getattr(tile, "vegetation", 0.0)
+
+        # Salvaguarda: un objeto no numérico no es un recurso consumible
+        if isinstance(vegetation, bool) or not isinstance(
+            vegetation, (int, float)
+        ):
+            return 0.0
+
+        vegetation = max(0.0, min(1.0, float(vegetation)))
+
+        threshold = float(
+            self._get_param(
+                "foraging_vegetation_threshold",
+                self.foraging_vegetation_threshold,
+            )
+        )
+        if vegetation < threshold:
+            return 0.0
+
+        base_rate = float(
+            self._get_param(
+                "passive_foraging_rate", self.passive_foraging_rate
+            )
+        )
+        if base_rate <= 0.0 or delta_days <= 0.0:
+            return 0.0
+
+        energy_gained = (base_rate + vegetation * 0.1) * delta_days
+        person.add_energy(energy_gained)
+
+        # Agotar el recurso solo si es un Tile real
+        if isinstance(tile, Tile):
+            tile.vegetation = max(
+                0.0, tile.vegetation - 0.001 * delta_days
+            )
+
+        return energy_gained
 
     # =========================================================================
     # FOTOSÍNTESIS
     # =========================================================================
 
     def _is_photosynthetic(self, person: "Person") -> bool:
-        """Verifica si un organismo es fotosintético.
-
-        Consulta el rasgo 'diet' del genoma para determinar si el organismo
-        puede realizar fotosíntesis.
-
-        Args:
-            person: El organismo a verificar.
-
-        Returns:
-            True si el organismo es fotosintético, False en caso contrario.
-        """
+        """Verifica si un organismo es fotosintético."""
         try:
-            # Consultar el rasgo de dieta del genoma
             diet = person.genome.get_trait_value("diet")
             if diet is not None:
-                # PHOTOSYNTHETIC = 0.0 en nuestra escala de dieta
-                # Verificar si el valor indica fotosíntesis
-                return diet <= 0.1  # Valores muy bajos indican fotosíntesis
+                return diet <= 0.1
 
-            # Si no hay rasgo de dieta, verificar por especie
             species = person.species.lower()
             photosynthetic_species = [
                 "grass", "tree", "shrub", "flower", "algae",
@@ -189,156 +220,82 @@ class EnergySystem:
         state: "WorldState",
         delta_days: float,
     ) -> float:
-        """Calcula la energía generada por fotosíntesis.
-
-        La fotosíntesis depende de:
-        - Luz solar (estación, hora del día)
-        - Agua disponible en el tile
-        - Temperatura adecuada
-
-        Args:
-            person: El organismo fotosintético.
-            state: Estado del mundo (para consultar tiles).
-            delta_days: Días transcurridos.
-
-        Returns:
-            Cantidad de energía generada.
-        """
-        # Energía base por fotosíntesis
+        """Calcula la energía generada por fotosíntesis."""
         energy = (
             self._get_param("photosynthesis_rate", self.photosynthesis_rate)
             * delta_days
         )
 
-        # Modificador por luz (simplificado: asumimos luz diurna promedio)
         light_factor = self._get_light_factor(person, state)
         energy *= light_factor
 
-        # Modificador por agua en el tile
         water_factor = self._get_water_factor(person, state)
         energy *= water_factor
 
-        # Modificador por temperatura
         temp_factor = self._get_temperature_factor(person, state)
         energy *= temp_factor
 
         return max(0.0, energy)
 
     def _get_light_factor(self, person: "Person", state: "WorldState") -> float:
-        """Obtiene el factor de luz basado en la posición del organismo.
-
-        Simplificado: asume luz diurna promedio.
-        En el futuro se puede consultar la hora del día, estación, nubosidad.
-
-        Args:
-            person: El organismo.
-            state: Estado del mundo.
-
-        Returns:
-            Factor de luz (0.0 a 1.0).
-        """
-        # Por defecto: luz plena
-        # TODO: Consultar hora del día, estación, nubosidad
-        return 0.8  # 80% de luz promedio
+        """Obtiene el factor de luz."""
+        return 0.8
 
     def _get_water_factor(self, person: "Person", state: "WorldState") -> float:
-        """Obtiene el factor de agua basado en el tile del organismo.
-
-        HEX: Usa person.q, person.r en lugar de person.x, person.y.
-
-        Args:
-            person: El organismo.
-            state: Estado del mundo.
-
-        Returns:
-            Factor de agua (0.0 a 1.0).
-        """
+        """Obtiene el factor de agua basado en el tile del organismo."""
         try:
-            # HEX: Usar coordenadas hexagonales q, r
             tile = state.get_tile_at(int(person.q), int(person.r))
             if tile is not None:
                 water = getattr(tile, "water", 0.5)
-                # Las plantas necesitan algo de agua, pero no demasiada
                 if water < 0.1:
-                    return 0.3  # Muy seco
+                    return 0.3
                 elif water > 0.8:
-                    return 0.5  # Inundado
+                    return 0.5
                 else:
-                    return 1.0  # Agua adecuada
+                    return 1.0
         except (AttributeError, TypeError):
             pass
-        return 0.7  # Por defecto
+        return 0.7
 
     def _get_temperature_factor(self, person: "Person", state: "WorldState") -> float:
-        """Obtiene el factor de temperatura basado en el tile del organismo.
-
-        HEX: Usa person.q, person.r en lugar de person.x, person.y.
-
-        Args:
-            person: El organismo.
-            state: Estado del mundo.
-
-        Returns:
-            Factor de temperatura (0.0 a 1.0).
-        """
+        """Obtiene el factor de temperatura basado en el tile del organismo."""
         try:
-            # HEX: Usar coordenadas hexagonales q, r
             tile = state.get_tile_at(int(person.q), int(person.r))
             if tile is not None:
                 temp = getattr(tile, "temperature", 0.5)
-                # Las plantas funcionan mejor en temperaturas moderadas
                 if temp < 0.1:
-                    return 0.2  # Muy frío
+                    return 0.2
                 elif temp > 0.9:
-                    return 0.4  # Muy caliente
+                    return 0.4
                 elif 0.3 <= temp <= 0.7:
-                    return 1.0  # Temperatura óptima
+                    return 1.0
                 else:
-                    return 0.7  # Temperatura aceptable
+                    return 0.7
         except (AttributeError, TypeError):
             pass
-        return 0.7  # Por defecto
+        return 0.7
 
     # =========================================================================
     # SINCRONIZACIÓN CON EMOCIONES
     # =========================================================================
 
     def _sync_energy_with_emotions(self, person: "Person") -> None:
-        """Sincroniza el nivel de energía física con la emoción de energía.
-
-        Un organismo con poca energía física se siente débil y desmotivado.
-        Un organismo con mucha energía se siente vigoroso.
-        La sincronización es directa: el ratio de energía (0.0 a 1.0)
-        se refleja en la emoción de energía (0.0 a 1.0).
-
-        Args:
-            person: El organismo a sincronizar.
-        """
-        # Solo sincronizar si el agente tiene emociones
+        """Sincroniza el nivel de energía física con la emoción de energía."""
         emotions = getattr(person, "_emotions", None)
         if emotions is None or not isinstance(emotions, dict):
             return
 
-        # Verificar que la emoción "energy" existe
         if "energy" not in emotions:
             return
 
-        # Obtener el ratio de energía física (0.0 a 1.0)
         target_energy = person.energy_ratio
-
-        # Obtener la emoción actual de energía
         current_emotion = emotions.get("energy", 1.0)
 
-        # Calcular la diferencia y actualizar
-        # Transición suave: mover un 20% hacia el objetivo cada tick
-        # Esto evita cambios bruscos que podrían causar inestabilidad
         delta = (target_energy - current_emotion) * 0.2
 
-        # Aplicar el cambio usando el método existente
         if hasattr(person, "update_emotion"):
             person.update_emotion("energy", delta)
         else:
-            # Fallback: actualizar directamente
             emotions["energy"] = max(0.0, min(1.0, current_emotion + delta))
 
     # =========================================================================
@@ -350,67 +307,38 @@ class EnergySystem:
         person: "Person",
         delta_days: float,
     ) -> float:
-        """Calcula el coste metabólico de un organismo.
-
-        El coste metabólico depende de:
-        - Tasa metabólica basal (mantenimiento)
-        - Tamaño corporal (organismos más grandes gastan más)
-        - Estado reproductivo (embarazo aumenta el gasto)
-        - Enfermedad (estar enfermo aumenta el gasto)
-
-        Args:
-            person: El organismo a procesar.
-            delta_days: Días transcurridos.
-
-        Returns:
-            Cantidad de energía a gastar.
-        """
-        # Coste base
+        """Calcula el coste metabólico de un organismo."""
         cost = (
             self._get_param("basal_metabolic_rate", self.basal_metabolic_rate)
             * delta_days
         )
 
-        # Modificador por tamaño corporal (basado en genoma)
         size_factor = self._get_size_factor(person)
         cost *= size_factor
 
-        # Modificador por embarazo
         if person.is_pregnant:
-            cost *= 1.3  # 30% más de gasto durante el embarazo
+            cost *= 1.3
 
-        # Modificador por enfermedad
         if person.is_sick:
-            cost *= 1.2  # 20% más de gasto por enfermedad
+            cost *= 1.2
 
-        # Modificador por estrés alto
-        # El estrés crónico aumenta el metabolismo (respuesta de lucha o huida)
         emotions = getattr(person, "_emotions", None)
         if emotions is not None and isinstance(emotions, dict):
             stress = emotions.get("stress", 0.0)
             if stress > 0.7:
-                cost *= 1.15  # 15% más de gasto por estrés alto
+                cost *= 1.15
 
         return cost
 
     def _get_size_factor(self, person: "Person") -> float:
-        """Obtiene el factor de tamaño basado en el genoma.
-
-        Los organismos más grandes tienen mayor metabolismo.
-
-        Args:
-            person: El organismo.
-
-        Returns:
-            Factor multiplicador (0.5 para pequeños, 2.0 para grandes).
-        """
+        """Obtiene el factor de tamaño basado en el genoma."""
         try:
             body_size = getattr(person.genome, "body_size", None)
             if body_size is not None:
                 return 0.5 + (body_size * 1.5)
         except (AttributeError, TypeError):
             pass
-        return 1.0  # Por defecto: tamaño medio
+        return 1.0
 
     # =========================================================================
     # INANICIÓN
@@ -421,26 +349,12 @@ class EnergySystem:
         person: "Person",
         delta_days: float,
     ) -> bool:
-        """Verifica si un organismo debe morir por inanición.
-
-        La probabilidad de muerte aumenta con los días de inanición:
-        - Días 0-30: Riesgo creciente
-        - Día 30+: Muerte casi segura
-
-        Args:
-            person: El organismo a verificar.
-            delta_days: Días transcurridos.
-
-        Returns:
-            True si el organismo debe morir, False en caso contrario.
-        """
+        """Verifica si un organismo debe morir por inanición."""
         starvation_days = person.starvation_days
 
-        # Si no está en inanición, no hay riesgo
         if starvation_days <= 0:
             return False
 
-        # Leer umbrales en caliente desde la config
         threshold = self._get_param(
             "starvation_death_threshold", self.starvation_death_threshold
         )
@@ -448,7 +362,6 @@ class EnergySystem:
             "starvation_damage_rate", self.starvation_damage_rate
         )
 
-        # Calcular probabilidad de muerte basada en días de inanición
         if starvation_days < threshold:
             risk_factor = starvation_days / threshold
             death_probability = risk_factor * damage_rate * delta_days
@@ -456,7 +369,6 @@ class EnergySystem:
             days_over = starvation_days - threshold
             death_probability = 0.5 + (days_over * 0.1)
 
-        # Tirada aleatoria
         roll = random.random()
         return roll < death_probability
 
@@ -470,6 +382,7 @@ class EnergySystem:
             "total_energy_processed": self._total_energy_processed,
             "total_starvation_deaths": self._total_starvation_deaths,
             "total_photosynthesis_events": self._total_photosynthesis_events,
+            "total_foraging_events": self._total_foraging_events,
         }
 
     def __repr__(self) -> str:
@@ -477,5 +390,6 @@ class EnergySystem:
             f"EnergySystem("
             f"processed={self._total_energy_processed}, "
             f"photosynthesis={self._total_photosynthesis_events}, "
+            f"foraging={self._total_foraging_events}, "
             f"starvation_deaths={self._total_starvation_deaths})"
         )

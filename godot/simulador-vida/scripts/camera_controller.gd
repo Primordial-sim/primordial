@@ -7,7 +7,8 @@ var _is_panning: bool = false
 var _pan_start: Vector2 = Vector2.ZERO
 var _camera_start: Vector2 = Vector2.ZERO
 
-const MIN_ZOOM: float = 1.0
+# Permite hacer zoom-out hasta ver el mundo completo (~0.577)
+const MIN_ZOOM: float = 1.00
 const MAX_ZOOM: float = 4.0
 const ZOOM_STEP: float = 0.25
 const VIEWPORT_SIZE: float = 800.0
@@ -20,33 +21,34 @@ func set_cell_size(s: float) -> void:
     _cell_size = s
 
 func _get_world_size() -> Vector2:
-    return Vector2(float(_world_width) * _cell_size, float(_world_height) * _cell_size)
+    return Vector2(
+        _cell_size * sqrt(3.0) * float(_world_width),
+        _cell_size * 1.5 * float(_world_height)
+    )
 
-# Función pública para que otros scripts puedan forzar el wrapping
+func _wrap_position(p: Vector2) -> Vector2:
+    """Devuelve p envuelto al dominio fundamental del toro."""
+    var ws = _get_world_size()
+    var center = ws / 2.0
+
+    var offset_x = fmod(p.x - center.x, ws.x)
+    var offset_y = fmod(p.y - center.y, ws.y)
+
+    if offset_x > ws.x / 2.0:
+        offset_x -= ws.x
+    elif offset_x < -ws.x / 2.0:
+        offset_x += ws.x
+
+    if offset_y > ws.y / 2.0:
+        offset_y -= ws.y
+    elif offset_y < -ws.y / 2.0:
+        offset_y += ws.y
+
+    return center + Vector2(offset_x, offset_y)
+
+# Función pública para que otros scripts fuercen el wrapping
 func wrap_camera_position() -> void:
-    var world_w = float(_world_width) * _cell_size
-    var world_h = float(_world_height) * _cell_size
-    var center_x = world_w / 2.0
-    var center_y = world_h / 2.0
-    
-    var offset_x = position.x - center_x
-    var offset_y = position.y - center_y
-    
-    offset_x = fmod(offset_x, world_w)
-    offset_y = fmod(offset_y, world_h)
-    
-    if offset_x > world_w / 2.0:
-        offset_x -= world_w
-    elif offset_x < -world_w / 2.0:
-        offset_x += world_w
-    
-    if offset_y > world_h / 2.0:
-        offset_y -= world_h
-    elif offset_y < -world_h / 2.0:
-        offset_y += world_h
-    
-    position.x = center_x + offset_x
-    position.y = center_y + offset_y
+    position = _wrap_position(position)
 
 func reset_view() -> void:
     position = _get_world_size() / 2.0
@@ -71,8 +73,11 @@ func _unhandled_input(event: InputEvent) -> void:
                 _camera_start = position
     elif event is InputEventMouseMotion and _is_panning:
         var motion: InputEventMouseMotion = event
-        position = _camera_start - (motion.position - _pan_start) / zoom
-        wrap_camera_position()
+        var desired = _camera_start - (motion.position - _pan_start) / zoom
+        var wrapped = _wrap_position(desired)
+        # Compensar el salto de wrapping para que el arrastre sea continuo
+        _camera_start += wrapped - desired
+        position = wrapped
     elif event is InputEventKey:
         var key_event: InputEventKey = event
         if key_event.pressed and key_event.keycode == KEY_C:
@@ -82,7 +87,7 @@ func _zoom_at_position(new_zoom: float, screen_pos: Vector2) -> void:
     var old_zoom = zoom.x
     new_zoom = clamp(new_zoom, MIN_ZOOM, MAX_ZOOM)
     if abs(new_zoom - old_zoom) < 0.01: return
-    
+
     var world_pos_under_cursor = (screen_pos - Vector2(VIEWPORT_SIZE / 2.0, VIEWPORT_SIZE / 2.0)) / old_zoom + position
     zoom = Vector2(new_zoom, new_zoom)
     position = world_pos_under_cursor - (screen_pos - Vector2(VIEWPORT_SIZE / 2.0, VIEWPORT_SIZE / 2.0)) / new_zoom

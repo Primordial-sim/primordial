@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="SimuladorVida"
-run/main_scene="uid://bjfcek6l66nif"
+run/main_scene="uid://c8k2nan4p5q6r"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
